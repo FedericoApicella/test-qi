@@ -467,19 +467,19 @@ function rotItems(){
 
 // ========================= sezioni =========================
 const SECTIONS=[
-  {id:'mat',name:'Matrici di ragionamento',short:'Matrici',dominio:'matrici',time:16*60,kind:'matrix',items:matrixItems(),
+  {id:'mat',name:'Matrici di ragionamento',short:'Matrici',dominio:'matrici',time:14*60,kind:'matrix',items:matrixItems(),
    intro:'Ogni griglia 3×3 segue una o più regole (per riga, per colonna o entrambe). Individua le regole e scegli, tra le sei alternative, la figura che completa la casella mancante.',
    tips:['Le regole possono riguardare forma, riempimento, dimensione, numero, rotazione o combinazione di segmenti.','Gli item diventano progressivamente più difficili: più elementi e più regole insieme.']},
-  {id:'num',name:'Serie numeriche',short:'Serie',dominio:'serie',time:10*60,kind:'choice',items:numItems(),
+  {id:'num',name:'Serie numeriche',short:'Serie',dominio:'serie',time:8*60,kind:'choice',items:numItems(),
    intro:'Ogni serie segue una regola matematica. Individua la regola e scegli il numero che continua correttamente la serie.',
    tips:['Le regole possono combinare più operazioni, alternarsi tra un numero e il successivo o intrecciare due serie.']},
-  {id:'verb',name:'Analogie verbali',short:'Analogie',dominio:'analogie',time:7*60,kind:'choice',items:verbItems(),
+  {id:'verb',name:'Analogie verbali',short:'Analogie',dominio:'analogie',time:6*60,kind:'choice',items:verbItems(),
    intro:'In ogni item la prima coppia di parole ha una certa relazione. Scegli la parola che forma, con la terza, la stessa relazione.',
    tips:['Esempio: Dito : Mano = Petalo : Fiore (parte e intero).']},
   {id:'mem',name:'Memoria di lavoro',short:'Memoria',dominio:'memoria',time:12*60,kind:'memory',items:MEM_CFG.map(c=>Object.assign({},c)),
    intro:'Ti verranno mostrati dei simboli uno alla volta. Nei primi item dovrai riscrivere le cifre in ordine inverso (dall\'ultima alla prima). Negli ultimi item vedrai cifre e lettere mescolate: riscrivi prima le cifre in ordine crescente, poi le lettere in ordine alfabetico.',
    tips:['Esempio inverso: vedi 4 – 1 – 7, scrivi 714.','Esempio cifre e lettere: vedi M – 3 – B – 8, scrivi 38BM.','Due prove per ogni lunghezza, da 3 a 8 simboli. Non usare carta e penna: la sezione misura la memoria, non la scrittura.']},
-  {id:'rot',name:'Rotazione spaziale',short:'Rotazione',dominio:'spaziale',time:12*60,kind:'rotation',items:rotItems(),
+  {id:'rot',name:'Rotazione spaziale',short:'Rotazione',dominio:'spaziale',time:10*60,kind:'rotation',items:rotItems(),
    intro:'Ti viene mostrata una figura. Tra le quattro alternative, una sola è la stessa figura ruotata sul piano. Le altre sono riflesse allo specchio o sono figure diverse.',
    tips:['Una figura riflessa non è una rotazione valida, anche se ruotata.','Dall\'item 11 una cella della figura è marcata con un punto: anche il punto deve trovarsi nella posizione giusta.']},
 ];
@@ -608,7 +608,7 @@ function isCorrect(sec,idx,ans){
 function erf(x){const s=Math.sign(x);x=Math.abs(x);const t=1/(1+0.3275911*x);const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);return s*y}
 const normCdf=(z)=>0.5*(1+erf(z/Math.SQRT2));
 // Parametri provvisori di conversione (non derivati da un campione normativo): da sostituire con le norme empiriche.
-const NORM={mean:56,sd:14,rel:0.90};
+const NORM={mean:70,sd:12,rel:0.90};
 function rawToIq(raw){const z=(raw-NORM.mean)/NORM.sd;return Math.max(55,Math.min(145,Math.round(100+15*z)))}
 function computeResults(){
   const per=SECTIONS.map(sec=>{const a=state.answers[sec.id];let c=0,ans=0;a.forEach((x,i)=>{if(x!==null&&!(sec.kind==='memory'&&x.given==='')){ans++}if(isCorrect(sec,i,x))c++});return{sec,correct:c,answered:ans,n:sec.items.length}});
@@ -627,7 +627,7 @@ function conversionTableHtml(currentRaw){
     rows.push(`<tr${cur?' style="font-weight:600;background:var(--accent-soft)"':''}><td class="num">${r}</td><td class="num">${iq}</td><td class="num">${Math.max(55,iq-ci)}–${Math.min(145,iq+ci)}</td><td class="num">${pct<1?'<1':pct>99?'>99':Math.round(pct)}</td><td>${iqLabel(iq)}</td></tr>`)}
   const bands=BANDS.map(([lo,hi,name])=>{const p=(normCdf(((Math.min(hi,999)+0.5)-100)/15)-normCdf(((lo-0.5)-100)/15))*100;const rng=lo===0?`< 70`:hi===999?`≥ 130`:`${lo}–${hi}`;return`<tr><td>${rng}</td><td>${name}</td><td class="num">${p<1?p.toFixed(1):Math.round(p)}%</td></tr>`}).join('');
   return`<div class="stack">
-    <p class="hint">Conversione provvisoria: assume una media grezza di ${NORM.mean} su ${TOTAL_ITEMS} e una deviazione standard di ${NORM.sd}, cioè QI = 100 + 15 × (grezzo − ${NORM.mean}) / ${NORM.sd}, limitato a 55–145. L'intervallo di confidenza al 95% (±${ci}) deriva da un'attendibilità attesa di ${NORM.rel}, stimata dai parametri pubblicati per item di questo tipo. Quando la taratura reale sarà completata, questa tabella verrà sostituita dalle norme empiriche.</p>
+    <p class="hint">Conversione provvisoria: assume una media grezza di ${NORM.mean} su ${TOTAL_ITEMS} e una deviazione standard di ${NORM.sd}, cioè QI = 100 + 15 × (grezzo − ${NORM.mean}) / ${NORM.sd}, limitato a 55–145. L'intervallo di confidenza al 95% (±${ci}) deriva da un'attendibilità attesa di ${NORM.rel}, stimata dai parametri pubblicati per item di questo tipo. La media e la DS assunte derivano da una simulazione con i parametri MaRs-IB per le matrici e da stime per gli altri domini: chi fa test online tende a ottenere punteggi alti, quindi la scala è volutamente severa. Quando la taratura reale sarà completata, questa tabella verrà sostituita dalle norme empiriche.</p>
     <div style="overflow-x:auto"><table><thead><tr><th>Grezzo</th><th>QI</th><th>IC 95%</th><th>Percentile</th><th>Fascia</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>
     <h3>Fasce di QI e quota di popolazione attesa</h3>
     <div style="overflow-x:auto"><table><thead><tr><th>QI</th><th>Fascia</th><th>Popolazione</th></tr></thead><tbody>${bands}</tbody></table></div>
