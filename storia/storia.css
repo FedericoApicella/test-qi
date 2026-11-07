@@ -52,3 +52,4 @@
 .final .rankup{margin-top:6px;padding:10px 14px;border-radius:12px;background:var(--brand-100);color:var(--brand);font-weight:700}
 .actions.center{justify-content:center;margin-top:10px}
 @media (prefers-reduced-motion:reduce){.node.cur .nb{animation:none}.stars.big i.on,.flashbox span,.final .bigemo{animation:none}}
+#cardAccedi .acc-btn.in-card{position:static;box-shadow:none;border:2px solid var(--border-strong);padding:6px 10px;font-size:.85rem}
