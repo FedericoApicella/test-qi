@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<!-- Per la taratura: definire window.QI_SUBMIT_URL (endpoint POST JSON) oppure caricare js/raccolta.js prima di questo file. -->
+<!-- Taratura: le risposte anonime (solo con consenso) vanno al foglio Google tramite js/raccolta.js. -->
+<script>window.RACCOLTA_ENDPOINT="https://script.google.com/macros/s/AKfycbzgsmL26nxf3wzvzADgJ4ulpLXbfru19l_NfYDS-NGeXM5lYN4QLITrEe-sNHm23iBi/exec";</script>
+<script src="js/raccolta.js"></script>
 <title>Test QI Multidominio</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap">
 <style>
@@ -39,11 +41,12 @@ h1{font-size:clamp(1.7rem,4vw,2.3rem);font-weight:700;letter-spacing:-.01em}
 h2{font-size:1.35rem;font-weight:600}
 h3{font-size:1.05rem;font-weight:600}
 p{margin:0}
-button{font:inherit;color:inherit}
+button,select{font:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+svg{display:block;max-width:100%}
 
-/* status bar */
+/* barra di stato */
 .bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--border)}
 .bar-in{max-width:720px;margin:0 auto;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;align-items:center;gap:12px;min-height:52px}
 .bar .sec{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -54,7 +57,7 @@ button{font:inherit;color:inherit}
 .progress{height:3px;background:var(--border)}
 .progress>i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
 
-/* page */
+/* pagina */
 .wrap{max-width:720px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:24px}
 .eyebrow{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .lede{font-size:1.1rem;color:var(--muted);max-width:60ch}
@@ -68,7 +71,6 @@ button{font:inherit;color:inherit}
 .btn.primary:hover{filter:brightness(1.05)}
 .btn[disabled]{opacity:.5;cursor:not-allowed}
 .actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.actions .spacer{flex:1}
 .domains{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
 .domain{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:grid;gap:4px}
 .domain b{font-weight:600}
@@ -77,6 +79,12 @@ table{border-collapse:collapse;width:100%;font-size:.95rem}
 td,th{text-align:left;padding:8px 6px;border-bottom:1px solid var(--border);vertical-align:top}
 th{font-weight:600;color:var(--muted);font-size:.85rem;text-transform:uppercase;letter-spacing:.05em}
 td.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;text-align:right}
+.field{display:grid;gap:6px}
+.field label{font-weight:500}
+.field input,.field select{font:inherit;padding:10px 12px;border:2px solid var(--border);border-radius:8px;background:var(--surface);color:var(--fg);width:100%;max-width:360px}
+.field input{font-family:var(--font-mono);font-size:1.4rem;letter-spacing:.15em}
+.field input:focus,.field select:focus{border-color:var(--accent);outline:none}
+.hint{color:var(--muted);font-size:.9rem}
 
 /* item */
 .q{font-size:1.15rem;font-weight:500}
@@ -96,24 +104,16 @@ td.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;text-align
 .opt .v{font-weight:500;min-width:0;overflow-wrap:anywhere}
 .opt.fig{flex-direction:column;align-items:center;gap:6px;padding:10px}
 .opt.fig svg{width:100%;height:auto;max-width:110px;aspect-ratio:1;color:var(--fg)}
-.figbox svg{aspect-ratio:1}
-.example svg{aspect-ratio:1}
-svg{display:block;max-width:100%}
 .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:360px;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px}
 .grid3 .cell{aspect-ratio:1;min-width:0;border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--fg)}
 .grid3 .cell svg{width:92%;height:92%}
 .grid3 .cell.ask{border:2px dashed var(--accent);color:var(--accent);font-family:var(--font-mono);font-size:1.8rem;font-weight:600}
 .figbox{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;display:inline-flex;color:var(--fg)}
-.figbox svg{width:150px;height:150px}
+.figbox svg{width:150px;height:150px;aspect-ratio:1}
 .memshow{height:160px;display:flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-family:var(--font-mono);font-size:4rem;font-weight:600;letter-spacing:.05em}
 .memshow.small{font-size:1.05rem;color:var(--muted);font-family:var(--font-body);font-weight:400}
-.field{display:grid;gap:6px}
-.field label{font-weight:500}
-.field input{font:inherit;font-family:var(--font-mono);font-size:1.4rem;letter-spacing:.15em;padding:10px 12px;border:2px solid var(--border);border-radius:8px;background:var(--surface);color:var(--fg);width:100%;max-width:360px}
-.field input:focus{border-color:var(--accent);outline:none}
-.hint{color:var(--muted);font-size:.9rem}
 
-/* results */
+/* risultati */
 .score{display:grid;gap:6px;padding:22px 24px;background:var(--surface);border:1px solid var(--border);border-radius:12px}
 .score .big{font-family:var(--font-mono);font-size:clamp(2.6rem,9vw,4rem);font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
 .score .ci{color:var(--muted)}
@@ -138,11 +138,10 @@ details .body{padding:0 16px 16px;display:grid;gap:12px}
 .revrow{display:grid;grid-template-columns:2.2rem 1fr auto;gap:10px;align-items:center;font-size:.95rem;padding:6px 0;border-bottom:1px solid var(--border)}
 .revrow .n{font-family:var(--font-mono);color:var(--muted)}
 .revrow .d{min-width:0;overflow-wrap:anywhere}
-.revrow svg{width:44px;height:44px;vertical-align:middle;color:var(--fg)}
 .example{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
 .example .cap{font-size:.85rem;color:var(--muted);text-align:center}
 .example .ex{display:grid;gap:4px;justify-items:center}
-.example svg{width:72px;height:72px;color:var(--fg)}
+.example svg{width:72px;height:72px;aspect-ratio:1;color:var(--fg)}
 @media (max-width:480px){
   .barrow{grid-template-columns:1fr auto;}
   .barrow .track{grid-column:1/-1}
@@ -166,15 +165,18 @@ details .body{padding:0 16px 16px;display:grid;gap:12px}
 <script>
 (function(){
 'use strict';
-// Taratura: endpoint opzionale (es. Google Apps Script) che riceve un POST JSON anonimo a fine test.
-const QI_VERSION='1.0';
-const QI_SUBMIT_URL=(window.QI_SUBMIT_URL||'');
+// Versione degli item: cambia quando cambia anche un solo item (gli id restano stabili per item invariati).
+const QI_VERSION='2.0';
+// Endpoint facoltativo (es. Google Apps Script) per la raccolta anonima: window.RACCOLTA_ENDPOINT o window.QI_SUBMIT_URL.
+const QI_SUBMIT_URL=(window.RACCOLTA_ENDPOINT||window.QI_SUBMIT_URL||'');
+
 // ========================= utilità =========================
 const $=(s)=>document.querySelector(s);
 const esc=(s)=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let uid=0;
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function shuffled(arr,rng){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const pick=(arr,rng)=>arr[Math.floor(rng()*arr.length)];
 // options[0] è la risposta corretta: mescola e registra l'indice
 function withAnswer(options,rng){const perm=shuffled(options.map((_,i)=>i),rng);return{options:perm.map(i=>options[i]),answer:perm.indexOf(0)}}
 const fmtTime=(s)=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
@@ -186,6 +188,8 @@ const SHAPE={
   square:(x,y,r)=>`<rect x="${x-r}" y="${y-r}" width="${2*r}" height="${2*r}"/>`,
   triangle:(x,y,r)=>`<polygon points="${x},${y-r} ${x+r*0.95},${y+r*0.72} ${x-r*0.95},${y+r*0.72}"/>`,
   diamond:(x,y,r)=>`<polygon points="${x},${y-r} ${x+r},${y} ${x},${y+r} ${x-r},${y}"/>`,
+  pent:(x,y,r)=>{const p=[];for(let k=0;k<5;k++){const a=-Math.PI/2+k*2*Math.PI/5;p.push(`${(x+r*Math.cos(a)).toFixed(1)},${(y+r*Math.sin(a)).toFixed(1)}`)}return`<polygon points="${p.join(' ')}"/>`},
+  hex:(x,y,r)=>{const p=[];for(let k=0;k<6;k++){const a=k*Math.PI/3;p.push(`${(x+r*Math.cos(a)).toFixed(1)},${(y+r*Math.sin(a)).toFixed(1)}`)}return`<polygon points="${p.join(' ')}"/>`},
   arrow:(x,y,r)=>`<polygon points="${x},${y-r} ${x+r*0.85},${y+r*0.7} ${x},${y+r*0.25} ${x-r*0.85},${y+r*0.7}"/>`,
 };
 function drawShape(sh,x,y,r,fill,rot){
@@ -197,100 +201,193 @@ function drawShape(sh,x,y,r,fill,rot){
   return`<g${tr}><clipPath id="${id}"><rect x="${x-r-3}" y="${y-r-3}" width="${r+3}" height="${2*r+6}"/></clipPath><g fill="currentColor" clip-path="url(#${id})">${p}</g><g fill="none" ${line}>${p}</g></g>`;
 }
 const SEG={h0:[20,20,80,20],h1:[20,50,80,50],h2:[20,80,80,80],v0:[20,20,20,80],v1:[50,20,50,80],v2:[80,20,80,80],d1:[20,20,80,80],d2:[80,20,20,80]};
+const SEG_KEYS=Object.keys(SEG);
 const POS={1:[[50,50,26]],2:[[30,50,17],[70,50,17]],3:[[50,27,14],[28,71,14],[72,71,14]],4:[[30,30,15],[70,30,15],[30,70,15],[70,70,15]]};
+const SIZE_MULT={s:0.6,m:1,l:1.3};
 function cellSVG(spec,attrs){
   let inner='';
   if(spec.segs){inner=spec.segs.map(k=>{const s=SEG[k];return`<line x1="${s[0]}" y1="${s[1]}" x2="${s[2]}" y2="${s[3]}" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>`}).join('')}
-  else if(spec.stack){const o=spec.els[0],i=spec.els[1];inner=drawShape(o.shape,50,50,36,o.fill,o.rot||0)+drawShape(i.shape,50,50,13,i.fill,i.rot||0)}
-  else{const n=spec.els.length;const pos=POS[n];inner=spec.els.map((e,k)=>{const p=pos[k];const r=p[2]*(e.size==='s'?0.6:e.size==='l'?1.3:1);return drawShape(e.shape,p[0],p[1],r,e.fill,e.rot||0)}).join('')}
+  else{
+    let els=spec.els;
+    if(els.length===1&&spec.count>1)els=Array.from({length:spec.count},()=>els[0]);
+    const pos=POS[els.length];
+    inner=els.map((e,k)=>{const p=pos[k];const r=p[2]*(SIZE_MULT[e.size||'m']);return drawShape(e.shape,p[0],p[1],r,e.fill,e.rot||0)}).join('');
+  }
   return`<svg viewBox="0 0 100 100" ${attrs||''} aria-hidden="true">${inner}</svg>`;
 }
-function cellsSVG(cells,attrs){ // polimino
+function cellsSVG(cells,mark,attrs){ // polimino, con eventuale cella marcata
   const xs=cells.map(c=>c[0]),ys=cells.map(c=>c[1]);
   const w=Math.max(...xs)+1,h=Math.max(...ys)+1,n=Math.max(w,h,4);
   const u=100/n,ox=(n-w)/2*u,oy=(n-h)/2*u;
   const rects=cells.map(c=>`<rect x="${(ox+c[0]*u+1.5).toFixed(1)}" y="${(oy+c[1]*u+1.5).toFixed(1)}" width="${(u-3).toFixed(1)}" height="${(u-3).toFixed(1)}" rx="2"/>`).join('');
-  return`<svg viewBox="0 0 100 100" ${attrs||''} aria-hidden="true"><g fill="currentColor" stroke="currentColor" stroke-width="1">${rects}</g></svg>`;
+  let dot='';
+  if(mark){dot=`<circle cx="${(ox+mark[0]*u+u/2).toFixed(1)}" cy="${(oy+mark[1]*u+u/2).toFixed(1)}" r="${(u*0.22).toFixed(1)}" fill="var(--surface)"/>`}
+  return`<svg viewBox="0 0 100 100" ${attrs||''} aria-hidden="true"><g fill="currentColor" stroke="currentColor" stroke-width="1">${rects}</g>${dot}</svg>`;
 }
 
 // ========================= item: matrici =========================
-const SH=['circle','square','triangle'],FL=['none','half','full'];
-const el=(shape,fill,x)=>Object.assign({shape,fill},x||{});
-const cell=(els,x)=>Object.assign({els},x||{});
-const rep=(e,n)=>Array.from({length:n},()=>Object.assign({},e));
+// Generatore ispirato alla struttura di MaRs-IB (Chierchia et al., 2019): celle con 1-3 elementi,
+// ciascun attributo (forma, riempimento, dimensione, rotazione, numero) governato da una regola
+// per riga, per colonna o a quadrato latino. Più elementi e più regole → item più difficile.
+const SHAPES5=['circle','square','triangle','diamond','pent','hex'],FL=['none','half','full'],SZ=['s','m','l'],ROT=[0,45,90],CNT=[1,2,3];
+const POOL={shape:SHAPES5,fill:FL,size:SZ,rot:ROT,count:CNT};
+const MAT_SPECS=[
+  {slots:1,rules:[['shape','row']]},
+  {slots:1,rules:[['fill','col']]},
+  {slots:1,rules:[['count','row']]},
+  {slots:1,rules:[['shape','latin']]},
+  {slots:1,rules:[['shape','row'],['fill','col']]},
+  {slots:1,rules:[['rot','col'],['fill','row']],arrow:true},
+  {slots:1,rules:[['shape','latin'],['fill','latin2']]},
+  {overlay:'add',k:2},
+  {slots:1,rules:[['shape','latin'],['fill','latin2'],['count','row']]},
+  {slots:2,rules:[['shape','row',0],['fill','col',1]]},
+  {slots:2,rules:[['shape','latin',0],['size','col',1]]},
+  {overlay:'xor',k:2},
+  {slots:1,rules:[['shape','latin'],['fill','latin2'],['size','latin']]},
+  {slots:2,rules:[['shape','latin',0],['fill','latin2',0],['shape','col',1]]},
+  {slots:3,rules:[['shape','row',0],['fill','col',1],['size','row',2]]},
+  {overlay:'add',k:3},
+  {slots:2,rules:[['shape','latin',0],['fill','latin2',0],['shape','latin2',1],['fill','col',1]]},
+  {slots:3,rules:[['shape','latin',0],['fill','latin2',1],['size','latin',2],['fill','row',0]]},
+  {overlay:'xor',k:3},
+  {slots:3,rules:[['shape','latin',0],['fill','latin2',0],['size','latin',1],['shape','col',1],['fill','row',2]]},
+];
+const RULE_TEXT={row:'cambia per riga',col:'cambia per colonna',latin:'quadrato latino (ogni valore una volta per riga e colonna)',latin2:'quadrato latino inverso'};
+const ATTR_TEXT={shape:'forma',fill:'riempimento',size:'dimensione',rot:'rotazione',count:'numero'};
+function ruleIndex(type,r,c){return type==='row'?r:type==='col'?c:type==='latin'?(r+c)%3:(r+2*c)%3}
+function cellKey(spec){return JSON.stringify(spec.segs?{segs:spec.segs.slice().sort()}:{els:spec.els.map(e=>[e.shape,e.fill,e.size||'m',e.rot||0]),count:spec.count||1})}
+function buildSlotItem(spec,rng){
+  const n=spec.slots;
+  // valori base per slot
+  const base=[];const shapeSet=shuffled(SHAPES5,rng);
+  for(let k=0;k<n;k++)base.push({shape:spec.arrow?'arrow':shapeSet[k],fill:pick(FL,rng),size:'m',rot:0});
+  let count=1;
+  // pool di valori per ogni regola
+  const rules=spec.rules.map(([attr,type,slot])=>{
+    let vals;
+    if(attr==='shape')vals=shuffled(shapeSet,rng).slice(0,3);
+    else vals=shuffled(POOL[attr],rng);
+    return{attr,type,slot:slot||0,vals};
+  });
+  const cellAt=(r,c)=>{
+    const els=base.map(b=>Object.assign({},b));let cnt=1;
+    rules.forEach(ru=>{const v=ru.vals[ruleIndex(ru.type,r,c)];if(ru.attr==='count')cnt=v;else els[ru.slot][ru.attr]=v});
+    return{els,count:cnt};
+  };
+  const grid=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)grid.push(cellAt(r,c));
+  const ans=grid[8];const used=new Set([cellKey(ans)]);const cands=[];
+  // distrattori PD: cambia una proprietà; MD: altra cella della griglia
+  for(let k=0;k<n;k++)for(const attr of ['shape','fill','size','rot']){
+    if(attr==='rot'&&!spec.arrow)continue;
+    for(const v of POOL[attr]){if(ans.els[k][attr]===v||(attr==='rot'&&!spec.arrow))continue;
+      const d={els:ans.els.map(e=>Object.assign({},e)),count:ans.count};d.els[k][attr]=v;cands.push({d,w:attr==='size'?0.6:1})}
+  }
+  for(const v of CNT){if(n===1&&v!==ans.count){cands.push({d:{els:ans.els.map(e=>Object.assign({},e)),count:v},w:spec.rules.some(r=>r[0]==='count')?1:0.3})}}
+  [5,7,2,6].forEach(i=>cands.push({d:grid[i],w:1.2}));
+  const opts=[ans];
+  for(const cnd of shuffled(cands,rng).sort((a,b)=>b.w-a.w)){const k=cellKey(cnd.d);if(used.has(k))continue;used.add(k);opts.push(cnd.d);if(opts.length===6)break}
+  const rule=rules.map(ru=>`${ATTR_TEXT[ru.attr]}${n>1?` (elemento ${ru.slot+1})`:''}: ${RULE_TEXT[ru.type]}`).join('; ');
+  return{grid,opts,rule};
+}
+function buildOverlayItem(spec,rng){
+  const grid=[];let ans;
+  for(let r=0;r<3;r++){
+    let A,B;
+    for(let t=0;t<50;t++){
+      A=shuffled(SEG_KEYS,rng).slice(0,spec.k);B=shuffled(SEG_KEYS,rng).slice(0,spec.k);
+      const inter=A.filter(s=>B.includes(s)).length;
+      if(spec.overlay==='add'&&inter===0)break;
+      if(spec.overlay==='xor'&&inter>=1&&inter<spec.k)break;
+    }
+    const C=spec.overlay==='add'?[...A,...B]:[...A.filter(s=>!B.includes(s)),...B.filter(s=>!A.includes(s))];
+    grid.push({segs:A},{segs:B},{segs:C});
+  }
+  ans=grid[8];const A=grid[6].segs,B=grid[7].segs;
+  const used=new Set([cellKey(ans)]);const opts=[ans];
+  const cands=[[...new Set([...A,...B])],A.filter(s=>B.includes(s)),A,B,ans.segs.slice(1),[...ans.segs,pick(SEG_KEYS.filter(s=>!ans.segs.includes(s)),rng)],ans.segs.slice(0,-1).concat(pick(SEG_KEYS.filter(s=>!ans.segs.includes(s)),rng))];
+  for(let t=0;t<30&&cands.length<14;t++){cands.push(shuffled(SEG_KEYS,rng).slice(0,ans.segs.length))}
+  for(const c of cands){if(!c.length)continue;const d={segs:c};const k=cellKey(d);if(used.has(k))continue;used.add(k);opts.push(d);if(opts.length===6)break}
+  return{grid,opts,rule:spec.overlay==='add'?'la terza figura è la somma delle prime due':'la terza figura contiene i segmenti presenti in una sola delle prime due'};
+}
 function matrixItems(){
-  const rng=mulberry32(7331);const out=[];
-  const push=(grid,opts,rule)=>{const w=withAnswer(opts,rng);out.push({grid,options:w.options,answer:w.answer,rule})};
-  // 1 — forma per riga, riempimento per colonna
-  {const g=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)g.push(cell([el(SH[r],FL[c])]));
-   push(g,[g[8],cell([el('triangle','half')]),cell([el('square','full')]),cell([el('circle','full')]),cell([el('triangle','none')]),cell([el('diamond','full')])],'Forma costante per riga, riempimento costante per colonna.')}
-  // 2 — forma per colonna, numero per riga
-  {const g=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)g.push(cell(rep(el(SH[c],'full'),r+1)));
-   push(g,[g[8],cell(rep(el('triangle','full'),2)),cell(rep(el('square','full'),3)),cell(rep(el('triangle','none'),3)),cell(rep(el('circle','full'),3)),cell(rep(el('triangle','full'),4))],'Forma costante per colonna, il numero cresce di uno a ogni riga.')}
-  // 3 — rotazione freccia + riempimento per colonna
-  {const g=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)g.push(cell([el('arrow',FL[c],{rot:(r*90+c*45)%360})]));
-   push(g,[g[8],cell([el('arrow','full',{rot:225})]),cell([el('arrow','full',{rot:315})]),cell([el('arrow','half',{rot:270})]),cell([el('arrow','full',{rot:180})]),cell([el('arrow','none',{rot:270})])],'La freccia ruota di 45° a ogni colonna e di 90° a ogni riga; il riempimento dipende dalla colonna.')}
-  // 4 — quadrato latino forma + riempimento
-  {const g=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)g.push(cell([el(SH[(r+c)%3],FL[(r+2*c)%3])]));
-   push(g,[g[8],cell([el('square','half')]),cell([el('square','full')]),cell([el('triangle','none')]),cell([el('circle','none')]),cell([el('diamond','none')])],'In ogni riga e colonna compaiono tutte e tre le forme e tutti e tre i riempimenti una sola volta.')}
-  // 5 — somma di segmenti
-  {const rows=[[['h0'],['v1']],[['v0','v2'],['h2']],[['d1','h1'],['v2','h0']]];const g=[];
-   rows.forEach(([a,b])=>{g.push({segs:a},{segs:b},{segs:[...a,...b]})});
-   push(g,[g[8],{segs:['d1','h1','v2']},{segs:['d1','h1','h0']},{segs:['d1','v2','h0']},{segs:['d2','h1','v2','h0']},{segs:['d1','h1','v2','h0','h2']}],'La terza figura di ogni riga è la somma delle prime due.')}
-  // 6 — quadrato latino a tre attributi
-  {const g=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)g.push(cell(rep(el(SH[(r+c)%3],FL[(r+2*c)%3]),((2*r+c)%3)+1)));
-   push(g,[g[8],cell(rep(el('square','none'),2)),cell([el('square','half')]),cell([el('triangle','none')]),cell(rep(el('square','none'),3)),cell([el('circle','none')])],'Forma, riempimento e numero seguono ciascuno un quadrato latino: ogni valore una sola volta per riga e colonna.')}
-  // 7 — XOR di segmenti
-  {const rows=[[['h0','v1'],['v1','h2']],[['d1','d2','v1'],['d2','h1']],[['h0','v0','d1'],['v0','d2']]];const g=[];
-   rows.forEach(([a,b])=>{const x=[...a.filter(s=>!b.includes(s)),...b.filter(s=>!a.includes(s))];g.push({segs:a},{segs:b},{segs:x})});
-   push(g,[g[8],{segs:['h0','v0','d1','d2']},{segs:['h0','d1']},{segs:['d1','d2']},{segs:['h0','d2']},{segs:['h0','v0','d2']}],'La terza figura contiene i segmenti presenti in una sola delle prime due (quelli in comune spariscono).')}
-  // 8 — figura annidata: esterno latino, interno latino, riempimento per colonna
-  {const IN=['diamond','circle','triangle'];const g=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)g.push(cell([el(SH[(r+c)%3],'none'),el(IN[(r+2*c)%3],FL[c])],{stack:true}));
-   push(g,[g[8],cell([el('square','none'),el('diamond','half')],{stack:true}),cell([el('square','none'),el('circle','full')],{stack:true}),cell([el('triangle','none'),el('diamond','full')],{stack:true}),cell([el('square','none'),el('triangle','full')],{stack:true}),cell([el('circle','none'),el('diamond','full')],{stack:true})],'Forma esterna e forma interna seguono due quadrati latini diversi; il riempimento interno dipende dalla colonna.')}
-  return out;
+  const rng=mulberry32(7331);
+  return MAT_SPECS.map(spec=>{
+    const b=spec.overlay?buildOverlayItem(spec,rng):buildSlotItem(spec,rng);
+    const w=withAnswer(b.opts,rng);
+    return{grid:b.grid,options:w.options,answer:w.answer,rule:b.rule};
+  });
 }
 
 // ========================= item: serie numeriche =========================
+const NUM_RAW=[
+  [[2,4,6,8,10],12,'+2'],
+  [[5,8,11,14],17,'+3'],
+  [[20,17,14,11],8,'−3'],
+  [[1,2,4,8,16],32,'×2'],
+  [[1,4,9,16,25],36,'quadrati: 1², 2², 3²…'],
+  [[2,3,5,8,12],17,'differenze crescenti: +1, +2, +3…'],
+  [[1,1,2,3,5,8],13,'somma dei due precedenti'],
+  [[10,9,11,8,12,7],13,'alternanza −1, +2, −3, +4…'],
+  [[5,10,8,16,14,28],26,'alternanza ×2 e −2'],
+  [[2,6,12,20,30],42,'n × (n+1)'],
+  [[1,3,7,15,31],63,'×2 +1'],
+  [[3,5,9,17,33],65,'×2 −1'],
+  [[2,3,5,7,11,13],17,'numeri primi'],
+  [[1,3,2,6,4,12,8],24,'due serie alternate, ciascuna ×2'],
+  [[3,4,7,11,18,29],47,'somma dei due precedenti'],
+  [[1,8,27,64],125,'cubi: 1³, 2³, 3³…'],
+  [[2,5,11,23,47],95,'×2 +1'],
+  [[4,9,25,49,121],169,'quadrati dei numeri primi'],
+  [[1,2,6,24,120],720,'fattoriali: ×2, ×3, ×4…'],
+  [[2,12,36,80,150],252,'n² × (n+1)'],
+];
 function numItems(){
   const rng=mulberry32(2024);
-  const raw=[
-    {seq:[3,6,9,12],opts:[15,14,16,18,13],rule:'+3'},
-    {seq:[1,2,4,8,16],opts:[32,24,20,30,34],rule:'×2'},
-    {seq:[1,4,9,16,25],opts:[36,30,35,49,32],rule:'quadrati: 1², 2², 3²…'},
-    {seq:[2,3,5,8,12],opts:[17,16,15,18,14],rule:'differenze crescenti: +1, +2, +3, +4, +5'},
-    {seq:[5,10,8,16,14,28],opts:[26,56,30,24,32],rule:'alternanza ×2 e −2'},
-    {seq:[3,5,9,17,33],opts:[65,66,49,64,57],rule:'×2 −1'},
-    {seq:[2,3,5,7,11,13],opts:[17,15,16,19,14],rule:'numeri primi'},
-    {seq:[4,9,25,49,121],opts:[169,144,125,143,165],rule:'quadrati dei numeri primi'},
-  ];
-  return raw.map(it=>{const w=withAnswer(it.opts,rng);return{seq:it.seq,options:w.options,answer:w.answer,rule:it.rule}});
+  return NUM_RAW.map(([seq,next,rule])=>{
+    const last=seq[seq.length-1],d=last-seq[seq.length-2];
+    const cands=[next+1,next-1,next+2,next-2,last+d,next+d,2*last,next+3,next-3,last+2*d,Math.round(next*1.1)+1];
+    const opts=[next];for(const c of shuffled(cands,rng)){if(c!==next&&c>0&&!opts.includes(c))opts.push(c);if(opts.length===5)break}
+    const w=withAnswer(opts,rng);return{seq,options:w.options,answer:w.answer,rule};
+  });
 }
 
 // ========================= item: analogie verbali =========================
+const VERB_RAW=[
+  ['Caldo','Freddo','Alto',['Basso','Largo','Lungo','Grande','Stretto'],'contrari'],
+  ['Gatto','Miagolare','Cane',['Abbaiare','Correre','Mordere','Nitrire','Scodinzolare'],'animale e suo verso'],
+  ['Ruota','Bicicletta','Ala',['Aereo','Cielo','Volo','Piuma','Pilota'],'parte e intero'],
+  ['Scala','Gradino','Collana',['Perla','Oro','Collo','Gioiello','Fermaglio'],'intero e sua unità ripetuta'],
+  ['Medico','Ospedale','Giudice',['Tribunale','Legge','Avvocato','Sentenza','Prigione'],'professionista e suo luogo di lavoro'],
+  ['Uva','Vino','Olive',['Olio','Albero','Raccolta','Frantoio','Salamoia'],'materia prima e prodotto derivato'],
+  ['Entomologo','Insetti','Ornitologo',['Uccelli','Pesci','Piante','Rocce','Stelle'],'studioso e oggetto di studio'],
+  ['Sete','Bere','Stanchezza',['Riposare','Correre','Sbadigliare','Lavorare','Sognare'],'bisogno e azione che lo soddisfa'],
+  ['Termometro','Temperatura','Barometro',['Pressione','Umidità','Vento','Altitudine','Tempo'],'strumento e grandezza misurata'],
+  ['Pecora','Gregge','Pesce',['Banco','Mare','Rete','Pescatore','Acquario'],'individuo e gruppo'],
+  ['Scultore','Scalpello','Chirurgo',['Bisturi','Ospedale','Guanti','Paziente','Siringa'],'professionista e strumento'],
+  ['Autore','Romanzo','Compositore',['Sinfonia','Orchestra','Pianoforte','Concerto','Direttore'],'creatore e opera'],
+  ['Avaro','Generosità','Codardo',['Coraggio','Paura','Forza','Viltà','Onore'],'persona e qualità che le manca'],
+  ['Scarso','Abbondante','Effimero',['Duraturo','Fragile','Breve','Leggero','Rapido'],'contrari'],
+  ['Chilometro','Distanza','Litro',['Volume','Acqua','Peso','Bottiglia','Lunghezza'],'unità e grandezza'],
+  ['Sintomo','Malattia','Fumo',['Fuoco','Cenere','Camino','Calore','Legna'],'segno e causa'],
+  ['Arcipelago','Isola','Costellazione',['Stella','Cielo','Pianeta','Galassia','Telescopio'],'insieme e suo elemento'],
+  ['Mitigare','Attenuare','Esacerbare',['Aggravare','Alleviare','Ignorare','Risolvere','Moderare'],'sinonimi'],
+  ['Introduzione','Saggio','Ouverture',['Opera','Concerto','Coro','Teatro','Orchestra'],'parte iniziale e intero'],
+  ['Lapidario','Prolisso','Ermetico',['Esplicito','Oscuro','Chiuso','Breve','Poetico'],'contrari (lessico ricercato)'],
+];
 function verbItems(){
   const rng=mulberry32(99);
-  const raw=[
-    {a:'Caldo',b:'Freddo',c:'Alto',opts:['Basso','Largo','Lungo','Grande','Stretto'],rule:'contrari'},
-    {a:'Gatto',b:'Miagolare',c:'Cane',opts:['Abbaiare','Correre','Mordere','Nitrire','Scodinzolare'],rule:'animale e suo verso'},
-    {a:'Scala',b:'Gradino',c:'Collana',opts:['Perla','Oro','Collo','Gioiello','Fermaglio'],rule:'intero e sua unità ripetuta'},
-    {a:'Medico',b:'Ospedale',c:'Giudice',opts:['Tribunale','Legge','Avvocato','Sentenza','Prigione'],rule:'professionista e suo luogo di lavoro'},
-    {a:'Uva',b:'Vino',c:'Olive',opts:['Olio','Albero','Raccolta','Frantoio','Salamoia'],rule:'materia prima e prodotto derivato'},
-    {a:'Termometro',b:'Temperatura',c:'Barometro',opts:['Pressione','Umidità','Vento','Altitudine','Tempo'],rule:'strumento e grandezza misurata'},
-    {a:'Avaro',b:'Generosità',c:'Codardo',opts:['Coraggio','Paura','Forza','Viltà','Onore'],rule:'persona e qualità che le manca'},
-    {a:'Scarso',b:'Abbondante',c:'Effimero',opts:['Duraturo','Fragile','Breve','Leggero','Rapido'],rule:'contrari (lessico meno comune)'},
-  ];
-  return raw.map(it=>{const w=withAnswer(it.opts,rng);return{a:it.a,b:it.b,c:it.c,options:w.options,answer:w.answer,rule:it.rule}});
+  return VERB_RAW.map(([a,b,c,opts,rule])=>{const w=withAnswer(opts,rng);return{a,b,c,options:w.options,answer:w.answer,rule}});
 }
 
 // ========================= item: memoria di lavoro =========================
-const MEM_CFG=[{type:'back',len:3},{type:'back',len:4},{type:'back',len:5},{type:'back',len:6},{type:'back',len:7},{type:'ln',len:4},{type:'ln',len:5},{type:'ln',len:6}];
+const MEM_CFG=[3,3,4,4,5,5,6,6,7,7,8,8].map(len=>({type:'back',len})).concat([4,4,5,5,6,6,7,7].map(len=>({type:'ln',len})));
 const MEM_LETTERS='BCDFGHKLMNPRSTVZ';
 function genMemSeq(cfg){
   const seq=[];
   if(cfg.type==='back'){let prev=-1;while(seq.length<cfg.len){const d=Math.floor(Math.random()*9)+1;if(d===prev)continue;seq.push(String(d));prev=d}}
-  else{const nL=Math.floor(cfg.len/2),nD=cfg.len-nL;const ls=shuffled(MEM_LETTERS.split(''),Math.random).slice(0,nL);const ds=shuffled('123456789'.split(''),Math.random).slice(0,nD);const mix=shuffled([...ls,...ds],Math.random);
-    // evita che siano già in ordine finale
-    seq.push(...mix)}
+  else{const nL=Math.floor(cfg.len/2),nD=cfg.len-nL;const ls=shuffled(MEM_LETTERS.split(''),Math.random).slice(0,nL);const ds=shuffled('123456789'.split(''),Math.random).slice(0,nD);
+    let mix;do{mix=shuffled([...ls,...ds],Math.random)}while(mix.join('')===memAnswer(cfg,mix));seq.push(...mix)}
   return seq;
 }
 function memAnswer(cfg,seq){
@@ -305,53 +402,103 @@ function norm(cells){const mx=Math.min(...cells.map(c=>c[0])),my=Math.min(...cel
 const key=(cells)=>JSON.stringify(norm(cells));
 function rotN(cells,k){let c=norm(cells);for(let i=0;i<k;i++)c=rotC(c);return c}
 function allSym(cells){const out=[];let c=norm(cells);for(let i=0;i<4;i++){out.push(c);c=rotC(c)}c=mirC(cells);for(let i=0;i<4;i++){out.push(c);c=rotC(c)}return out}
+// figura = {cells, mark}: la cella marcata segue la stessa trasformazione delle altre
+function tf(f,kind){ // kind: 'r' rotazione 90°, 'm' specchio; conserva la marca
+  const cells=f.cells;const mark=f.mark;
+  const map=kind==='r'?([x,y])=>[-y,x]:([x,y])=>[-x,y];
+  const moved=cells.map(map);const mm=mark?map(mark):null;
+  const mx=Math.min(...moved.map(c=>c[0])),my=Math.min(...moved.map(c=>c[1]));
+  return{cells:moved.map(([x,y])=>[x-mx,y-my]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]),mark:mm?[mm[0]-mx,mm[1]-my]:null};
+}
+function rotF(f,k){let g=f;for(let i=0;i<k;i++)g=tf(g,'r');return g}
+const fkey=(f)=>JSON.stringify([f.cells,f.mark]);
+function symsF(f){const out=[];let g=f;for(let i=0;i<4;i++){out.push(g);g=tf(g,'r')}g=tf(f,'m');for(let i=0;i<4;i++){out.push(g);g=tf(g,'r')}return out}
+function connected(cells){const s=new Set(cells.map(c=>c.join(',')));const seen=new Set();const st=[cells[0]];while(st.length){const [x,y]=st.pop();const k=x+','+y;if(seen.has(k))continue;seen.add(k);[[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy])=>{if(s.has((x+dx)+','+(y+dy)))st.push([x+dx,y+dy])})}return seen.size===cells.length}
+function differentShape(f,rng){ // sposta una cella: non congruente, connessa
+  const syms=symsF(f).map(g=>key(g.cells));
+  for(let t=0;t<200;t++){
+    const cells=f.cells.map(c=>c.slice());const i=Math.floor(rng()*cells.length);const removed=cells.splice(i,1)[0];
+    if(f.mark&&removed[0]===f.mark[0]&&removed[1]===f.mark[1])continue;
+    if(!connected(cells))continue;
+    const base=pick(cells,rng);const d=pick([[1,0],[-1,0],[0,1],[0,-1]],rng);const nc=[base[0]+d[0],base[1]+d[1]];
+    if(cells.some(c=>c[0]===nc[0]&&c[1]===nc[1]))continue;
+    cells.push(nc);
+    if(syms.includes(key(cells)))continue;
+    const mx=Math.min(...cells.map(c=>c[0])),my=Math.min(...cells.map(c=>c[1]));
+    return{cells:norm(cells),mark:f.mark?[f.mark[0]-mx,f.mark[1]-my]:null};
+  }
+  return null;
+}
+const ROT_RAW=[
+  {t:[[0,0],[0,1],[0,2],[1,2]]},
+  {t:[[0,0],[0,1],[0,2],[0,3],[1,3]]},
+  {t:[[0,0],[1,0],[0,1],[1,1],[0,2]]},
+  {t:[[1,0],[1,1],[1,2],[0,2],[0,3]]},
+  {t:[[1,0],[2,0],[0,1],[1,1],[1,2]]},
+  {t:[[1,0],[0,1],[1,1],[1,2],[1,3]]},
+  {t:[[0,0],[1,0],[1,1],[1,2],[2,2],[2,3]]},
+  {t:[[0,0],[1,0],[2,0],[2,1],[2,2],[3,2]]},
+  {t:[[0,1],[1,1],[1,0],[2,0],[2,1],[2,2],[3,2]]},
+  {t:[[0,0],[1,0],[1,1],[1,2],[2,2],[3,2],[3,1],[3,3]]},
+  {t:[[0,0],[0,1],[0,2],[1,2]],m:[0,0]},
+  {t:[[1,0],[2,0],[0,1],[1,1]],m:[2,0]},
+  {t:[[0,0],[1,0],[0,1],[1,1],[0,2]],m:[1,1]},
+  {t:[[1,0],[2,0],[0,1],[1,1],[1,2]],m:[2,0]},
+  {t:[[1,0],[0,1],[1,1],[1,2],[1,3]],m:[1,3]},
+  {t:[[0,0],[1,0],[1,1],[1,2],[2,2],[2,3]],m:[1,1]},
+  {t:[[0,0],[1,0],[2,0],[2,1],[2,2],[3,2]],m:[0,0]},
+  {t:[[0,1],[1,1],[1,0],[2,0],[2,1],[2,2],[3,2]],m:[2,1]},
+  {t:[[0,0],[1,0],[1,1],[1,2],[2,2],[3,2],[3,1],[3,3]],m:[3,1]},
+  {t:[[0,0],[0,1],[1,1],[2,1],[2,2],[3,2],[3,3],[4,3],[4,2]],m:[2,1]},
+];
 function rotItems(){
   const rng=mulberry32(4242);
-  const raw=[
-    {t:[[0,0],[0,1],[0,2],[1,2]],d:[[0,0],[0,1],[0,2],[1,1]],k:[1,1,2,1]},
-    {t:[[0,0],[0,1],[0,2],[0,3],[1,3]],d:[[0,0],[0,1],[0,2],[0,3],[1,2]],k:[2,1,3,2]},
-    {t:[[0,0],[1,0],[0,1],[1,1],[0,2]],d:[[0,0],[1,0],[2,0],[1,1],[1,2]],k:[1,2,3,1]},
-    {t:[[1,0],[1,1],[1,2],[0,2],[0,3]],d:[[1,0],[1,1],[1,2],[0,2],[0,1]],k:[3,1,2,2]},
-    {t:[[1,0],[2,0],[0,1],[1,1],[1,2]],d:[[1,0],[2,0],[0,1],[1,1],[0,2]],k:[2,3,1,3]},
-    {t:[[1,0],[0,1],[1,1],[1,2],[1,3]],d:[[1,0],[0,1],[1,1],[1,2],[0,3]],k:[3,2,1,1]},
-    {t:[[0,0],[1,0],[1,1],[1,2],[2,2],[2,3]],d:[[0,0],[1,0],[1,1],[1,2],[2,2],[0,1]],k:[1,3,2,3]},
-    {t:[[0,0],[1,0],[1,1],[1,2],[2,2],[3,2],[3,1],[3,3]],d:[[0,0],[1,0],[1,1],[1,2],[2,2],[3,2],[3,1],[0,1]],k:[3,2,1,2]},
-  ];
-  return raw.map(it=>{
-    const opts=[rotN(it.t,it.k[0]),rotN(mirC(it.t),it.k[1]),rotN(mirC(it.t),it.k[2]),rotN(it.d,it.k[3])];
-    const w=withAnswer(opts.map((c,i)=>({cells:c,kind:i===0?'rot':i===3?'diff':'mirror'})),rng);
-    return{target:norm(it.t),options:w.options,answer:w.answer};
+  return ROT_RAW.map((it,i)=>{
+    const mx=Math.min(...it.t.map(c=>c[0])),my=Math.min(...it.t.map(c=>c[1]));
+    const f={cells:norm(it.t),mark:it.m?[it.m[0]-mx,it.m[1]-my]:null};
+    const ks=[1+Math.floor(rng()*3),1+Math.floor(rng()*4)%4,1+Math.floor(rng()*4)%4,Math.floor(rng()*4)];
+    const mir=tf(f,'m');let m2=rotF(mir,ks[2]);if(fkey(m2)===fkey(rotF(mir,ks[1])))m2=rotF(mir,(ks[2]+1)%4);
+    const diff=differentShape(f,rng);
+    const opts=[{f:rotF(f,ks[0]),kind:'rot'},{f:rotF(mir,ks[1]),kind:'mirror'},{f:m2,kind:'mirror'},{f:rotF(diff,ks[3]),kind:'diff'}];
+    const w=withAnswer(opts,rng);
+    return{target:f,options:w.options,answer:w.answer,marked:!!it.m};
   });
 }
 
 // ========================= sezioni =========================
 const SECTIONS=[
-  {id:'mat',name:'Matrici di ragionamento',short:'Matrici',time:600,kind:'matrix',items:matrixItems(),
-   intro:'Ogni griglia 3×3 segue una o più regole (per riga, per colonna o entrambe). Individua la regola e scegli, tra le sei alternative, la figura che completa la casella mancante.',
-   tips:['Le regole possono riguardare forma, riempimento, numero, rotazione o combinazione di segmenti.','Gli item diventano progressivamente più difficili.']},
-  {id:'num',name:'Serie numeriche',short:'Serie',time:360,kind:'choice',items:numItems(),
+  {id:'mat',name:'Matrici di ragionamento',short:'Matrici',dominio:'matrici',time:14*60,kind:'matrix',items:matrixItems(),
+   intro:'Ogni griglia 3×3 segue una o più regole (per riga, per colonna o entrambe). Individua le regole e scegli, tra le sei alternative, la figura che completa la casella mancante.',
+   tips:['Le regole possono riguardare forma, riempimento, dimensione, numero, rotazione o combinazione di segmenti.','Gli item diventano progressivamente più difficili: più elementi e più regole insieme.']},
+  {id:'num',name:'Serie numeriche',short:'Serie',dominio:'serie',time:8*60,kind:'choice',items:numItems(),
    intro:'Ogni serie segue una regola matematica. Individua la regola e scegli il numero che continua correttamente la serie.',
-   tips:['Le regole possono combinare più operazioni o alternarsi tra un numero e il successivo.']},
-  {id:'verb',name:'Analogie verbali',short:'Analogie',time:300,kind:'choice',items:verbItems(),
+   tips:['Le regole possono combinare più operazioni, alternarsi tra un numero e il successivo o intrecciare due serie.']},
+  {id:'verb',name:'Analogie verbali',short:'Analogie',dominio:'analogie',time:6*60,kind:'choice',items:verbItems(),
    intro:'In ogni item la prima coppia di parole ha una certa relazione. Scegli la parola che forma, con la terza, la stessa relazione.',
-   tips:['Esempio: Ruota : Bicicletta = Ala : Aereo (parte e intero).']},
-  {id:'mem',name:'Memoria di lavoro',short:'Memoria',time:420,kind:'memory',items:MEM_CFG.map(c=>Object.assign({},c)),
+   tips:['Esempio: Dito : Mano = Petalo : Fiore (parte e intero).']},
+  {id:'mem',name:'Memoria di lavoro',short:'Memoria',dominio:'memoria',time:12*60,kind:'memory',items:MEM_CFG.map(c=>Object.assign({},c)),
    intro:'Ti verranno mostrati dei simboli uno alla volta. Nei primi item dovrai riscrivere le cifre in ordine inverso (dall\'ultima alla prima). Negli ultimi item vedrai cifre e lettere mescolate: riscrivi prima le cifre in ordine crescente, poi le lettere in ordine alfabetico.',
-   tips:['Esempio inverso: vedi 4 – 1 – 7, scrivi 714.','Esempio cifre e lettere: vedi M – 3 – B – 8, scrivi 38BM.','Non usare carta e penna: la sezione misura la memoria, non la scrittura.']},
-  {id:'rot',name:'Rotazione spaziale',short:'Rotazione',time:480,kind:'rotation',items:rotItems(),
+   tips:['Esempio inverso: vedi 4 – 1 – 7, scrivi 714.','Esempio cifre e lettere: vedi M – 3 – B – 8, scrivi 38BM.','Due prove per ogni lunghezza, da 3 a 8 simboli. Non usare carta e penna: la sezione misura la memoria, non la scrittura.']},
+  {id:'rot',name:'Rotazione spaziale',short:'Rotazione',dominio:'spaziale',time:10*60,kind:'rotation',items:rotItems(),
    intro:'Ti viene mostrata una figura. Tra le quattro alternative, una sola è la stessa figura ruotata sul piano. Le altre sono riflesse allo specchio o sono figure diverse.',
-   tips:['Una figura riflessa non è una rotazione valida, anche se ruotata.']},
+   tips:['Una figura riflessa non è una rotazione valida, anche se ruotata.','Dall\'item 11 una cella della figura è marcata con un punto: anche il punto deve trovarsi nella posizione giusta.']},
 ];
 const TOTAL_ITEMS=SECTIONS.reduce((n,s)=>n+s.items.length,0);
-window.__qi={SECTIONS,memAnswer,allSym,key,get state(){return state},set state(v){state=v},render:()=>render()};
+const TOTAL_MIN=Math.round(SECTIONS.reduce((n,s)=>n+s.time,0)/60);
+const ITEM_PREFIX={mat:'mat',num:'ser',verb:'ana',mem:'mem',rot:'spa'};
+const itemId=(sec,i)=>`${ITEM_PREFIX[sec.id]}_${String(i+1).padStart(2,'0')}`;
+window.__qi={SECTIONS,memAnswer,allSym,symsF,fkey,key,get state(){return state},set state(v){state=v},render:()=>render()};
 
 // ========================= stato =========================
-let state={screen:'intro',s:0,i:0,answers:{},rts:{},timeLeft:null,sel:null,mem:null,timeouts:{},hidden:0,startedAt:null,finishedAt:null,itemAt:null,consent:true,sent:null,sid:null};
-SECTIONS.forEach(s=>{state.answers[s.id]=Array(s.items.length).fill(null);state.rts[s.id]=Array(s.items.length).fill(null)});
+let state=null;
+function freshState(){
+  const s={screen:'intro',s:0,i:0,answers:{},rts:{},timeLeft:null,sel:null,mem:null,timeouts:{},hidden:0,startedAt:null,finishedAt:null,itemAt:null,consent:true,sent:null,sid:null,demo:{}};
+  SECTIONS.forEach(sec=>{s.answers[sec.id]=Array(sec.items.length).fill(null);s.rts[sec.id]=Array(sec.items.length).fill(null)});
+  return s;
+}
+state=freshState();
 let tick=null,memTimer=null;
 const newId=()=>Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);
-
-function save(){/* nessuna persistenza oltre lo snapshot del viewer */}
 function startTimer(){stopTimer();tick=setInterval(()=>{if(state.screen!=='item')return;state.timeLeft--;updateBar();if(state.timeLeft<=0){endSection(true)}},1000)}
 function stopTimer(){if(tick){clearInterval(tick);tick=null}}
 
@@ -363,15 +510,15 @@ function updateBar(){
   const t=$('#barTimer');
   t.classList.toggle('hidden-timer',state.screen!=='item');
   if(state.screen==='item'){t.textContent=fmtTime(Math.max(0,state.timeLeft));t.classList.toggle('low',state.timeLeft<=30)}
-  let done=0;for(let k=0;k<state.s;k++)done+=SECTIONS[k].items.length;if(state.screen==='item')done+=state.i;if(state.screen==='results')done=TOTAL_ITEMS;
+  let done=0;for(let k=0;k<state.s;k++)done+=SECTIONS[k].items.length;if(state.screen==='item')done+=state.i;if(state.screen==='results'||state.screen==='demo')done=TOTAL_ITEMS;
   $('#barProg').style.width=(done/TOTAL_ITEMS*100)+'%';
 }
 
 // ========================= flusso =========================
 function startTest(){
   const consent=!!(($('#consent')||{checked:true}).checked);
-  state={screen:'section',s:0,i:0,answers:{},rts:{},timeLeft:null,sel:null,mem:null,timeouts:{},hidden:0,startedAt:Date.now(),finishedAt:null,itemAt:null,consent,sent:null,sid:newId()};
-  SECTIONS.forEach(s=>{state.answers[s.id]=Array(s.items.length).fill(null);state.rts[s.id]=Array(s.items.length).fill(null)});
+  state=freshState();Object.assign(state,{screen:'section',startedAt:Date.now(),consent,sid:newId()});
+  if(window.Raccolta&&window.Raccolta.init){try{window.Raccolta.init({endpoint:QI_SUBMIT_URL||null,testVersion:QI_VERSION})}catch(e){}}
   render();
 }
 function startSection(){
@@ -398,51 +545,49 @@ function endSection(timedOut){
   if(timedOut)state.timeouts[sec.id]=state.i; // item raggiunto allo scadere
   stopTimer();clearTimeout(memTimer);
   if(state.s+1<SECTIONS.length){state.s++;state.screen='section';state.sel=null;state.mem=null}
-  else{state.screen='results';state.finishedAt=Date.now();if(state.consent)submitRecord()}
+  else{state.screen='demo';state.finishedAt=Date.now()}
+  render();window.scrollTo({top:0});
+}
+function finishDemo(){
+  const g=id=>{const e=$('#'+id);return e&&e.value?e.value:null};
+  state.demo={eta_fascia:g('demoEta'),studio:g('demoStudio'),lingua:g('demoLingua')};
+  state.screen='results';
+  if(state.consent)submitRecord();
   render();window.scrollTo({top:0});
 }
 
 // ========================= taratura: record anonimo =========================
 function buildRecord(){
   const R=computeResults();
-  const sections={};
+  const items=[];
   SECTIONS.forEach(sec=>{
-    const a=state.answers[sec.id];
-    sections[sec.id]={
-      ids:a.map((_,i)=>itemId(sec,i)),
-      correct:a.map((x,i)=>isCorrect(sec,i,x)?1:0),
-      answered:a.map(x=>x===null||(x&&x.given==='')?0:1),
-      given:a.map(x=>x===null?null:(sec.kind==='memory'?x.given:x)),
-      rt:state.rts[sec.id],
-      timedOut:sec.id in state.timeouts,
-    };
+    const a=state.answers[sec.id];const to=state.timeouts[sec.id];
+    sec.items.forEach((it,i)=>{
+      const x=a[i];const given=x===null?null:(sec.kind==='memory'?x.given:LETTERS[x]);
+      items.push({id:itemId(sec,i),dominio:sec.dominio,corretto:isCorrect(sec,i,x)?1:0,risposta:given||null,rt_ms:state.rts[sec.id][i],scaduto:(to!==undefined&&i>=to)?1:0});
+    });
   });
-  return{v:QI_VERSION,sid:state.sid,ts:new Date(state.startedAt).toISOString(),durationSec:Math.round((state.finishedAt-state.startedAt)/1000),
-    raw:R.raw,iq:R.iq,hidden:state.hidden,viewport:[window.innerWidth,window.innerHeight],lang:navigator.language||'',sections};
-}
-const ITEM_PREFIX={mat:'mat',num:'ser',verb:'ana',mem:'mem',rot:'spa'};
-const itemId=(sec,i)=>`${ITEM_PREFIX[sec.id]}_${String(i+1).padStart(2,'0')}`;
-// Ponte verso il modulo condiviso js/raccolta.js del repository, se caricato nella pagina.
-function submitViaRaccolta(rec){
-  const Rc=window.Raccolta;if(!Rc||typeof Rc.registra!=='function')return false;
-  try{
-    if(typeof Rc.init==='function')Rc.init({endpoint:window.RACCOLTA_ENDPOINT||QI_SUBMIT_URL||null,testVersion:QI_VERSION});
-    SECTIONS.forEach(sec=>{const s=rec.sections[sec.id];sec.items.forEach((it,i)=>{
-      const g=s.given[i];const risposta=g===null?null:(sec.kind==='memory'?g:LETTERS[g]);
-      Rc.registra({id:itemId(sec,i),dominio:sec.short.toLowerCase(),corretto:s.correct[i],risposta,rt_ms:s.rt[i]});
-    })});
-    if(typeof Rc.chiudi==='function')Rc.chiudi({punteggio_grezzo:rec.raw,qi_stimato:rec.iq,demo:{lingua:rec.lang}});
-    return true;
-  }catch(e){return false}
+  return{schema:1,test_version:QI_VERSION,pid:null,sessione:null,giorni_dalla_precedente:null,iniziato:new Date(state.startedAt).toISOString(),concluso:new Date(state.finishedAt).toISOString(),
+    agente:navigator.userAgent||null,schermo:screen?screen.width+'x'+screen.height:null,lingua_browser:navigator.language||null,consenso:state.consent,
+    item:items,punteggio_grezzo:R.raw,qi_stimato:R.iq,demo:state.demo||{},nascosto:state.hidden,sid:state.sid};
 }
 async function submitRecord(){
   const rec=buildRecord();state.sent='pending';
-  let ok=submitViaRaccolta(rec);
-  if(QI_SUBMIT_URL){
+  let ok=false;let toStore=rec;
+  const Rc=window.Raccolta;
+  if(Rc&&Rc.registra){
+    try{
+      try{localStorage.setItem('testqi.consenso','si')}catch(e){}
+      if(!Rc.record())Rc.init({endpoint:QI_SUBMIT_URL||null,testVersion:QI_VERSION});
+      rec.item.forEach(it=>Rc.registra(it));
+      ok=await Rc.chiudi({punteggio_grezzo:rec.punteggio_grezzo,qi_stimato:rec.qi_stimato,consenso:!!state.consent,demo:rec.demo});
+      const r=Rc.record();if(r){toStore=Object.assign({},r,{sid:state.sid,nascosto:state.hidden})}
+    }catch(e){ok=false}
+  }else if(QI_SUBMIT_URL){
     try{await fetch(QI_SUBMIT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(rec)});ok=true}catch(e){}
   }
   if(!ok&&window.claude&&window.claude.use){
-    try{const db=await window.claude.use('db');if(db){await db.collection('sessions').doc(rec.sid).set(rec);ok=true}}catch(e){}
+    try{const db=await window.claude.use('db');if(db){await db.collection('sessions').doc(state.sid).set(toStore);ok=true}}catch(e){}
   }
   state.sent=ok?'ok':'fail';
   const el=$('#sendStatus');if(el)el.innerHTML=sendStatusHtml();
@@ -462,39 +607,39 @@ function isCorrect(sec,idx,ans){
 }
 function erf(x){const s=Math.sign(x);x=Math.abs(x);const t=1/(1+0.3275911*x);const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);return s*y}
 const normCdf=(z)=>0.5*(1+erf(z/Math.SQRT2));
-// Parametri provvisori di conversione (non derivati da un campione normativo).
-const NORM={mean:23,sd:6.5,rel:0.85};
+// Parametri provvisori di conversione (non derivati da un campione normativo): da sostituire con le norme empiriche.
+const NORM={mean:70,sd:12,rel:0.90};
+function rawToIq(raw){const z=(raw-NORM.mean)/NORM.sd;return Math.max(55,Math.min(145,Math.round(100+15*z)))}
 function computeResults(){
-  const per=SECTIONS.map(sec=>{const a=state.answers[sec.id];let c=0,ans=0;a.forEach((x,i)=>{if(x!==null){ans++;if(isCorrect(sec,i,x))c++}});return{sec,correct:c,answered:ans,n:sec.items.length}});
+  const per=SECTIONS.map(sec=>{const a=state.answers[sec.id];let c=0,ans=0;a.forEach((x,i)=>{if(x!==null&&!(sec.kind==='memory'&&x.given==='')){ans++}if(isCorrect(sec,i,x))c++});return{sec,correct:c,answered:ans,n:sec.items.length}});
   const raw=per.reduce((n,p)=>n+p.correct,0);
-  const z=(raw-NORM.mean)/NORM.sd;
-  let iq=Math.round(100+15*z);iq=Math.max(55,Math.min(145,iq));
+  const iq=rawToIq(raw);
   const sem=15*Math.sqrt(1-NORM.rel);const ci=Math.round(1.96*sem);
   const pct=Math.round(normCdf((iq-100)/15)*100);
   return{per,raw,iq,ci,pct,lo:Math.max(55,iq-ci),hi:Math.min(145,iq+ci)};
 }
-function rawToIq(raw){const z=(raw-NORM.mean)/NORM.sd;return Math.max(55,Math.min(145,Math.round(100+15*z)))}
 const BANDS=[[130,999,'Molto superiore'],[120,129,'Superiore'],[110,119,'Medio-alto'],[90,109,'Nella media'],[80,89,'Medio-basso'],[70,79,'Basso'],[0,69,'Molto basso']];
+function iqLabel(iq){for(const [lo,hi,name]of BANDS)if(iq>=lo&&iq<=hi)return name;return''}
 function conversionTableHtml(currentRaw){
   const ci=Math.round(1.96*15*Math.sqrt(1-NORM.rel));
   const rows=[];for(let r=TOTAL_ITEMS;r>=0;r--){const iq=rawToIq(r);const pct=normCdf((iq-100)/15)*100;const cur=r===currentRaw;
+    if(r%2===1&&!cur)continue; // una riga ogni due punti, più quella del punteggio ottenuto
     rows.push(`<tr${cur?' style="font-weight:600;background:var(--accent-soft)"':''}><td class="num">${r}</td><td class="num">${iq}</td><td class="num">${Math.max(55,iq-ci)}–${Math.min(145,iq+ci)}</td><td class="num">${pct<1?'<1':pct>99?'>99':Math.round(pct)}</td><td>${iqLabel(iq)}</td></tr>`)}
   const bands=BANDS.map(([lo,hi,name])=>{const p=(normCdf(((Math.min(hi,999)+0.5)-100)/15)-normCdf(((lo-0.5)-100)/15))*100;const rng=lo===0?`< 70`:hi===999?`≥ 130`:`${lo}–${hi}`;return`<tr><td>${rng}</td><td>${name}</td><td class="num">${p<1?p.toFixed(1):Math.round(p)}%</td></tr>`}).join('');
   return`<div class="stack">
-    <p class="hint">Conversione provvisoria: assume una media grezza di ${NORM.mean} su ${TOTAL_ITEMS} e una deviazione standard di ${NORM.sd}, cioè QI = 100 + 15 × (grezzo − ${NORM.mean}) / ${NORM.sd}, limitato a 55–145. L'intervallo di confidenza al 95% (±${ci}) deriva da un'attendibilità ipotizzata di ${NORM.rel}. Quando la taratura reale sarà completata, questa tabella verrà sostituita dalle norme empiriche.</p>
+    <p class="hint">Conversione provvisoria: assume una media grezza di ${NORM.mean} su ${TOTAL_ITEMS} e una deviazione standard di ${NORM.sd}, cioè QI = 100 + 15 × (grezzo − ${NORM.mean}) / ${NORM.sd}, limitato a 55–145. L'intervallo di confidenza al 95% (±${ci}) deriva da un'attendibilità attesa di ${NORM.rel}, stimata dai parametri pubblicati per item di questo tipo. La media e la DS assunte derivano da una simulazione con i parametri MaRs-IB per le matrici e da stime per gli altri domini: chi fa test online tende a ottenere punteggi alti, quindi la scala è volutamente severa. Quando la taratura reale sarà completata, questa tabella verrà sostituita dalle norme empiriche.</p>
     <div style="overflow-x:auto"><table><thead><tr><th>Grezzo</th><th>QI</th><th>IC 95%</th><th>Percentile</th><th>Fascia</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>
     <h3>Fasce di QI e quota di popolazione attesa</h3>
     <div style="overflow-x:auto"><table><thead><tr><th>QI</th><th>Fascia</th><th>Popolazione</th></tr></thead><tbody>${bands}</tbody></table></div>
     <p class="hint">Le quote per fascia derivano dalla distribuzione normale con media 100 e DS 15, la stessa convenzione dei test clinici (per esempio WAIS-IV): circa il 68% delle persone si colloca tra 85 e 115, circa il 95% tra 70 e 130.</p>
   </div>`;
 }
-function iqLabel(iq){if(iq>=130)return'Molto superiore alla media';if(iq>=120)return'Superiore alla media';if(iq>=110)return'Medio-alto';if(iq>=90)return'Nella media';if(iq>=80)return'Medio-basso';if(iq>=70)return'Basso';return'Molto basso'}
 
 // ========================= rendering =========================
 const app=$('#app');
 function render(){
   updateBar();
-  const fn={intro:rIntro,section:rSection,item:rItem,results:rResults}[state.screen];
+  const fn={intro:rIntro,section:rSection,item:rItem,demo:rDemo,results:rResults}[state.screen];
   app.innerHTML=fn();
   bind();
 }
@@ -508,8 +653,9 @@ function act(a){
   if(a==='start')startTest();
   else if(a==='startSection')startSection();
   else if(a==='next')submitAnswer();
-  else if(a==='skip'){state.sel=null;if(SECTIONS[state.s].kind==='memory'){state.answers[SECTIONS[state.s].id][state.i]={seq:state.mem.seq,given:''}}nextItem()}
-  else if(a==='restart'){state.screen='intro';render();window.scrollTo({top:0})}
+  else if(a==='skip'){state.sel=null;if(SECTIONS[state.s].kind==='memory'){state.answers[SECTIONS[state.s].id][state.i]={seq:state.mem?state.mem.seq:[],given:''}}recordRt();nextItem()}
+  else if(a==='finishDemo')finishDemo();
+  else if(a==='restart'){state=freshState();render();window.scrollTo({top:0})}
   else if(a==='copy'){const txt=JSON.stringify(buildRecord());const b=$('#copyBtn');const done=()=>{if(b)b.textContent='Copiato'};
     if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done).catch(()=>showCopyBox(txt))}else showCopyBox(txt)}
 }
@@ -518,7 +664,7 @@ function showCopyBox(txt){let ta=$('#copyBox');if(!ta){ta=document.createElement
 function rIntro(){
   return`
   <div class="stack">
-    <div class="eyebrow">Strumento di autovalutazione · 40 item · 5 domini</div>
+    <div class="eyebrow">Strumento di autovalutazione · ${TOTAL_ITEMS} item · 5 domini</div>
     <h1>Test QI Multidominio</h1>
     <p class="lede">Un test di ragionamento a tempo che copre cinque aree cognitive e restituisce un punteggio sulla scala del QI (media 100, deviazione standard 15) con intervallo di confidenza.</p>
   </div>
@@ -527,7 +673,7 @@ function rIntro(){
   </div>
   <div class="card stack">
     <h2>Prima di iniziare</h2>
-    <p>Servono circa <strong>35 minuti</strong> senza interruzioni. Ogni sezione ha un limite di tempo: allo scadere, gli item non risposti contano come errati. Non si può tornare indietro.</p>
+    <p>Servono fino a <strong>${TOTAL_MIN} minuti</strong> senza interruzioni (la maggior parte delle persone finisce prima). Ogni sezione ha un limite di tempo: allo scadere, gli item non risposti contano come errati. Non si può tornare indietro.</p>
     <p>Rispondi da solo, senza calcolatrice né carta e penna. Se non sai una risposta, scegli quella che ritieni più probabile: non ci sono penalità per gli errori.</p>
     <p>Il risultato è più attendibile se è la prima volta che fai questo test: alla seconda prova il punteggio tende a salire per effetto dell'apprendimento.</p>
   </div>
@@ -545,18 +691,18 @@ function rSection(){
   const sec=SECTIONS[state.s];
   let example='';
   if(sec.kind==='rotation'){
-    const t=[[0,0],[0,1],[0,2],[1,2]];
+    const t={cells:norm([[0,0],[0,1],[0,2],[1,2]]),mark:null};
     example=`<div class="example">
-      <div class="ex">${cellsSVG(t)}<div class="cap">Figura data</div></div>
-      <div class="ex">${cellsSVG(rotN(t,1))}<div class="cap">Ruotata: valida</div></div>
-      <div class="ex">${cellsSVG(mirC(t))}<div class="cap">Riflessa: non valida</div></div>
+      <div class="ex">${cellsSVG(t.cells)}<div class="cap">Figura data</div></div>
+      <div class="ex">${cellsSVG(rotF(t,1).cells)}<div class="cap">Ruotata: valida</div></div>
+      <div class="ex">${cellsSVG(tf(t,'m').cells)}<div class="cap">Riflessa: non valida</div></div>
     </div>`;
   }else if(sec.kind==='matrix'){
     example=`<div class="example">
-      <div class="ex">${cellSVG(cell([el('circle','none')]))}<div class="cap">riga 1</div></div>
-      <div class="ex">${cellSVG(cell([el('circle','full')]))}<div class="cap">riga 1</div></div>
-      <div class="ex">${cellSVG(cell([el('square','none')]))}<div class="cap">riga 2</div></div>
-      <div class="ex">${cellSVG(cell([el('square','full')]))}<div class="cap">riga 2 · risposta</div></div>
+      <div class="ex">${cellSVG({els:[{shape:'circle',fill:'none'}]})}<div class="cap">riga 1</div></div>
+      <div class="ex">${cellSVG({els:[{shape:'circle',fill:'full'}]})}<div class="cap">riga 1</div></div>
+      <div class="ex">${cellSVG({els:[{shape:'square',fill:'none'}]})}<div class="cap">riga 2</div></div>
+      <div class="ex">${cellSVG({els:[{shape:'square',fill:'full'}]})}<div class="cap">riga 2 · risposta</div></div>
     </div>`;
   }
   return`
@@ -593,9 +739,9 @@ function rItem(){
       <div class="opts text">${it.options.map((o,k)=>`<button class="opt" data-i="${k}"><span class="k">${LETTERS[k]}</span><span class="v">${esc(o)}</span></button>`).join('')}</div>${nav()}`;
   }
   if(sec.kind==='rotation'){
-    return`${head}<p class="q">Quale alternativa è la stessa figura ruotata (non riflessa)?</p>
-      <div class="figbox">${cellsSVG(it.target)}</div>
-      <div class="opts fig">${it.options.map((o,k)=>`<button class="opt fig" data-i="${k}" aria-label="Opzione ${LETTERS[k]}">${cellsSVG(o.cells)}<span class="k">${LETTERS[k]}</span></button>`).join('')}</div>${nav()}`;
+    return`${head}<p class="q">Quale alternativa è la stessa figura ruotata (non riflessa)?${it.marked?'<span class="small">Anche il punto bianco deve trovarsi nella cella corrispondente.</span>':''}</p>
+      <div class="figbox">${cellsSVG(it.target.cells,it.target.mark)}</div>
+      <div class="opts fig">${it.options.map((o,k)=>`<button class="opt fig" data-i="${k}" aria-label="Opzione ${LETTERS[k]}">${cellsSVG(o.f.cells,o.f.mark)}<span class="k">${LETTERS[k]}</span></button>`).join('')}</div>${nav()}`;
   }
   // memoria
   if(!state.mem){state.mem={seq:genMemSeq(it),phase:'show',pos:-1}}
@@ -621,6 +767,19 @@ function runMemShow(){
   memTimer=setTimeout(step,900);
 }
 
+function rDemo(){
+  const sel=(id,label,opts)=>`<div class="field"><label for="${id}">${label}</label><select id="${id}"><option value="">Preferisco non dirlo</option>${opts.map(o=>`<option value="${esc(o[0])}">${esc(o[1])}</option>`).join('')}</select></div>`;
+  return`
+  <div class="stack"><div class="eyebrow">Test completato</div><h1>Tre domande facoltative</h1>
+  <p class="lede">Servono solo per la taratura: permettono di costruire norme per fascia d'età e di controllare che gli item funzionino allo stesso modo per gruppi diversi. Restano anonime.</p></div>
+  <div class="card stack">
+    ${sel('demoEta','Fascia d\'età',[['<18','Meno di 18'],['18-24','18–24'],['25-34','25–34'],['35-44','35–44'],['45-54','45–54'],['55-64','55–64'],['65+','65 o più']])}
+    ${sel('demoStudio','Titolo di studio più alto',[['media','Licenza media'],['diploma','Diploma'],['laurea','Laurea'],['post','Master o dottorato']])}
+    ${sel('demoLingua','Lingua madre',[['it','Italiano'],['altra','Altra lingua']])}
+  </div>
+  <div class="actions"><button class="btn primary" data-act="finishDemo">Vai ai risultati</button></div>`;
+}
+
 function rResults(){
   const R=computeResults();
   const dur=state.finishedAt&&state.startedAt?Math.round((state.finishedAt-state.startedAt)/60000):null;
@@ -628,9 +787,9 @@ function rResults(){
   const toCount=Object.keys(state.timeouts).length;
   if(toCount){const names=Object.keys(state.timeouts).map(id=>SECTIONS.find(s=>s.id===id).short).join(', ');flags.push({t:`Tempo scaduto in ${toCount===1?'una sezione':toCount+' sezioni'} (${names}): gli item non raggiunti contano come errati e il punteggio può sottostimare la tua capacità.`})}
   const unanswered=TOTAL_ITEMS-R.per.reduce((n,p)=>n+p.answered,0);
-  if(unanswered>=6)flags.push({t:`${unanswered} item senza risposta: con molte omissioni la stima è meno precisa.`});
+  if(unanswered>=15)flags.push({t:`${unanswered} item senza risposta: con molte omissioni la stima è meno precisa.`});
   if(state.hidden>=2)flags.push({t:`La pagina è stata lasciata ${state.hidden} volte durante il test: le interruzioni riducono l'attendibilità.`});
-  if(R.raw>=38)flags.push({t:'Punteggio vicino al massimo: il test non riesce a distinguere livelli oltre questo valore (effetto tetto).'});
+  if(R.raw>=TOTAL_ITEMS-3)flags.push({t:'Punteggio vicino al massimo: il test non riesce a distinguere livelli oltre questo valore (effetto tetto).'});
   if(!flags.length)flags.push({ok:true,t:'Nessuna anomalia nella somministrazione: tutte le sezioni completate nei tempi.'});
   const review=SECTIONS.map(sec=>{
     const rows=sec.items.map((it,i)=>{
@@ -639,7 +798,7 @@ function rResults(){
       if(sec.kind==='matrix')d=`Regola: ${esc(it.rule)} · risposta corretta ${LETTERS[it.answer]}${a!==null?`, data ${LETTERS[a]}`:''}`;
       else if(sec.id==='num')d=`${it.seq.join(', ')}, <b>${it.options[it.answer]}</b> (${esc(it.rule)})${a!==null&&!ok?` · data ${it.options[a]}`:''}`;
       else if(sec.id==='verb')d=`${esc(it.a)} : ${esc(it.b)} = ${esc(it.c)} : <b>${esc(it.options[it.answer])}</b> (${esc(it.rule)})${a!==null&&!ok?` · data ${esc(it.options[a])}`:''}`;
-      else if(sec.kind==='memory')d=a?`${a.seq.join(' ')} → atteso <b class="mono">${memAnswer(it,a.seq)}</b>${a.given?`, scritto <span class="mono">${esc(a.given)}</span>`:''}`:'non presentato';
+      else if(sec.kind==='memory')d=a&&a.seq.length?`${a.seq.join(' ')} → atteso <b class="mono">${memAnswer(it,a.seq)}</b>${a.given?`, scritto <span class="mono">${esc(a.given)}</span>`:''}`:'non presentato';
       else d=`Corretta: ${LETTERS[it.answer]}${a!==null&&!ok?` · data ${LETTERS[a]} (${it.options[a].kind==='mirror'?'figura riflessa':'figura diversa'})`:''}`;
       return`<div class="revrow"><span class="n">${i+1}</span><span class="d">${d}</span><span class="pill ${ok?'ok':skipped?'skip':'bad'}">${ok?'corretta':skipped?'omessa':'errata'}</span></div>`;
     }).join('');
@@ -659,13 +818,13 @@ function rResults(){
   <div class="card stack">
     <h2>Profilo per dominio</h2>
     <div class="bars">${R.per.map(p=>`<div class="barrow"><span class="name">${esc(p.sec.name)}</span><span class="track"><i style="width:${p.correct/p.n*100}%"></i></span><span class="val">${p.correct}/${p.n}</span></div>`).join('')}</div>
-    <p class="hint">Punteggio grezzo totale: <b class="mono">${R.raw}/${TOTAL_ITEMS}</b>. Con 8 item per dominio, le differenze tra domini sono indicative: uno scarto di 1–2 punti rientra nel margine di errore.</p>
+    <p class="hint">Punteggio grezzo totale: <b class="mono">${R.raw}/${TOTAL_ITEMS}</b>. Con 20 item per dominio, le differenze tra domini sono indicative: uno scarto di 2–3 punti rientra nel margine di errore.</p>
   </div>
   <div class="card stack">
     <h2>Attendibilità di questa somministrazione</h2>
     <div class="flags">${flags.map(f=>`<div class="flag ${f.ok?'ok':''}">${f.ok?'✓':'!'} <span>${f.t}</span></div>`).join('')}</div>
   </div>
-  <div class="note"><strong>Non è un test clinico.</strong> Questo punteggio è una stima a scopo indicativo. La conversione usa parametri provvisori (media grezza ${NORM.mean}, DS ${NORM.sd}, attendibilità ipotizzata ${NORM.rel}) scelti a priori e non ricavati da un campione normativo: il valore va letto come posizione relativa in questo test, non come QI clinico. Una diagnosi o una misura ufficiale richiede una valutazione con strumenti standardizzati somministrati da uno psicologo.</div>
+  <div class="note"><strong>Non è un test clinico.</strong> Questo punteggio è una stima a scopo indicativo. La conversione usa parametri provvisori (media grezza ${NORM.mean}, DS ${NORM.sd}, attendibilità attesa ${NORM.rel}) scelti a priori e non ricavati da un campione normativo: il valore va letto come posizione relativa in questo test, non come QI clinico. Una diagnosi o una misura ufficiale richiede una valutazione con strumenti standardizzati somministrati da uno psicologo.</div>
   <div class="card stack"><h3>Taratura</h3><div id="sendStatus" class="hint">${sendStatusHtml()}</div></div>
   <details><summary>Tabella di conversione: punteggio grezzo, QI, percentile</summary><div class="body">${conversionTableHtml(R.raw)}</div></details>
   <details><summary>Rivedi le risposte</summary><div class="body"><p class="hint">Attenzione: dopo aver visto le soluzioni, una nuova prova non sarà più attendibile.</p>${review}</div></details>
@@ -675,7 +834,7 @@ function rResults(){
 // ========================= avvio =========================
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&state.screen==='item')state.hidden++});
 function boot(data){
-  if(data&&data.state&&data.state.answers){state=data.state;if(state.screen==='item'){startTimer();if(state.mem&&state.mem.phase==='show')state.mem=null}}
+  if(data&&data.state&&data.state.answers){state=Object.assign(freshState(),data.state);if(state.screen==='item'){startTimer();if(state.mem&&state.mem.phase==='show')state.mem=null}}
   render();
 }
 if(window.claude&&window.claude.hot){

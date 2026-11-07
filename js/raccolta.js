@@ -8,8 +8,9 @@
  *   Raccolta.init({ endpoint: window.RACCOLTA_ENDPOINT || null, testVersion: "1.0" });
  *   Raccolta.registra({ id: "mat_07", dominio: "matrici", corretto: 1, risposta: "C", rt_ms: 12345 });
  *   ... un registra() per ogni item ...
- *   Raccolta.chiudi({ punteggio_grezzo: 71, qi_stimato: 108,
+ *   Raccolta.chiudi({ punteggio_grezzo: 71, qi_stimato: 108, consenso: true,
  *                     demo: { eta_fascia: "25-34", studio: "laurea", lingua: "it" } });
+ *   (consenso: true/false se la pagina lo ha già chiesto; se manca, lo chiede il modulo)
  *
  * Cosa fa da solo:
  *  - genera un id anonimo casuale e lo tiene in localStorage, così una seconda
@@ -123,13 +124,16 @@
   function invia(record) {
     if (!stato.endpoint || !global.fetch) return Promise.resolve(false);
     var corpo = JSON.stringify(record);
+    // Content-Type text/plain e mode no-cors: richiesta "semplice", senza preflight,
+    // che Google Apps Script accetta (il JSON arriva lo stesso in e.postData.contents).
+    // La risposta è opaca: se la fetch non fallisce, il record è stato consegnato.
     return global.fetch(stato.endpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: corpo,
       keepalive: true,
-      mode: "cors"
-    }).then(function (res) { stato.inviato = res.ok; return res.ok; })
+      mode: "no-cors"
+    }).then(function () { stato.inviato = true; return true; })
       .catch(function () { return false; });
   }
 
@@ -145,7 +149,10 @@
     scrivi(CHIAVE_SESSIONI, stato.record.sessione);
     scrivi(CHIAVE_ULTIMA, stato.record.concluso);
 
-    var ok = consenso(esito.testoConsenso);
+    // Se la pagina ha già chiesto il consenso, lo passa in esito.consenso (true/false)
+    // e il modulo non lo chiede di nuovo.
+    var ok = typeof esito.consenso === "boolean" ? esito.consenso : consenso(esito.testoConsenso);
+    if (typeof esito.consenso === "boolean") scrivi(CHIAVE_CONSENSO, ok ? "si" : "no");
     stato.record.consenso = ok;
     if (!ok) return Promise.resolve(false);
     return invia(stato.record);
