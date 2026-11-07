@@ -6,13 +6,14 @@ Un test del QI in una sola pagina HTML, pensato per essere il più affidabile po
 
 ## Come si usa
 
-Il test è pubblicato con GitHub Pages: apri la pagina del repository e fai il test dal browser, senza installare nulla.
+Il test è pubblicato con GitHub Pages: apri la pagina del repository e fai il test dal browser, senza installare nulla. Le sfide a due sono alla pagina `sfide/` dello stesso sito.
 
 In locale basta aprire `index.html` con un browser.
 
 ## Struttura
 
 - `index.html`: l'intero test (domande, timer, calcolo del punteggio).
+- `sfide/`: le sfide di logica a due (pagina `sfide/index.html`): un giocatore crea una stanza e manda il codice, l'altro entra, si risponde agli stessi quesiti a tempo e vince chi fa più punti. I quesiti sono generati da `sfide/quesiti.js` (matrici, serie, analogie, rotazioni, derivati dal test); il collegamento tra i due browser è diretto (WebRTC tramite PeerJS, libreria inclusa con licenza MIT).
 - `js/raccolta.js`: raccolta anonima e facoltativa dei risultati, per misurare l'affidabilità.
 - `analisi/`: script di analisi (alfa, test-retest, statistiche per item) ed endpoint di esempio.
 - `data/mars-ib/`: parametri pubblici di difficoltà delle matrici MaRs-IB (licenza MIT).
