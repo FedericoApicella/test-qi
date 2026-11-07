@@ -334,7 +334,6 @@ document.addEventListener('keydown',e=>{
   else if(k==='Enter'&&S.mode==='cody'&&S.guessHidden){if(S.hg.length===S.z.hidden.length)codyCheckHidden();render()}
 });
 window.addEventListener('resize',()=>{if(S&&!S.done&&S.mode==='cody')render()});
-$('#barSound').innerHTML=FX.soundButtonHtml();FX.bindSoundButton();
 // link diretto: ?gioco=cody|cruci|giorno&l=N
 const q=new URLSearchParams(location.search);
 if(q.get('gioco')==='giorno')startCody(1,AB.dayKey());else if(q.get('gioco')==='cody')startCody(+q.get('l')||P.cody.max);else if(q.get('gioco')==='cruci')startCruci(+q.get('l')||P.cruci.max);else render();

@@ -369,5 +369,9 @@ function oneItem(kind,seed,level,usedVerb){
   if(kind==='mem')return memItem(rng,level);
   return rotItem(rng,level);
 }
-window.Quesiti={buildGame,oneItem,itemHtml,cellSVG,cellsSVG,KIND_NAME:KIND_NAME_ALL,mulberry32,memAnswer};
+// forme per i giochi (poliomini) e coppie di parole per le analogie
+const polyShapes=()=>ROT_RAW.map(it=>norm(it.t));
+const verbPairs=()=>VERB_RAW.map(([a,b,c,opts])=>({a,b,c,ok:opts[0],bad:opts.slice(1)}));
+const tfCells=(cells,kind)=>tf({cells,mark:null},kind).cells;
+window.Quesiti={buildGame,oneItem,itemHtml,cellSVG,cellsSVG,KIND_NAME:KIND_NAME_ALL,mulberry32,memAnswer,polyShapes,verbPairs,tfCells,SHAPES:SHAPES5,FILLS:FL};
 })();

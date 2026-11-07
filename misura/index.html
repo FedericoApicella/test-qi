@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Misurati: mini-test attendibili per area</title>
+<meta name="description" content="Cinque mini-test seri, uno per area: matrici, serie numeriche, analogie, memoria di lavoro e rotazioni. 24 quesiti ciascuno, punteggio con margine di errore, dati anonimi per la taratura.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../stile.css">
+<link rel="manifest" href="../manifest.webmanifest">
+<style>
+.mis{display:grid;gap:22px}
+.tile{position:relative}
+.tile .res{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin-top:2px}
+.tile .res b{font-family:var(--font-mono);font-size:1.5rem;color:var(--brand)}
+.tile .res small{color:var(--muted)}
+.tile .meta{font-size:.85rem}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="bar-in">
+    <div class="title"><a href="../" style="color:inherit;text-decoration:none">🧠 Mente Allenata</a> · Misurati</div>
+    <div class="scores"></div>
+  </div>
+</div>
+<main class="wrap mis">
+<section class="stack">
+  <div class="eyebrow">Mini-test attendibili · una sola area alla volta · 24 quesiti · 6–14 minuti</div>
+  <h1>📏 Misurati, area per area</h1>
+  <p class="lede">Vuoi sapere quanto vali davvero in una sola abilità, senza fare tutto il test del QI? Ogni mini-test usa 24 quesiti nuovi (mai visti nel test principale né negli allenamenti), in ordine di difficoltà crescente, con un tempo largo. Alla fine ottieni un punteggio di area sulla scala del QI (media 100, DS 15) con il suo margine di errore e la revisione di ogni risposta.</p>
+</section>
+<section class="stack">
+  <div class="sec-head"><h2>Scegli l'area</h2><span class="hint" id="nota"></span></div>
+  <div class="tiles" id="tiles"></div>
+</section>
+<section class="card stack">
+  <h2>Perché sono "attendibili"</h2>
+  <p>Gli allenamenti e i giochi servono a divertirsi e migliorare: cambiano difficoltà in base a come vai, spiegano le risposte e non misurano nulla con precisione. I mini-test invece sono fissi e a tempo, come il test del QI: tutti rispondono agli stessi 24 quesiti, così il punteggio si può confrontare e la sua precisione si può calcolare.</p>
+  <p>Con 24 quesiti l'attendibilità attesa è intorno a 0,85, cioè un margine di errore di circa ±11 punti al 95%: meno preciso del test completo (±9) e dell'esteso (±7), ma più preciso del profilo per area che ricavi da un test unico, dove ogni area ha solo 8–40 quesiti e i confronti tra aree sono indicativi.</p>
+  <p>I risultati vengono salvati in forma anonima con una versione separata per area (per esempio <span class="mono">area-mat-1.0</span>), così l'attendibilità di ciascun mini-test verrà stimata sui dati reali e la scala provvisoria sarà sostituita dalle norme.</p>
+</section>
+<section class="note"><strong>Non è un test clinico.</strong> Il punteggio di area è una stima a scopo di esercizio e curiosità, su una scala provvisoria non derivata da un campione normativo. Non sostituisce una valutazione psicometrica somministrata da un professionista.</section>
+<div class="actions"><a class="btn primary" href="../test.html">🧪 Fai il test del QI completo</a><a class="btn" href="../sfide/allenamento.html">🏋️ Allenati</a><a class="btn" href="../">Torna alla home</a></div>
+</main>
+<script src="../sfide/effetti.js"></script>
+<script src="../js/account.js"></script>
+<script src="../js/menu.js"></script>
+<script>
+(function(){
+const $=(s)=>document.querySelector(s);
+const esc=(s)=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const AREE=[
+  ['mat','matrici','Matrici','🧩',14,'Griglie 3×3 da completare: trova le regole (forma, riempimento, dimensione, numero, rotazione).'],
+  ['num','serie','Serie numeriche','🔢',10,'Qual è il numero che continua la serie? Regole semplici, poi combinate e alternate.'],
+  ['verb','analogie','Analogie verbali','💬',6,'A sta a B come C sta a… Relazioni tra parole, dal lessico comune a quello ricercato.'],
+  ['mem','memoria','Memoria di lavoro','🧠',12,'Cifre e lettere da ricordare: nello stesso ordine, al contrario o riordinate.'],
+  ['rot','spaziale','Rotazione spaziale','🔄',8,'Qual è la stessa figura ruotata? Attenzione alle figure riflesse allo specchio.'],
+];
+let aree={};try{aree=JSON.parse(localStorage.getItem('testqi.aree')||'{}')}catch(e){}
+const fascia=(p)=>p>=130?'molto superiore':p>=120?'superiore':p>=110?'medio-alto':p>=90?'nella media':p>=80?'medio-basso':p>=70?'basso':'molto basso';
+let fatti=0;
+$('#tiles').innerHTML=AREE.map(([id,dom,nome,ic,min,desc])=>{
+  const r=aree[dom];if(r)fatti++;
+  const d=r?new Date(r.data).toLocaleDateString('it-IT',{day:'numeric',month:'short'}):'';
+  const res=r?`<span class="res"><b>${r.punteggio}</b><small>${esc(fascia(r.punteggio))} · ${r.lo}–${r.hi} · ${r.grezzo}/${r.totale} · ${d}</small></span>`:'';
+  return`<a class="tile" href="../test.html?area=${id}"><span class="pill">≈ ${min} min</span><span class="ic">${ic}</span><b>${esc(nome)}</b><span>${esc(desc)}</span>${res}<span class="cta">${r?'Rifai il mini-test →':'Inizia (24 quesiti) →'}</span></a>`;
+}).join('');
+$('#nota').textContent=fatti?`${fatti} su 5 fatti su questo dispositivo`:'I punteggi restano su questo dispositivo';
+})();
+</script>
+<script src="../js/pwa.js"></script>
+</body>
+</html>
