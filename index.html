@@ -466,7 +466,7 @@ function rotItems(){
 }
 
 // ========================= sezioni =========================
-const SECTIONS=[
+const FULL_SECTIONS=[
   {id:'mat',name:'Matrici di ragionamento',short:'Matrici',dominio:'matrici',time:14*60,kind:'matrix',items:matrixItems(),
    intro:'Ogni griglia 3×3 segue una o più regole (per riga, per colonna o entrambe). Individua le regole e scegli, tra le sei alternative, la figura che completa la casella mancante.',
    tips:['Le regole possono riguardare forma, riempimento, dimensione, numero, rotazione o combinazione di segmenti.','Gli item diventano progressivamente più difficili: più elementi e più regole insieme.']},
@@ -481,18 +481,31 @@ const SECTIONS=[
    tips:['Esempio inverso: vedi 4 – 1 – 7, scrivi 714.','Esempio cifre e lettere: vedi M – 3 – B – 8, scrivi 38BM.','Due prove per ogni lunghezza, da 3 a 8 simboli. Non usare carta e penna: la sezione misura la memoria, non la scrittura.']},
   {id:'rot',name:'Rotazione spaziale',short:'Rotazione',dominio:'spaziale',time:10*60,kind:'rotation',items:rotItems(),
    intro:'Ti viene mostrata una figura. Tra le quattro alternative, una sola è la stessa figura ruotata sul piano. Le altre sono riflesse allo specchio o sono figure diverse.',
-   tips:['Una figura riflessa non è una rotazione valida, anche se ruotata.','Dall\'item 11 una cella della figura è marcata con un punto: anche il punto deve trovarsi nella posizione giusta.']},
+   tips:['Una figura riflessa non è una rotazione valida, anche se ruotata.']},
 ];
-const TOTAL_ITEMS=SECTIONS.reduce((n,s)=>n+s.items.length,0);
-const TOTAL_MIN=Math.round(SECTIONS.reduce((n,s)=>n+s.time,0)/60);
+FULL_SECTIONS.forEach(s=>s.items.forEach((it,i)=>{it.origIdx=i}));
+// Forma breve: 8 item per dominio presi lungo tutta la scala di difficoltà (stessi id della forma completa).
+const SHORT_IDX=[0,3,6,9,12,15,17,19];
+const SHORT_TIME={mat:6*60,num:4*60,verb:3*60,mem:5*60,rot:4*60};
+// Parametri provvisori di conversione (non derivati da un campione normativo): da sostituire con le norme empiriche.
+const NORMS={full:{mean:70,sd:12,rel:0.90,label:'Test completo'},short:{mean:28,sd:5,rel:0.80,label:'Stima rapida'}};
+let SECTIONS,TOTAL_ITEMS,TOTAL_MIN,NORM,FORM='full';
+function applyForm(form){
+  FORM=form==='short'?'short':'full';
+  SECTIONS=FULL_SECTIONS.map(s=>Object.assign({},s,{items:FORM==='short'?SHORT_IDX.map(i=>s.items[i]):s.items,time:FORM==='short'?SHORT_TIME[s.id]:s.time}));
+  TOTAL_ITEMS=SECTIONS.reduce((n,s)=>n+s.items.length,0);
+  TOTAL_MIN=Math.round(SECTIONS.reduce((n,s)=>n+s.time,0)/60);
+  NORM=NORMS[FORM];
+}
+applyForm('full');
 const ITEM_PREFIX={mat:'mat',num:'ser',verb:'ana',mem:'mem',rot:'spa'};
-const itemId=(sec,i)=>`${ITEM_PREFIX[sec.id]}_${String(i+1).padStart(2,'0')}`;
-window.__qi={SECTIONS,memAnswer,allSym,symsF,fkey,key,get state(){return state},set state(v){state=v},render:()=>render()};
+const itemId=(sec,i)=>`${ITEM_PREFIX[sec.id]}_${String(sec.items[i].origIdx+1).padStart(2,'0')}`;
+window.__qi={get SECTIONS(){return SECTIONS},applyForm,memAnswer,allSym,symsF,fkey,key,get state(){return state},set state(v){state=v},render:()=>render()};
 
 // ========================= stato =========================
 let state=null;
 function freshState(){
-  const s={screen:'intro',s:0,i:0,answers:{},rts:{},timeLeft:null,sel:null,mem:null,timeouts:{},hidden:0,startedAt:null,finishedAt:null,itemAt:null,consent:true,sent:null,sid:null,demo:{}};
+  const s={screen:'intro',form:FORM,s:0,i:0,answers:{},rts:{},timeLeft:null,sel:null,mem:null,timeouts:{},hidden:0,startedAt:null,finishedAt:null,itemAt:null,consent:true,sent:null,sid:null,demo:{}};
   SECTIONS.forEach(sec=>{s.answers[sec.id]=Array(sec.items.length).fill(null);s.rts[sec.id]=Array(sec.items.length).fill(null)});
   return s;
 }
@@ -515,8 +528,9 @@ function updateBar(){
 }
 
 // ========================= flusso =========================
-function startTest(){
+function startTest(form){
   const consent=!!(($('#consent')||{checked:true}).checked);
+  applyForm(form);
   state=freshState();Object.assign(state,{screen:'section',startedAt:Date.now(),consent,sid:newId()});
   if(window.Raccolta&&window.Raccolta.init){try{window.Raccolta.init({endpoint:QI_SUBMIT_URL||null,testVersion:QI_VERSION})}catch(e){}}
   render();
@@ -569,7 +583,7 @@ function buildRecord(){
   });
   return{schema:1,test_version:QI_VERSION,pid:null,sessione:null,giorni_dalla_precedente:null,iniziato:new Date(state.startedAt).toISOString(),concluso:new Date(state.finishedAt).toISOString(),
     agente:navigator.userAgent||null,schermo:screen?screen.width+'x'+screen.height:null,lingua_browser:navigator.language||null,consenso:state.consent,
-    item:items,punteggio_grezzo:R.raw,qi_stimato:R.iq,demo:state.demo||{},nascosto:state.hidden,sid:state.sid};
+    item:items,punteggio_grezzo:R.raw,qi_stimato:R.iq,demo:Object.assign({forma:FORM==='short'?'breve':'completa'},state.demo||{}),forma:FORM==='short'?'breve':'completa',nascosto:state.hidden,sid:state.sid};
 }
 async function submitRecord(){
   const rec=buildRecord();state.sent='pending';
@@ -581,7 +595,7 @@ async function submitRecord(){
       if(!Rc.record())Rc.init({endpoint:QI_SUBMIT_URL||null,testVersion:QI_VERSION});
       rec.item.forEach(it=>Rc.registra(it));
       ok=await Rc.chiudi({punteggio_grezzo:rec.punteggio_grezzo,qi_stimato:rec.qi_stimato,consenso:!!state.consent,demo:rec.demo});
-      const r=Rc.record();if(r){toStore=Object.assign({},r,{sid:state.sid,nascosto:state.hidden})}
+      const r=Rc.record();if(r){toStore=Object.assign({},r,{sid:state.sid,nascosto:state.hidden,forma:rec.forma})}
     }catch(e){ok=false}
   }else if(QI_SUBMIT_URL){
     try{await fetch(QI_SUBMIT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(rec)});ok=true}catch(e){}
@@ -607,8 +621,6 @@ function isCorrect(sec,idx,ans){
 }
 function erf(x){const s=Math.sign(x);x=Math.abs(x);const t=1/(1+0.3275911*x);const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);return s*y}
 const normCdf=(z)=>0.5*(1+erf(z/Math.SQRT2));
-// Parametri provvisori di conversione (non derivati da un campione normativo): da sostituire con le norme empiriche.
-const NORM={mean:70,sd:12,rel:0.90};
 function rawToIq(raw){const z=(raw-NORM.mean)/NORM.sd;return Math.max(55,Math.min(145,Math.round(100+15*z)))}
 function computeResults(){
   const per=SECTIONS.map(sec=>{const a=state.answers[sec.id];let c=0,ans=0;a.forEach((x,i)=>{if(x!==null&&!(sec.kind==='memory'&&x.given==='')){ans++}if(isCorrect(sec,i,x))c++});return{sec,correct:c,answered:ans,n:sec.items.length}});
@@ -649,8 +661,8 @@ function bind(){
   const inp=$('#memInput');if(inp){inp.focus();inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();submitAnswer()}})}
   if(state.screen==='item'&&SECTIONS[state.s].kind==='memory'&&state.mem&&state.mem.phase==='show')runMemShow();
 }
-function act(a){
-  if(a==='start')startTest();
+function act(a,b){
+  if(a==='start')startTest(b&&b.dataset.form);
   else if(a==='startSection')startSection();
   else if(a==='next')submitAnswer();
   else if(a==='skip'){state.sel=null;if(SECTIONS[state.s].kind==='memory'){state.answers[SECTIONS[state.s].id][state.i]={seq:state.mem?state.mem.seq:[],given:''}}recordRt();nextItem()}
@@ -664,27 +676,32 @@ function showCopyBox(txt){let ta=$('#copyBox');if(!ta){ta=document.createElement
 function rIntro(){
   return`
   <div class="stack">
-    <div class="eyebrow">Strumento di autovalutazione · ${TOTAL_ITEMS} item · 5 domini</div>
+    <div class="eyebrow">Strumento di autovalutazione · 5 domini · 100 o 40 item</div>
     <h1>Test QI Multidominio</h1>
     <p class="lede">Un test di ragionamento a tempo che copre cinque aree cognitive e restituisce un punteggio sulla scala del QI (media 100, deviazione standard 15) con intervallo di confidenza.</p>
   </div>
   <div class="domains">
-    ${SECTIONS.map(s=>`<div class="domain"><b>${esc(s.name)}</b><span>${s.items.length} item · ${Math.round(s.time/60)} min</span></div>`).join('')}
+    ${FULL_SECTIONS.map(s=>`<div class="domain"><b>${esc(s.name)}</b><span>${s.items.length} item · ${Math.round(s.time/60)} min (breve: ${SHORT_IDX.length} item · ${Math.round(SHORT_TIME[s.id]/60)} min)</span></div>`).join('')}
+  </div>
+  <div class="card stack">
+    <h2>Due versioni</h2>
+    <p><strong>Test completo</strong>: 100 item, fino a ${Math.round(FULL_SECTIONS.reduce((n,s)=>n+s.time,0)/60)} minuti. È la versione che misura meglio: intervallo di confidenza ±${Math.round(1.96*15*Math.sqrt(1-NORMS.full.rel))} punti.</p>
+    <p><strong>Stima rapida</strong>: 40 item (8 per dominio, scelti lungo tutta la scala di difficoltà), fino a ${Math.round(Object.values(SHORT_TIME).reduce((a,b)=>a+b,0)/60)} minuti. Dà solo un'indicazione di massima: intervallo di confidenza ±${Math.round(1.96*15*Math.sqrt(1-NORMS.short.rel))} punti.</p>
   </div>
   <div class="card stack">
     <h2>Prima di iniziare</h2>
-    <p>Servono fino a <strong>${TOTAL_MIN} minuti</strong> senza interruzioni (la maggior parte delle persone finisce prima). Ogni sezione ha un limite di tempo: allo scadere, gli item non risposti contano come errati. Non si può tornare indietro.</p>
+    <p>Serve un momento senza interruzioni (la maggior parte delle persone finisce prima del tempo massimo). Ogni sezione ha un limite di tempo: allo scadere, gli item non risposti contano come errati. Non si può tornare indietro.</p>
     <p>Rispondi da solo, senza calcolatrice né carta e penna. Se non sai una risposta, scegli quella che ritieni più probabile: non ci sono penalità per gli errori.</p>
     <p>Il risultato è più attendibile se è la prima volta che fai questo test: alla seconda prova il punteggio tende a salire per effetto dell'apprendimento.</p>
   </div>
   <div class="note"><strong>Non è un test clinico.</strong> Il punteggio è una stima indicativa a scopo di esercizio e curiosità. Non sostituisce una valutazione psicometrica somministrata da un professionista con strumenti standardizzati (per esempio WAIS-IV), e i parametri di conversione in QI sono provvisori, non derivati da un campione normativo.</div>
-  <details><summary>Come si calcola il QI (tabella provvisoria)</summary><div class="body">${conversionTableHtml(-1)}</div></details>
+  <details><summary>Come si calcola il QI (tabella provvisoria, ${NORM.label.toLowerCase()})</summary><div class="body">${conversionTableHtml(-1)}</div></details>
   <div class="card stack">
     <h2>Aiuta a tarare il test</h2>
     <p>Il test è in fase di taratura: alla fine, le tue risposte per item e i tempi vengono salvati <strong>in forma anonima</strong> (nessun nome, e-mail o identificativo) per stimare la difficoltà degli item e costruire norme reali. Puoi disattivarlo.</p>
     <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="consent" ${state.consent===false?'':'checked'} style="margin-top:4px"> <span>Acconsento al salvataggio anonimo delle mie risposte per la taratura.</span></label>
   </div>
-  <div class="actions"><button class="btn primary" data-act="start">Inizia il test</button></div>`;
+  <div class="actions"><button class="btn primary" data-act="start" data-form="full">Inizia il test completo (100 item)</button><button class="btn" data-act="start" data-form="short">Stima rapida (40 item)</button></div>`;
 }
 
 function rSection(){
@@ -713,7 +730,7 @@ function rSection(){
   </div>
   <div class="card stack">
     ${example}
-    <ul style="margin:0;padding-left:1.2em;display:grid;gap:6px">${sec.tips.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>
+    <ul style="margin:0;padding-left:1.2em;display:grid;gap:6px">${sec.tips.concat(sec.kind==='rotation'?[`Dall'item ${sec.items.findIndex(it=>it.marked)+1} una cella della figura è marcata con un punto: anche il punto deve trovarsi nella posizione giusta.`]:[]).map(t=>`<li>${esc(t)}</li>`).join('')}</ul>
     <p><strong>${sec.items.length} item · ${Math.round(sec.time/60)} minuti.</strong> Il tempo parte quando premi il pulsante.</p>
   </div>
   <div class="actions"><button class="btn primary" data-act="startSection">Avvia la sezione</button></div>`;
@@ -787,9 +804,10 @@ function rResults(){
   const toCount=Object.keys(state.timeouts).length;
   if(toCount){const names=Object.keys(state.timeouts).map(id=>SECTIONS.find(s=>s.id===id).short).join(', ');flags.push({t:`Tempo scaduto in ${toCount===1?'una sezione':toCount+' sezioni'} (${names}): gli item non raggiunti contano come errati e il punteggio può sottostimare la tua capacità.`})}
   const unanswered=TOTAL_ITEMS-R.per.reduce((n,p)=>n+p.answered,0);
-  if(unanswered>=15)flags.push({t:`${unanswered} item senza risposta: con molte omissioni la stima è meno precisa.`});
+  if(unanswered>=Math.round(TOTAL_ITEMS*0.15))flags.push({t:`${unanswered} item senza risposta: con molte omissioni la stima è meno precisa.`});
   if(state.hidden>=2)flags.push({t:`La pagina è stata lasciata ${state.hidden} volte durante il test: le interruzioni riducono l'attendibilità.`});
   if(R.raw>=TOTAL_ITEMS-3)flags.push({t:'Punteggio vicino al massimo: il test non riesce a distinguere livelli oltre questo valore (effetto tetto).'});
+  if(FORM==='short')flags.push({t:'Stima rapida (40 item): la precisione è circa la metà del test completo. Per una misura più attendibile fai il test completo.'});
   if(!flags.length)flags.push({ok:true,t:'Nessuna anomalia nella somministrazione: tutte le sezioni completate nei tempi.'});
   const review=SECTIONS.map(sec=>{
     const rows=sec.items.map((it,i)=>{
@@ -806,7 +824,7 @@ function rResults(){
   }).join('');
   return`
   <div class="stack">
-    <div class="eyebrow">Risultato${dur!==null?` · ${dur} min`:''}</div>
+    <div class="eyebrow">${NORM.label} · ${TOTAL_ITEMS} item${dur!==null?` · ${dur} min`:''}</div>
     <h1>Il tuo punteggio</h1>
   </div>
   <div class="score">
@@ -818,7 +836,7 @@ function rResults(){
   <div class="card stack">
     <h2>Profilo per dominio</h2>
     <div class="bars">${R.per.map(p=>`<div class="barrow"><span class="name">${esc(p.sec.name)}</span><span class="track"><i style="width:${p.correct/p.n*100}%"></i></span><span class="val">${p.correct}/${p.n}</span></div>`).join('')}</div>
-    <p class="hint">Punteggio grezzo totale: <b class="mono">${R.raw}/${TOTAL_ITEMS}</b>. Con 20 item per dominio, le differenze tra domini sono indicative: uno scarto di 2–3 punti rientra nel margine di errore.</p>
+    <p class="hint">Punteggio grezzo totale: <b class="mono">${R.raw}/${TOTAL_ITEMS}</b>. Con ${SECTIONS[0].items.length} item per dominio, le differenze tra domini sono indicative: uno scarto di ${FORM==='short'?'1–2':'2–3'} punti rientra nel margine di errore.</p>
   </div>
   <div class="card stack">
     <h2>Attendibilità di questa somministrazione</h2>
@@ -834,7 +852,7 @@ function rResults(){
 // ========================= avvio =========================
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&state.screen==='item')state.hidden++});
 function boot(data){
-  if(data&&data.state&&data.state.answers){state=Object.assign(freshState(),data.state);if(state.screen==='item'){startTimer();if(state.mem&&state.mem.phase==='show')state.mem=null}}
+  if(data&&data.state&&data.state.answers){applyForm(data.state.form||'full');state=Object.assign(freshState(),data.state);if(state.screen==='item'){startTimer();if(state.mem&&state.mem.phase==='show')state.mem=null}}
   render();
 }
 if(window.claude&&window.claude.hot){
