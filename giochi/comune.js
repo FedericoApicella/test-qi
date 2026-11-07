@@ -77,13 +77,11 @@ function vittoria(p,game,level,stelle,ms,opts){
   const res=completa(p,game,level,stelle,ms);
   FX.beep('win');FX.confetti(stelle>=3?140:70);
   const diff=diffOf(level,p.imp);const best=p[game].tempi[level];
-  const nextUp=prossimoUpgrade(p);
   const o=overlay(`<div class="g-win">
     <div class="eyebrow">${esc(GIOCHI[game].nome)} · livello ${level} · ${esc(nomeDiff(diff))}</div>
     <h2>${stelle>=3?'Perfetto!':stelle===2?'Ottimo!':'Completato!'}</h2>
     ${stelleHtml(stelle)}
     <div class="g-win-meta"><span>⏱️ ${fmt(ms)}</span>${best&&best<ms?`<span>🏆 record ${fmt(best)}</span>`:'<span>🏆 nuovo record</span>'}${opts&&opts.nota?`<span>${esc(opts.nota)}</span>`:''}</div>
-    ${res.upgrade?'':`<div class="hint">${nextUp===LIV_PER_SKIN?'':'Nuova grafica tra '+nextUp+' livell'+(nextUp===1?'o':'i')+' (in qualsiasi gioco).'}</div>`}
     <div class="actions"><button class="btn primary big" id="gNext">Livello ${level+1} →</button><button class="btn" id="gAgain">Rigioca</button><a class="btn" href="./">Altri giochi</a></div>
   </div>`,'win');
   o.dataset.lock='1';
@@ -100,7 +98,7 @@ function mostraUpgrade(p,tier,poi){
     <div class="g-up-ic">${s.ic}</div>
     <h2>Nuova grafica sbloccata</h2>
     <div class="g-up-name">${esc(s.nome)}</div>
-    <p class="hint">${esc(s.desc)}<br>Da adesso Sudoku, Mahjong e Queens hanno questo aspetto. Nelle impostazioni puoi tornare alle grafiche precedenti quando vuoi.</p>
+    <p class="hint">${esc(s.desc)}<br>Da adesso Sudoku, Mahjong e Queens hanno questo aspetto. Nelle impostazioni puoi tornare a quelle precedenti quando vuoi.</p>
     <button class="btn primary big" id="gUpOk">Che bello! →</button>
   </div>`,'upgrade');
   o.dataset.lock='1';FX.beep('level');setTimeout(()=>FX.confetti(160),250);
@@ -129,7 +127,7 @@ function impostazioni(p,onChange){
     <div class="hint">Di base i livelli partono facili e salgono fino a 7/10, poi restano lì. Alza il tetto a 10 se vuoi livelli super difficili, o alza la minima se vuoi saltare quelli facili. Vale per tutti e tre i giochi.</div>
     <div class="field"><label class="checks"><label><input type="checkbox" id="cErr" ${p.imp.errori?'checked':''}> Segnala subito gli errori (nel Sudoku e in Queens)</label></label></div>
     <div class="field"><label>Grafica</label><div class="g-skins">${skins.map(s=>`<button class="g-skin ${(p.imp.skin==null?s.tier===t:p.imp.skin===s.tier)?'on':''}" data-t="${s.tier}"><span>${s.ic}</span>${esc(s.nome)}</button>`).join('')}</div>
-    <div class="hint">Sbloccate ${skins.length} su infinite: una nuova ogni ${LIV_PER_SKIN} livelli completati nei tre giochi (ne mancano ${prossimoUpgrade(p)}).</div></div>
+    <div class="hint">${skins.length>1?'Scegli una delle grafiche che hai sbloccato giocando.':'Continua a giocare: prima o poi arriverà una sorpresa.'}</div></div>
     <div class="actions"><button class="btn primary" id="gSetOk">Salva</button><button class="btn" id="gSetNo">Annulla</button></div></div>`);
   const rMin=$('#rMin',o),rMax=$('#rMax',o);
   rMin.addEventListener('input',()=>{$('#vMin',o).textContent=rMin.value;if(+rMax.value<+rMin.value){rMax.value=rMin.value;$('#vMax',o).textContent=rMax.value}});
@@ -144,9 +142,9 @@ function aiuto(titolo,html){const o=overlay(`<div class="g-help"><h2>${esc(titol
 
 // ---- intestazione comune alla pagina di gioco ----
 function intestazione(p,game,level,extra){
-  const diff=diffOf(level,p.imp);const s=skinCorrente(p);
+  const diff=diffOf(level,p.imp);
   $('#barScores').innerHTML=`<span class="sc me" style="white-space:nowrap"><span class="v">Liv. ${level}</span></span>`;
-  $('#gMeta').innerHTML=`<span title="${esc(nomeDiff(diff))}">${stelleDiff(diff)} ${esc(nomeDiff(diff))}</span><span>${s.ic} ${esc(s.nome)}</span>${extra?`<span>${extra}</span>`:''}`;
+  $('#gMeta').innerHTML=`<span title="${esc(nomeDiff(diff))}">${stelleDiff(diff)} ${esc(nomeDiff(diff))}</span>${extra?`<span>${extra}</span>`:''}`;
   document.title=`${GIOCHI[game].nome} · livello ${level} · Mente Allenata`;
 }
 function bottoniComuni(getP,game,opts){ // getP: funzione che restituisce i progressi attuali (l'oggetto può essere ricaricato)

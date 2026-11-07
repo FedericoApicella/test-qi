@@ -21,16 +21,15 @@
 </div>
 <main class="wrap" id="app">
   <section class="hero">
-    <div class="eyebrow">Tre classici · livelli infiniti · grafiche da sbloccare</div>
+    <div class="eyebrow">Tre classici · livelli infiniti · difficoltà a scelta</div>
     <h1>Sudoku, Mahjong e Queens</h1>
-    <p>Si parte facile e si sale piano: ogni livello è un po' più difficile del precedente, fino al tetto che scegli tu. Ogni 25 livelli completati, in qualsiasi gioco, tutti e tre cambiano vestito.</p>
+    <p>Si parte facile e si sale piano: ogni livello è un po' più difficile del precedente, fino al tetto che scegli tu.</p>
     <div class="kpis" id="kpis"></div>
   </section>
   <section class="stack">
     <div class="sec-head"><h2>Scegli il gioco</h2><button class="btn" id="bSet">⚙️ Impostazioni</button></div>
     <div class="g-cards" id="cards"></div>
   </section>
-  <section class="card stack" id="skinBox"></section>
   <p class="foot"><a href="../" style="color:var(--muted)">Mente Allenata</a> · test, sfide, allenamento e giochi</p>
 </main>
 <script src="../sfide/effetti.js"></script>
@@ -42,19 +41,14 @@ const G=window.Giochi,FX=window.Effetti,$=(s)=>document.querySelector(s),esc=G.e
 let P=G.load();
 const DESC={sudoku:'Griglie 4×4, poi 6×6, poi 9×9 con sempre meno numeri dati. Soluzione sempre unica, note a matita e aiuti.',mahjong:'Togli le tessere a coppie uguali. Disposizioni a più piani, sempre risolvibili, che crescono livello dopo livello.',queens:'Una regina per riga, colonna e colore, senza che si tocchino. Da 5×5 a 11×11, una sola soluzione.'};
 function disegna(){
-  P=G.load();const s=G.applySkin(P);const tot=G.totale(P),st=G.stelleTot(P);
-  $('#kpis').innerHTML=`<div class="kpi"><b>${tot}</b><span>livelli completati</span></div><div class="kpi"><b>${st}</b><span>stelle</span></div><div class="kpi"><b>${G.tierOf(P)+1}</b><span>grafiche sbloccate</span></div><div class="kpi"><b>${P.imp.max}/10</b><span>tetto difficoltà</span></div>`;
+  P=G.load();G.applySkin(P);const tot=G.totale(P),st=G.stelleTot(P);
+  $('#kpis').innerHTML=`<div class="kpi"><b>${tot}</b><span>livelli completati</span></div><div class="kpi"><b>${st}</b><span>stelle</span></div><div class="kpi"><b>${P.imp.max}/10</b><span>tetto difficoltà</span></div>`;
   $('#cards').innerHTML=Object.keys(G.GIOCHI).map(k=>{const g=G.GIOCHI[k],p=P[k];const n=Object.keys(p.stelle).length;const d=G.diffOf(p.next,P.imp);const stars=Object.values(p.stelle).reduce((a,b)=>a+b,0);
     return`<a class="g-card" href="${g.file}"><span class="ic">${g.ic}</span><b>${g.nome}</b><span class="hint">${DESC[k]}</span>
       <div class="lv"><span>Livello <span class="mono">${p.next}</span></span><span>${G.stelleDiff(d)} ${esc(G.nomeDiff(d))}</span></div>
       <div class="track"><i style="width:${Math.min(100,(p.next-1)%25/25*100)}%"></i></div>
       <div class="lv"><span>${n} completat${n===1?'o':'i'}</span><span>★ ${stars}</span></div>
       <span class="cta">${n?(p.corso?'Riprendi il livello '+p.corso.level:'Gioca il livello '+p.next):'Inizia'} →</span></a>`}).join('');
-  const manca=G.prossimoUpgrade(P);const prossima=G.skinInfo(G.tierOf(P)+1);
-  $('#skinBox').innerHTML=`<div class="sec-head"><h2>Grafica attuale</h2><span class="hint">cambia ogni ${G.LIV_PER_SKIN} livelli</span></div>
-    <div class="g-skinrow"><span class="big">${s.ic}</span><div class="stack" style="gap:4px"><b>${esc(s.nome)}</b><span class="hint">${esc(s.desc)}</span></div><div class="g-prev" aria-hidden="true">${'<i></i>'.repeat(9)}</div></div>
-    <div class="area" style="cursor:default"><div class="lv"><span>Prossima: <b>${prossima.ic} ${esc(prossima.nome)}</b></span><span class="mono">${manca} livell${manca===1?'o':'i'}</span></div><div class="track"><i style="width:${(G.LIV_PER_SKIN-manca)/G.LIV_PER_SKIN*100}%"></i></div></div>
-    <div class="hint">Le grafiche sbloccate restano tue: dalle impostazioni puoi scegliere quale usare.</div>`;
 }
 $('#bSet').addEventListener('click',()=>G.impostazioni(P,disegna));
 G.onSync=disegna;
