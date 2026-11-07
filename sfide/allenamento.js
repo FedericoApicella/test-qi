@@ -30,6 +30,7 @@ const BADGES=[
   {id:'tutte',e:'🌍',n:'Tuttologo',d:'Un allenamento in ogni area'},
   {id:'veloce',e:'🚀',n:'Fulmine',d:'Risposta giusta in meno di 3 secondi'},
   {id:'serio',e:'🎓',n:'Sul serio',d:'Un allenamento serio completato'},
+  {id:'settimana',e:'📅',n:'Sette giorni',d:'Sfida del giorno per sette giorni di fila'},
   {id:'giocherellone',e:'🎮',n:'Giocherellone',d:'Cinque giochi diversi provati'},
 ];
 
@@ -47,6 +48,15 @@ let S=null,tick=null,memT=null;
 function startSession(areaId){
   const area=AREAS.find(a=>a.id===areaId);
   S={screen:'q',area,i:-1,items:[],log:[],pts:0,streak:0,maxStreak:0,newBadges:[],lvStart:lvNum(P.aree[area.id].level),mem:null,fb:null};
+  FX.beep('start');next();
+}
+// Sfida del giorno: stessi 10 quesiti per tutti, seme dalla data; un record al giorno e la serie di giorni consecutivi.
+const dayKey=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const daySeed=()=>{let h=0;for(const c of dayKey())h=(h*31+c.charCodeAt(0))|0;return Math.abs(h)||1};
+function startDaily(){
+  const today=dayKey();P.daily=P.daily||{giorni:{},serie:0,ultimo:null};
+  const items=window.Quesiti.buildGame(daySeed(),10,['mat','num','verb','rot']);
+  S={screen:'q',area:{id:'daily',name:'Sfida del giorno',ic:'📅',time:45},daily:true,i:-1,items:[],pre:items,log:[],pts:0,streak:0,maxStreak:0,newBadges:[],lvStart:0,mem:null,fb:null};
   FX.beep('start');next();
 }
 function startSprint(){
@@ -67,9 +77,10 @@ function startGame(id){
       S.isBest=isBest;S.screen='gameEnd';saveP();render();if(isBest&&res.metric>0){FX.beep('win');FX.confetti(90)}else FX.beep('ok')}};
   gameStop=g.start(root,ctx)||null;
 }
-function curLevel(){return S.sprint?0.12+Math.random()*0.25:P.aree[S.area.id].level}
+function curLevel(){return S.daily?0.5:S.sprint?0.12+Math.random()*0.25:P.aree[S.area.id].level}
 function next(){
   stopTimer();clearTimeout(memT);
+  if(S.daily){S.i++;if(S.i>=SESSION_N){endSession();return}const it=S.pre[S.i];S.items.push(it);S.fb=null;S.mine=null;S.mem=null;S.screen='q';S.time=45;startTimer();render();return}
   if(S.sprint){S.i++;const kind=['num','verb','rot','mat'][Math.floor(Math.random()*4)];const it=oneItem(kind,Math.floor(Math.random()*2147483647),curLevel());S.items.push(it);S.fb=null;S.mine=null;S.mem=null;S.screen='q';S.at=Date.now();S.time=60;render();return}
   S.i++;if(S.i>=SESSION_N){endSession();return}
   const kind=S.area.id==='mix'?['mat','num','verb','mem','rot'][Math.floor(Math.random()*5)]:S.area.id;
@@ -99,7 +110,7 @@ function answer(choice,el){
   stopTimer();clearTimeout(memT);
   const it=S.items[S.i];const ms=Math.min(Date.now()-S.at,S.time*1000);
   const ok=it.kind==='mem'?(choice!==null&&String(choice).toUpperCase()===it.answer):choice===it.answer;
-  const area=P.aree[S.area.id];const lvBefore=lvNum(area.level);
+  const area=P.aree[S.area.id]||{level:0.5,done:0,correct:0,best:0,sessions:[]};const lvBefore=lvNum(area.level);
   let pts=0;
   if(ok){S.streak++;S.maxStreak=Math.max(S.maxStreak,S.streak);pts=10+Math.round(5*Math.max(0,1-ms/(S.time*1000)))+Math.min(5,S.streak-1)*2;
     area.level=Math.min(1,area.level+(S.streak>=3?0.05:0.035));area.correct++;
@@ -115,6 +126,9 @@ function answer(choice,el){
   setTimeout(()=>{const b=$('#nextBtn');if(b)b.focus()},0);
 }
 function endSession(){
+  if(S.daily){const today=dayKey();const nOk=S.log.filter(l=>l.ok).length;const d=P.daily;const prev=d.giorni[today];if(!prev||S.pts>prev.pts)d.giorni[today]={pts:S.pts,ok:nOk};
+    if(d.ultimo!==today){const y=new Date();y.setDate(y.getDate()-1);const yk=y.getFullYear()+'-'+String(y.getMonth()+1).padStart(2,'0')+'-'+String(y.getDate()).padStart(2,'0');d.serie=d.ultimo===yk?d.serie+1:1;d.ultimo=today}
+    if(d.serie>=7)award('settimana');award('primo');saveP();S.screen='end';render();if(nOk>=7){FX.beep('win');FX.confetti(nOk===10?140:70)}return}
   if(S.sprint){const nOk=S.log.filter(l=>l.ok).length;S.record=S.pts>P.sprintBest;if(S.record)P.sprintBest=S.pts;P.sprintN++;award('primo');saveP();S.screen='end';render();if(S.record&&S.pts>0){FX.beep('win');FX.confetti(100)}else FX.beep('ok');return}
   const area=P.aree[S.area.id];const nOk=S.log.filter(l=>l.ok).length;
   area.sessions.push({d:Date.now(),acc:nOk/SESSION_N,lvl:lvNum(area.level),pts:S.pts});if(area.sessions.length>60)area.sessions.shift();
@@ -152,12 +166,13 @@ function bind(){
 function act(a,btn){
   if(a==='area')startSession(btn.dataset.area);
   else if(a==='sprint')startSprint();
+  else if(a==='daily')startDaily();
   else if(a==='game')startGame(btn.dataset.game);
   else if(a==='gameAgain')startGame(S.game.id);
   else if(a==='next')next();
   else if(a==='memOk'){const mi=$('#memInput');answer(mi&&mi.value.trim().toUpperCase()||null,mi)}
   else if(a==='quit')quit();
-  else if(a==='again'){if(S.sprint)startSprint();else startSession(S.area.id)}
+  else if(a==='again'){if(S.sprint)startSprint();else if(S.daily)startDaily();else startSession(S.area.id)}
   else if(a==='reset'){if(confirm('Vuoi davvero azzerare tutti i progressi salvati su questo dispositivo?')){localStorage.removeItem(KEY);P=loadP();render()}}
 }
 function spark(sessions){
@@ -187,6 +202,8 @@ function rHome(){
     return`<button class="area" data-act="area" data-area="${a.id}"><span class="ic">${a.ic}</span><b>${a.name}</b><span class="hint">${esc(a.desc)}</span>
       <span class="lv"><span>Livello <span class="mono">${lv}</span>/10</span><span>${p.done?`${acc}% giuste · ${p.done} quesiti`:'mai provata'}</span></span>
       <span class="track"><i style="width:${Math.round(p.level*100)}%"></i></span>${spark(p.sessions)}</button>`}).join('');
+  const dd=P.daily||{giorni:{},serie:0};const todayRec=dd.giorni[dayKey()];
+  const daily=`<button class="area" data-act="daily" style="border-color:var(--brand);background:linear-gradient(135deg,var(--brand-50) 0%,#fff 100%)"><span class="ic">📅</span><b>Sfida del giorno</b><span class="hint">Dieci quesiti uguali per tutti, nuovi ogni giorno. Torna domani per allungare la serie.</span><span class="lv"><span>${todayRec?`Oggi: <span class="mono">${todayRec.pts}</span> punti`:'Oggi non ancora fatta'}</span><span>🔥 ${dd.serie||0} giorn${dd.serie===1?'o':'i'} di fila</span></span></button>`;
   const sprint=`<button class="area" data-act="sprint" style="border-color:var(--brand-300);background:linear-gradient(135deg,#fff 0%,var(--brand-50) 100%)"><span class="ic">⚡</span><b>Sprint 60 secondi</b><span class="hint">Quesiti facili a raffica: quanti ne fai in un minuto? Ogni risposta giusta di fila vale di più.</span><span class="lv"><span>Record <span class="mono">${P.sprintBest}</span> punti</span><span>${P.sprintN?P.sprintN+' sprint':'mai provato'}</span></span></button>`;
   const giochi=GAMES.filter(g=>g.kind==='gioco').map(gameCard).join('');
   const seri=GAMES.filter(g=>g.kind==='serio').map(gameCard).join('');
@@ -200,7 +217,7 @@ function rHome(){
       <div class="stat"><span class="v">🔥 ${P.bestStreak}</span><span class="l">serie record</span></div>
       <div class="stat"><span class="v">${nB}/${BADGES.length}</span><span class="l">medaglie</span></div>
     </div>
-    <div class="stack" id="gioca"><h2>🎮 Gioca</h2><p class="hint">Partite da un minuto, una per area. Per divertirsi e scaldare la mente.</p><div class="areas">${sprint}${giochi}</div></div>
+    <div class="stack" id="gioca"><h2>🎮 Gioca</h2><p class="hint">Partite da un minuto, sempre diverse. Per divertirsi e scaldare la mente.</p><div class="areas">${daily}${sprint}${giochi}</div></div>
     <div class="stack" id="allenati"><h2>🏋️ Allenati</h2><p class="hint">Allenamenti veri: la difficoltà si adatta a te e i progressi vengono registrati nel tempo. Dieci quesiti per sessione, ogni risposta spiegata.</p><div class="areas">${cards}${seri}</div></div>
     <div class="stack" id="misurati"><h2>📏 Misurati</h2><p class="hint">Quando vuoi un numero attendibile, non un gioco: il test con scala QI, intervallo di confidenza e profilo per area.</p>
       <div class="tiles"><a class="tile" href="../test.html#breve"><span class="pill">≈ 20 min</span><span class="ic">⚡</span><b>Stima rapida</b><span>40 quesiti, una prima idea del punteggio.</span><span class="cta">Inizia →</span></a><a class="tile" href="../test.html"><span class="pill">≈ 50 min</span><span class="ic">🧪</span><b>Test completo</b><span>100 quesiti, la misura più precisa disponibile qui.</span><span class="cta">Inizia →</span></a></div></div>
@@ -227,7 +244,7 @@ function rGameEnd(){
 }
 function rQ(){
   const it=S.items[S.i];const area=P.aree[S.area.id]||{level:0};
-  const head=S.sprint?`<div class="eyebrow">⚡ Sprint · ${esc(KIND_NAME[it.kind])} · ${S.log.filter(l=>l.ok).length} giuste</div>`:`<div class="eyebrow">${esc(KIND_NAME[it.kind])} · quesito ${S.i+1} di ${SESSION_N} · livello ${lvNum(area.level)}</div>`;
+  const head=S.daily?`<div class="eyebrow">📅 Sfida del giorno · ${esc(KIND_NAME[it.kind])} · ${S.i+1} di ${SESSION_N}</div>`:S.sprint?`<div class="eyebrow">⚡ Sprint · ${esc(KIND_NAME[it.kind])} · ${S.log.filter(l=>l.ok).length} giuste</div>`:`<div class="eyebrow">${esc(KIND_NAME[it.kind])} · quesito ${S.i+1} di ${SESSION_N} · livello ${lvNum(area.level)}</div>`;
   let body;
   if(it.kind==='mem'){
     const instr=it.type==='back'?'Memorizza le cifre: dovrai riscriverle in ordine inverso.':'Memorizza i simboli: dovrai scrivere prima le cifre in ordine crescente, poi le lettere in ordine alfabetico.';
@@ -252,7 +269,8 @@ function rEnd(){
     return`<div class="final"><div class="eyebrow">⚡ Sprint finito</div><div class="big">${S.record&&S.pts>0?'Nuovo record! 🏆':S.pts>=40?'Che velocità!':'Tempo scaduto'}</div><div class="sub">${S.pts} punti · ${nOk} giuste su ${S.log.length} · serie migliore ${S.maxStreak}</div>
       <div class="stats" style="padding-top:12px"><div class="stat"><span class="v">${S.pts}</span><span class="l">punti</span></div><div class="stat"><span class="v">${P.sprintBest}</span><span class="l">record</span></div><div class="stat"><span class="v">${S.log.length?Math.round(nOk/S.log.length*100):0}%</span><span class="l">giuste</span></div></div></div>
       <div class="actions"><button class="btn primary big" data-act="again">Ancora uno sprint</button><button class="btn" data-act="quit">Torna alle aree</button></div>`}
-  const nOk=S.log.filter(l=>l.ok).length;const area=P.aree[S.area.id];const lvEnd=lvNum(area.level);
+  const nOk=S.log.filter(l=>l.ok).length;const area=P.aree[S.area.id]||{level:0.5,sessions:[]};const lvEnd=lvNum(area.level);
+  if(S.daily){const d=P.daily;return`<div class="final"><div class="eyebrow">📅 Sfida del giorno · ${dayKey()}</div><div class="big">${nOk===10?'Perfetta! 💯':nOk>=7?'Grande giornata!':'Fatta!'}</div><div class="sub">${nOk} giuste su 10 · ${S.pts} punti · record di oggi ${d.giorni[dayKey()].pts}</div><div class="stats" style="padding-top:12px"><div class="stat"><span class="v">🔥 ${d.serie}</span><span class="l">giorni di fila</span></div><div class="stat"><span class="v">${Object.keys(d.giorni).length}</span><span class="l">giorni giocati</span></div></div></div><p class="hint" style="text-align:center">Domani ci saranno dieci quesiti nuovi. Sfida gli amici a battere il tuo punteggio di oggi!</p><div class="actions"><button class="btn primary big" data-act="again">Riprova oggi</button><button class="btn" data-act="quit">Torna ai giochi</button></div>`}
   const title=nOk===SESSION_N?'Perfetto! 💯':nOk>=7?'Ottimo allenamento!':nOk>=4?'Buon lavoro':'Si impara sbagliando';
   const dl=lvEnd-S.lvStart;
   const nb=S.newBadges.map(id=>BADGES.find(b=>b.id===id)).map(b=>`<span class="badge"><span class="e">${b.e}</span>${b.n}</span>`).join('');
