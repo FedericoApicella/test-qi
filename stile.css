@@ -210,3 +210,20 @@ details .body{padding:0 16px 16px;display:grid;gap:12px}
 .foot{color:var(--muted);font-size:.9rem;text-align:center;padding-top:8px}
 .area.serio{border-color:var(--brand-200);background:linear-gradient(180deg,#fff 0%,var(--brand-50) 100%)}
 .area.serio b::after{content:' · serio';font-weight:700;color:var(--brand);font-size:.8rem}
+
+/* cellulare: pulsanti grandi e a tutta larghezza */
+.btn.wide{width:100%;justify-content:center}
+@media (max-width:560px){
+  .btn.big{width:100%;justify-content:center;padding:15px 20px;font-size:1.1rem}
+  .actions>.btn{flex:1 1 auto;justify-content:center}
+  .opts.text{grid-template-columns:1fr 1fr}
+  .opts.fig{grid-template-columns:repeat(3,1fr)}
+  .opt{padding:14px 12px;min-height:56px}
+  .opt.fig{padding:8px}
+  .codebox .code{font-size:2.6rem}
+}
+
+/* pulsante account dentro la barra (sfide e allenamento) */
+.bar #cardAccedi{display:inline-flex;margin-left:6px}
+.bar #cardAccedi .acc-btn{position:static!important;padding:5px 10px!important;font-size:.85rem!important;box-shadow:none!important;margin:0!important}
+.bar.ingame #cardAccedi{display:none}

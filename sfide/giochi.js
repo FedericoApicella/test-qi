@@ -121,6 +121,47 @@ const rotm={id:'rotm',area:'rot',kind:'serio',name:'Rotazione mentale',ic:'🔄'
     next();return()=>{};
   }};
 
+
+// ========================= 8. Coppie di memoria (memoria, gioco) =========================
+const memocards={id:'memocards',area:'mem',kind:'gioco',name:'Coppie nascoste',ic:'🃏',desc:'Dodici carte coperte, sei coppie di figure. Scoprile due alla volta e ricorda dove sono: meno mosse fai, più punti prendi.',
+  start(root,ctx){
+    const specs=[];const used=new Set();while(specs.length<6){const c={els:[{shape:pick(SHAPES),fill:pick(FILLS),size:'m',rot:0}],count:1};const k=JSON.stringify(c);if(used.has(k))continue;used.add(k);specs.push(c)}
+    const cards=shuffle(specs.concat(specs).map((c,i)=>({c,k:JSON.stringify(c),open:false,done:false})));let first=null,lock=false,moves=0,found=0;const t0=Date.now();
+    const draw=()=>{root.innerHTML=`${head('🃏 Coppie nascoste · '+found+' di 6 trovate · '+moves+' mosse','Scopri due carte alla volta e trova le coppie.')}<div class="memo">${cards.map((cd,i)=>`<button class="mcard ${cd.open||cd.done?'open':''} ${cd.done?'done':''}" data-i="${i}" aria-label="Carta ${i+1}">${cd.open||cd.done?Q.cellSVG(cd.c):'<span>?</span>'}</button>`).join('')}</div>`;
+      root.querySelectorAll('.mcard').forEach(b=>b.addEventListener('click',()=>flip(+b.dataset.i,b)))};
+    const flip=async(i,el)=>{const cd=cards[i];if(lock||cd.open||cd.done)return;cd.open=true;ctx.beep('tick');draw();
+      if(first===null){first=i;return}moves++;lock=true;const a=cards[first];
+      if(a.k===cd.k){a.done=cd.done=true;found++;ctx.beep('ok');ctx.floatText(root.querySelector(`[data-i="${i}"]`),'+10');first=null;lock=false;draw();if(found===6){const sec=Math.round((Date.now()-t0)/1000);const pts=Math.max(10,120-moves*4-Math.floor(sec/5));await sleep(400);ctx.end({pts,nOk:6,n:moves,metric:pts,metricLabel:'punti',detail:`${moves} mosse in ${sec} s`})}}
+      else{await sleep(700);a.open=cd.open=false;first=null;lock=false;ctx.beep('bad');draw()}};
+    draw();return()=>{};
+  }};
+
+// ========================= 9. Ordina i numeri (serie, gioco) =========================
+const ordina={id:'ordina',area:'num',kind:'gioco',name:'Ordina i numeri',ic:'🔢',desc:'Nove numeri sparsi: toccali dal più piccolo al più grande, più in fretta che puoi. Tre tabelle, poi il conto.',
+  start(root,ctx){
+    let round=0,pts=0,errors=0,t0=Date.now(),cur=null,next=0;const ROUNDS=3;
+    const gen=()=>{const kind=round===0?'int':round===1?'big':'mix';const set=new Set();while(set.size<9){set.add(kind==='int'?rnd(50)+1:kind==='big'?rnd(900)+100:(rnd(2)?-(rnd(40)+1):rnd(40)+1))}const vals=shuffle([...set]);cur={vals,sorted:vals.slice().sort((a,b)=>a-b)};next=0;t0=Date.now()};
+    const draw=()=>{root.innerHTML=`${head(`🔢 Ordina i numeri · tabella ${round+1} di ${ROUNDS}`,'Tocca i numeri dal più piccolo al più grande.')}<div class="numgrid">${cur.vals.map((v,i)=>`<button class="ncell ${i<0?'':''}" data-i="${i}" ${cur.sorted.indexOf(v)<next?'disabled':''}>${v}</button>`).join('')}</div>`;
+      root.querySelectorAll('.ncell').forEach(b=>b.addEventListener('click',()=>tap(+b.dataset.i,b)))};
+    const tap=(i,el)=>{const v=cur.vals[i];if(v===cur.sorted[next]){next++;ctx.beep('tick');el.disabled=true;el.classList.add('done');
+        if(next===9){const sec=(Date.now()-t0)/1000;const p=Math.max(5,Math.round(60-sec*2));pts+=p;ctx.beep('ok');ctx.floatText(el,'+'+p);round++;if(round>=ROUNDS){ctx.end({pts,nOk:ROUNDS*9-errors,n:ROUNDS*9,metric:pts,metricLabel:'punti',detail:`${errors} errori`});return}gen();setTimeout(draw,400)}}
+      else{errors++;pts=Math.max(0,pts-3);ctx.beep('bad');ctx.shake(el)}};
+    gen();draw();return()=>{};
+  }};
+
+// ========================= 10. Anagramma (analogie, gioco) =========================
+const anagramma={id:'anagramma',area:'verb',kind:'gioco',name:'Anagramma lampo',ic:'🔤',desc:'Lettere mescolate: quale delle tre parole è quella nascosta? 45 secondi.',
+  start(root,ctx){
+    const words=[...new Set(Q.verbPairs().flatMap(p=>[p.a,p.b,p.c,p.ok].filter(w=>w.length>=5&&w.length<=10&&!/\s/.test(w))))];
+    let pts=0,nOk=0,n=0,streak=0,cur=null;
+    const stop=countdown(ctx,45,()=>finish());const finish=()=>{stop();ctx.end({pts,nOk,n,metric:nOk,metricLabel:'parole trovate'})};
+    const next=()=>{const w=pick(words);let scr;do{scr=shuffle(w.split('')).join('')}while(scr===w);const others=shuffle(words.filter(x=>x!==w&&Math.abs(x.length-w.length)<=1)).slice(0,2);const opts=shuffle([w,...others]);cur={w};
+      root.innerHTML=`${head('🔤 Anagramma lampo · '+nOk+' trovate','Quale parola si nasconde qui?')}<div class="seq mono" style="letter-spacing:.2em">${esc(scr.toUpperCase())}</div>${choiceBtns(opts.map(esc))}`;
+      root.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>answer(opts[+b.dataset.i],b)))};
+    const answer=(w,el)=>{n++;if(w===cur.w){nOk++;streak++;const p=5+Math.min(5,streak-1);pts+=p;ctx.beep('ok');ctx.floatText(el,'+'+p,streak>=5?'gold':'')}else{streak=0;ctx.beep('bad');ctx.shake(el);ctx.floatText(el,'era '+cur.w,'bad')}next()};
+    next();return stop;
+  }};
+
 const CSS=`
 .simon{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:330px;width:100%}
 .scell{aspect-ratio:1;border-radius:14px;border:2px solid var(--border);background:var(--surface);cursor:pointer;transition:background .12s,transform .12s;box-shadow:var(--shadow)}
@@ -128,7 +169,15 @@ const CSS=`
 .simon.nb .scell{cursor:default}
 .pair{display:flex;gap:16px;flex-wrap:wrap;align-items:center}
 .pair .figbox svg{width:130px;height:130px}
+.memo{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:400px;width:100%}
+.mcard{aspect-ratio:1;border-radius:12px;border:2px solid var(--border);background:var(--grad);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:1.4rem;padding:6px;box-shadow:var(--shadow)}
+.mcard.open{background:var(--surface);color:var(--fg)}
+.mcard.done{border-color:var(--ok);background:var(--ok-soft);opacity:.85}
+.mcard svg{width:100%;height:100%}
+.numgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:360px;width:100%}
+.ncell{aspect-ratio:1.2;border-radius:14px;border:2px solid var(--border);background:var(--surface);font-family:var(--font-mono);font-size:1.5rem;font-weight:600;cursor:pointer;box-shadow:var(--shadow)}
+.ncell:disabled,.ncell.done{opacity:.25;cursor:default}
 `;
 const st=document.createElement('style');st.textContent=CSS;document.head.appendChild(st);
-window.Giochi=[simon,stessa,verofalso,relazione,coppia,nback,rotm];
+window.Giochi=[simon,stessa,verofalso,relazione,coppia,memocards,ordina,anagramma,nback,rotm];
 })();
