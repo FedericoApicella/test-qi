@@ -208,3 +208,5 @@ details .body{padding:0 16px 16px;display:grid;gap:12px}
 .share{display:grid;gap:8px}
 .share textarea{width:100%;min-height:96px;font:inherit;font-size:.95rem;padding:10px 12px;border:2px solid var(--border);border-radius:12px;background:var(--surface);color:var(--fg);resize:vertical}
 .foot{color:var(--muted);font-size:.9rem;text-align:center;padding-top:8px}
+.area.serio{border-color:var(--brand-200);background:linear-gradient(180deg,#fff 0%,var(--brand-50) 100%)}
+.area.serio b::after{content:' · serio';font-weight:700;color:var(--brand);font-size:.8rem}
