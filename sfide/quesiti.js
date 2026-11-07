@@ -294,7 +294,53 @@ function rotItem(rng,level){
   const diff=differentShape(f,rng)||mir;
   const opts=[{f:rotF(f,ks[0]),kind:'rot'},{f:rotF(mir,ks[1]),kind:'mirror'},{f:m2,kind:'mirror'},{f:rotF(diff,ks[3]),kind:'diff'}];
   const w=withAnswer(opts,rng);
-  return{kind:'rot',target:f,options:w.options,answer:w.answer,marked:!!it.m};
+  const L='ABCD';const mirL=w.options.map((o,k)=>o.kind==='mirror'?L[k]:null).filter(Boolean).join(' e '),dif=w.options.map((o,k)=>o.kind==='diff'?L[k]:null).filter(Boolean).join('');
+  const rule=`${L[w.answer]} è la figura ruotata di ${ks[0]*90}°; ${mirL} sono riflesse allo specchio; ${dif} ha una cella spostata`;
+  return{kind:'rot',target:f,options:w.options,answer:w.answer,marked:!!it.m,rule};
+}
+
+// ========================= memoria di lavoro =========================
+const MEM_LETTERS='BCDFGHKLMNPRSTVZ';
+function memAnswer(type,seq){
+  if(type==='back')return seq.slice().reverse().join('');
+  const ds=seq.filter(s=>/\d/.test(s)).sort(),ls=seq.filter(s=>/[A-Z]/.test(s)).sort();return[...ds,...ls].join('');
+}
+// level in [0,1] → lunghezza 3..9; dal livello 0.5 cifre e lettere mescolate da riordinare
+function memItem(rng,level){
+  const type=level<0.5?'back':'ln';
+  const len=type==='back'?3+Math.min(6,Math.floor(level*2*6)):4+Math.min(5,Math.floor((level-0.5)*2*6));
+  const seq=[];
+  if(type==='back'){let prev=-1;while(seq.length<len){const d=rint(rng,1,9);if(d===prev)continue;seq.push(String(d));prev=d}}
+  else{const nL=Math.floor(len/2),nD=len-nL;const ls=shuffled(MEM_LETTERS.split(''),rng).slice(0,nL);const ds=shuffled('123456789'.split(''),rng).slice(0,nD);
+    let mix;do{mix=shuffled([...ls,...ds],rng)}while(mix.join('')===memAnswer(type,mix));seq.push(...mix)}
+  const answer=memAnswer(type,seq);
+  return{kind:'mem',type,len,seq,answer,rule:type==='back'?`i simboli erano ${seq.join(' ')}: al contrario fanno ${answer}`:`i simboli erano ${seq.join(' ')}: prima le cifre in ordine, poi le lettere in ordine alfabetico: ${answer}`};
+}
+
+// ========================= HTML di un quesito =========================
+const LETTERS='ABCDEF';
+const esc=(s)=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// o: {cls(k)→classe extra, dis→bool, tag(k)→html, showAnswer→bool}
+function itemHtml(it,o){
+  o=o||{};const cls=o.cls||(()=>''),dis=o.dis?'disabled':'',tag=o.tag||(()=>'');
+  const opt=(k,inner,fig)=>`<button class="opt ${fig?'fig':''} ${cls(k)}" data-i="${k}" ${dis} aria-label="Opzione ${LETTERS[k]}">${inner}<span class="k">${LETTERS[k]}</span>${tag(k)}</button>`;
+  if(it.kind==='mat'){
+    const grid=it.grid.map((c,k)=>k===8?(o.showAnswer?`<div class="cell ans">${cellSVG(it.options[it.answer])}</div>`:`<div class="cell ask">?</div>`):`<div class="cell">${cellSVG(c)}</div>`).join('');
+    return`<p class="q">Quale figura completa la griglia?</p><div class="grid3">${grid}</div><div class="opts fig">${it.options.map((op,k)=>opt(k,cellSVG(op),true)).join('')}</div>`;
+  }
+  if(it.kind==='num'){
+    return`<p class="q">Quale numero continua la serie?</p><div class="seq mono">${it.seq.map(n=>`<span>${n}</span>`).join('')}<span class="qm">${o.showAnswer?it.options[it.answer]:'?'}</span></div>
+      <div class="opts text">${it.options.map((op,k)=>`<button class="opt ${cls(k)}" data-i="${k}" ${dis}><span class="k">${LETTERS[k]}</span><span class="v mono">${op}</span>${tag(k)}</button>`).join('')}</div>`;
+  }
+  if(it.kind==='verb'){
+    return`<p class="q">Quale parola completa l'analogia?</p><div class="analogy"><span>${esc(it.a)}</span><span class="op">:</span><span>${esc(it.b)}</span><span class="op">=</span><span>${esc(it.c)}</span><span class="op">:</span><span class="qm">${o.showAnswer?esc(it.options[it.answer]):'?'}</span></div>
+      <div class="opts text">${it.options.map((op,k)=>`<button class="opt ${cls(k)}" data-i="${k}" ${dis}><span class="k">${LETTERS[k]}</span><span class="v">${esc(op)}</span>${tag(k)}</button>`).join('')}</div>`;
+  }
+  if(it.kind==='rot'){
+    return`<p class="q">Quale alternativa è la stessa figura ruotata (non riflessa)?${it.marked?'<span class="small">Anche il punto bianco deve trovarsi nella cella corrispondente.</span>':''}</p>
+      <div class="figbox">${cellsSVG(it.target.cells,it.target.mark)}</div><div class="opts fig">${it.options.map((op,k)=>opt(k,cellsSVG(op.f.cells,op.f.mark),true)).join('')}</div>`;
+  }
+  return'';
 }
 
 // ========================= partita =========================
@@ -314,5 +360,14 @@ function buildGame(seed,n,kinds){
     return rotItem(rng,level);
   });
 }
-window.Quesiti={buildGame,cellSVG,cellsSVG,KIND_NAME,mulberry32};
+const KIND_NAME_ALL=Object.assign({mem:'Memoria'},KIND_NAME);
+function oneItem(kind,seed,level,usedVerb){
+  const rng=mulberry32(seed);
+  if(kind==='mat')return matrixItem(rng,level);
+  if(kind==='num')return numItem(rng,level);
+  if(kind==='verb')return verbItem(rng,level,usedVerb||new Set());
+  if(kind==='mem')return memItem(rng,level);
+  return rotItem(rng,level);
+}
+window.Quesiti={buildGame,oneItem,itemHtml,cellSVG,cellsSVG,KIND_NAME:KIND_NAME_ALL,mulberry32,memAnswer};
 })();
