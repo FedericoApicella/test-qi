@@ -6,7 +6,7 @@ const esc=(s)=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;
 const {oneItem,itemHtml,KIND_NAME,cellSVG,cellsSVG}=window.Quesiti;
 const FX=window.Effetti;
 const LETTERS='ABCDEF';
-const KEY='sfide-allenamento';
+const KEY='testqi.allenamento';
 const AREAS=[
   {id:'mat',name:'Matrici',ic:'🧩',desc:'Trova la regola della griglia 3×3',time:60},
   {id:'num',name:'Serie numeriche',ic:'🔢',desc:'Scopri cosa lega i numeri',time:45},
@@ -31,7 +31,8 @@ const BADGES=[
 
 // ========================= progressi =========================
 function freshArea(){return{level:0.1,done:0,correct:0,best:0,sessions:[]}}
-function loadP(){const p=FX.load(KEY,{aree:{},badges:{},bestStreak:0,totalDone:0,totalPts:0});AREAS.forEach(a=>{if(!p.aree[a.id])p.aree[a.id]=freshArea()});return p}
+const SPRINT_MS=60000;
+function loadP(){const p=FX.load(KEY,{aree:{},badges:{},bestStreak:0,totalDone:0,totalPts:0,sprintBest:0,sprintN:0});AREAS.forEach(a=>{if(!p.aree[a.id])p.aree[a.id]=freshArea()});return p}
 let P=loadP();
 const saveP=()=>FX.save(KEY,P);
 const lvNum=(level)=>1+Math.min(9,Math.floor(level*10));
@@ -44,9 +45,15 @@ function startSession(areaId){
   S={screen:'q',area,i:-1,items:[],log:[],pts:0,streak:0,maxStreak:0,newBadges:[],lvStart:lvNum(P.aree[area.id].level),mem:null,fb:null};
   FX.beep('start');next();
 }
-function curLevel(){return P.aree[S.area.id].level}
+function startSprint(){
+  S={screen:'q',area:{id:'sprint',name:'Sprint 60 secondi',ic:'⚡',time:60},sprint:true,endAt:Date.now()+SPRINT_MS,i:-1,items:[],log:[],pts:0,streak:0,maxStreak:0,newBadges:[],lvStart:0,mem:null,fb:null};
+  FX.beep('start');next();
+  tick=setInterval(()=>{S.timeLeft=Math.max(0,Math.ceil((S.endAt-Date.now())/1000));updateBar();if(S.timeLeft<=5&&S.timeLeft>0)FX.beep('tick');if(Date.now()>=S.endAt){clearInterval(tick);tick=null;clearTimeout(memT);endSession()}},250);
+}
+function curLevel(){return S.sprint?0.12+Math.random()*0.25:P.aree[S.area.id].level}
 function next(){
   stopTimer();clearTimeout(memT);
+  if(S.sprint){S.i++;const kind=['num','verb','rot','mat'][Math.floor(Math.random()*4)];const it=oneItem(kind,Math.floor(Math.random()*2147483647),curLevel());S.items.push(it);S.fb=null;S.mine=null;S.mem=null;S.screen='q';S.at=Date.now();S.time=60;render();return}
   S.i++;if(S.i>=SESSION_N){endSession();return}
   const kind=S.area.id==='mix'?['mat','num','verb','mem','rot'][Math.floor(Math.random()*5)]:S.area.id;
   const seed=Math.floor(Math.random()*2147483647);
@@ -57,7 +64,7 @@ function next(){
   startTimer();render();
 }
 function startTimer(){S.at=Date.now();S.timeLeft=S.time;tick=setInterval(()=>{S.timeLeft=Math.max(0,S.time-Math.round((Date.now()-S.at)/1000));updateBar();if(S.timeLeft<=5&&S.timeLeft>0)FX.beep('tick');if(S.timeLeft<=0){stopTimer();answer(null)}},250)}
-function stopTimer(){if(tick){clearInterval(tick);tick=null}}
+function stopTimer(){if(S&&S.sprint)return;if(tick){clearInterval(tick);tick=null}}
 function runMemShow(){
   const it=S.items[S.i];const box=$('#memShow');if(!box)return;let pos=-1;
   const step=()=>{pos++;if(pos>=it.seq.length){box.innerHTML='';S.mem.phase='input';startTimer();render();setTimeout(()=>{const f=$('#memInput');if(f)f.focus()},0);return}
@@ -66,16 +73,22 @@ function runMemShow(){
 }
 function answer(choice,el){
   if(!S||S.screen!=='q'||S.fb)return;
+  if(S.sprint){const it=S.items[S.i];const ok=choice===it.answer;const ms=Date.now()-S.at;let pts=0;
+    if(ok){S.streak++;S.maxStreak=Math.max(S.maxStreak,S.streak);pts=5+Math.min(5,S.streak-1);FX.beep(S.streak%5===0?'streak':'ok');FX.floatText(el,'+'+pts,S.streak>=5?'gold':'')}
+    else{S.streak=0;FX.beep('bad');FX.shake($('#qbox'));if(el)FX.floatText(el,'✗','bad')}
+    S.pts+=pts;P.totalDone++;P.totalPts+=pts;P.bestStreak=Math.max(P.bestStreak,S.streak);S.log.push({ok,ms,pts,kind:it.kind,choice});
+    if(S.streak>=5)award('fila5');if(S.streak>=10)award('fila10');if(P.totalDone>=50)award('q50');if(P.totalDone>=200)award('q200');
+    S.fb={ok,pts,choice};render();memT=setTimeout(next,ok?450:900);return}
   stopTimer();clearTimeout(memT);
   const it=S.items[S.i];const ms=Math.min(Date.now()-S.at,S.time*1000);
   const ok=it.kind==='mem'?(choice!==null&&String(choice).toUpperCase()===it.answer):choice===it.answer;
   const area=P.aree[S.area.id];const lvBefore=lvNum(area.level);
   let pts=0;
   if(ok){S.streak++;S.maxStreak=Math.max(S.maxStreak,S.streak);pts=10+Math.round(5*Math.max(0,1-ms/(S.time*1000)))+Math.min(5,S.streak-1)*2;
-    area.level=Math.min(1,area.level+(S.streak>=3?0.1:0.07));area.correct++;
+    area.level=Math.min(1,area.level+(S.streak>=3?0.05:0.035));area.correct++;
     FX.beep(S.streak>0&&S.streak%5===0?'streak':'ok');FX.floatText(el||$('#qbox'),'+'+pts,S.streak>=5?'gold':'');
     if(ms<3000)award('veloce');
-  }else{S.streak=0;area.level=Math.max(0,area.level-0.08);FX.beep('bad');FX.shake($('#qbox'));if(el)FX.floatText(el,'✗','bad')}
+  }else{S.streak=0;area.level=Math.max(0,area.level-0.06);FX.beep('bad');FX.shake($('#qbox'));if(el)FX.floatText(el,'✗','bad')}
   area.done++;area.best=Math.max(area.best,S.streak);P.totalDone++;P.totalPts+=pts;P.bestStreak=Math.max(P.bestStreak,S.streak);S.pts+=pts;
   if(S.streak>=5)award('fila5');if(S.streak>=10)award('fila10');if(P.totalDone>=50)award('q50');if(P.totalDone>=200)award('q200');
   const lvAfter=lvNum(area.level);const levelUp=lvAfter>lvBefore;
@@ -85,6 +98,7 @@ function answer(choice,el){
   setTimeout(()=>{const b=$('#nextBtn');if(b)b.focus()},0);
 }
 function endSession(){
+  if(S.sprint){const nOk=S.log.filter(l=>l.ok).length;S.record=S.pts>P.sprintBest;if(S.record)P.sprintBest=S.pts;P.sprintN++;award('primo');saveP();S.screen='end';render();if(S.record&&S.pts>0){FX.beep('win');FX.confetti(100)}else FX.beep('ok');return}
   const area=P.aree[S.area.id];const nOk=S.log.filter(l=>l.ok).length;
   area.sessions.push({d:Date.now(),acc:nOk/SESSION_N,lvl:lvNum(area.level),pts:S.pts});if(area.sessions.length>60)area.sessions.shift();
   award('primo');if(nOk===SESSION_N)award('perfetto');
@@ -92,7 +106,7 @@ function endSession(){
   saveP();S.screen='end';render();
   if(nOk>=7){FX.beep('win');FX.confetti(nOk===SESSION_N?140:70)}
 }
-function quit(){stopTimer();clearTimeout(memT);S=null;render()}
+function quit(){if(tick){clearInterval(tick);tick=null}clearTimeout(memT);S=null;render()}
 
 // ========================= interfaccia =========================
 const fmtMs=(ms)=>(ms/1000).toFixed(1).replace('.',',')+' s';
@@ -105,23 +119,24 @@ function updateBar(){
   document.querySelector('.bar').classList.toggle('ingame',!!S);
   if(S&&S.screen==='q'){sc.innerHTML=`<span class="sc me"><span class="n">Punti</span><span class="v">${S.pts}</span></span>${S.streak>=2?`<span class="streak">🔥 ${S.streak}</span>`:''}`}
   else sc.innerHTML='';
-  if(S&&S.screen==='q'&&!S.fb&&!(S.mem&&S.mem.phase==='show')){t.classList.remove('hidden-timer');t.textContent=S.timeLeft+' s';t.classList.toggle('low',S.timeLeft<=10)}
+  if(S&&S.screen==='q'&&(S.sprint||(!S.fb&&!(S.mem&&S.mem.phase==='show')))){t.classList.remove('hidden-timer');t.textContent=(S.timeLeft||0)+' s';t.classList.toggle('low',S.timeLeft<=10)}
   else t.classList.add('hidden-timer');
-  $('#barProg').style.width=S?((S.screen==='end'?SESSION_N:S.i+(S.fb?1:0))/SESSION_N*100)+'%':'0';
+  $('#barProg').style.width=S?(S.sprint?(S.screen==='end'?100:100-(S.timeLeft||0)/60*100):((S.screen==='end'?SESSION_N:S.i+(S.fb?1:0))/SESSION_N*100))+'%':'0';
   if(!$('#soundBtn')){$('#barSound').innerHTML=FX.soundButtonHtml();FX.bindSoundButton()}
 }
 function bind(){
   document.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click',()=>act(b.dataset.act,b)));
   document.querySelectorAll('.opt[data-i]').forEach(b=>b.addEventListener('click',()=>answer(+b.dataset.i,b)));
-  const mi=$('#memInput');if(mi)mi.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();answer(mi.value.trim().toUpperCase()||null,mi)}});
-  document.onkeydown=(e)=>{if(S&&S.fb&&(e.key==='Enter'||e.key===' ')){e.preventDefault();next()}};
+  const mi=$('#memInput');if(mi)mi.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();answer(mi.value.trim().toUpperCase()||null,mi)}});
+  document.onkeydown=(e)=>{if(e.target&&e.target.tagName==='INPUT')return;if(S&&!S.sprint&&S.fb&&(e.key==='Enter'||e.key===' ')){e.preventDefault();next()}};
 }
 function act(a,btn){
   if(a==='area')startSession(btn.dataset.area);
+  else if(a==='sprint')startSprint();
   else if(a==='next')next();
   else if(a==='memOk'){const mi=$('#memInput');answer(mi&&mi.value.trim().toUpperCase()||null,mi)}
   else if(a==='quit')quit();
-  else if(a==='again')startSession(S.area.id);
+  else if(a==='again'){if(S.sprint)startSprint();else startSession(S.area.id)}
   else if(a==='reset'){if(confirm('Vuoi davvero azzerare tutti i progressi salvati su questo dispositivo?')){localStorage.removeItem(KEY);P=loadP();render()}}
 }
 function spark(sessions){
@@ -148,6 +163,7 @@ function rHome(){
     return`<button class="area" data-act="area" data-area="${a.id}"><span class="ic">${a.ic}</span><b>${a.name}</b><span class="hint">${esc(a.desc)}</span>
       <span class="lv"><span>Livello <span class="mono">${lv}</span>/10</span><span>${p.done?`${acc}% giuste · ${p.done} quesiti`:'mai provata'}</span></span>
       <span class="track"><i style="width:${Math.round(p.level*100)}%"></i></span>${spark(p.sessions)}</button>`}).join('');
+  const sprint=`<button class="area" data-act="sprint" style="border-color:var(--brand-300);background:linear-gradient(135deg,#fff 0%,var(--brand-50) 100%)"><span class="ic">⚡</span><b>Sprint 60 secondi</b><span class="hint">Quesiti facili a raffica: quanti ne fai in un minuto? Ogni risposta giusta di fila vale di più.</span><span class="lv"><span>Record <span class="mono">${P.sprintBest}</span> punti</span><span>${P.sprintN?P.sprintN+' sprint':'mai provato'}</span></span></button>`;
   const badges=BADGES.map(b=>`<span class="badge ${P.badges[b.id]?'':'off'}" title="${esc(b.d)}"><span class="e">${b.e}</span>${b.n}</span>`).join('');
   const nB=Object.keys(P.badges).length;
   return`<div class="stack"><div class="eyebrow">Allenamento · un\'area alla volta</div><h1>Migliora area per area</h1>
@@ -158,13 +174,13 @@ function rHome(){
       <div class="stat"><span class="v">🔥 ${P.bestStreak}</span><span class="l">serie record</span></div>
       <div class="stat"><span class="v">${nB}/${BADGES.length}</span><span class="l">medaglie</span></div>
     </div>
-    <div class="areas">${cards}</div>
+    <div class="areas">${sprint}${cards}</div>
     <div class="card"><h3>Medaglie</h3><div class="badges">${badges}</div></div>
     <div class="actions"><a class="btn" href="./">⚔️ Sfida un amico</a><a class="btn" href="../">Fai il test completo</a><button class="btn" data-act="reset" style="margin-left:auto">Azzera i progressi</button></div>`;
 }
 function rQ(){
-  const it=S.items[S.i];const area=P.aree[S.area.id];
-  const head=`<div class="eyebrow">${esc(KIND_NAME[it.kind])} · quesito ${S.i+1} di ${SESSION_N} · livello ${lvNum(area.level)}</div>`;
+  const it=S.items[S.i];const area=P.aree[S.area.id]||{level:0};
+  const head=S.sprint?`<div class="eyebrow">⚡ Sprint · ${esc(KIND_NAME[it.kind])} · ${S.log.filter(l=>l.ok).length} giuste</div>`:`<div class="eyebrow">${esc(KIND_NAME[it.kind])} · quesito ${S.i+1} di ${SESSION_N} · livello ${lvNum(area.level)}</div>`;
   let body;
   if(it.kind==='mem'){
     const instr=it.type==='back'?'Memorizza le cifre: dovrai riscriverle in ordine inverso.':'Memorizza i simboli: dovrai scrivere prima le cifre in ordine crescente, poi le lettere in ordine alfabetico.';
@@ -175,7 +191,8 @@ function rQ(){
     body=itemHtml(it,{cls,dis:!!S.fb,showAnswer:!!S.fb});
   }
   let fb='';
-  if(S.fb){
+  if(S.fb&&S.sprint)fb=`<div class="fb ${S.fb.ok?'ok':'bad'}"><b>${S.fb.ok?'Giusto! +'+S.fb.pts:'No, era '+LETTERS[it.answer]}</b></div>`;
+  else if(S.fb){
     const f=S.fb;
     fb=`<div class="fb ${f.ok?'ok':'bad'}"><b>${f.ok?(S.streak>=5?`Giusto! 🔥 ${S.streak} di fila, +${f.pts} punti`:`Giusto! +${f.pts} punti`):(f.choice===null?'Tempo scaduto.':'Sbagliato.')+' La risposta giusta era '+(it.kind==='mem'?it.answer:LETTERS[it.answer])+'.'}</b>
       ${it.rule?`<span>Spiegazione: ${esc(it.rule)}.</span>`:''}${f.levelUp?`<span>🎉 Sei salito al livello ${f.lvAfter}!</span>`:''}
@@ -184,6 +201,10 @@ function rQ(){
   return`${head}<div id="qbox" class="stack">${body}</div>${fb}${S.fb?'':'<div class="actions"><button class="btn" data-act="quit">Interrompi</button></div>'}`;
 }
 function rEnd(){
+  if(S.sprint){const nOk=S.log.filter(l=>l.ok).length;
+    return`<div class="final"><div class="eyebrow">⚡ Sprint finito</div><div class="big">${S.record&&S.pts>0?'Nuovo record! 🏆':S.pts>=40?'Che velocità!':'Tempo scaduto'}</div><div class="sub">${S.pts} punti · ${nOk} giuste su ${S.log.length} · serie migliore ${S.maxStreak}</div>
+      <div class="stats" style="padding-top:12px"><div class="stat"><span class="v">${S.pts}</span><span class="l">punti</span></div><div class="stat"><span class="v">${P.sprintBest}</span><span class="l">record</span></div><div class="stat"><span class="v">${S.log.length?Math.round(nOk/S.log.length*100):0}%</span><span class="l">giuste</span></div></div></div>
+      <div class="actions"><button class="btn primary big" data-act="again">Ancora uno sprint</button><button class="btn" data-act="quit">Torna alle aree</button></div>`}
   const nOk=S.log.filter(l=>l.ok).length;const area=P.aree[S.area.id];const lvEnd=lvNum(area.level);
   const title=nOk===SESSION_N?'Perfetto! 💯':nOk>=7?'Ottimo allenamento!':nOk>=4?'Buon lavoro':'Si impara sbagliando';
   const dl=lvEnd-S.lvStart;

@@ -1,7 +1,7 @@
 // Effetti condivisi: suoni (sintetizzati, spegnibili), coriandoli, numeri che volano, salvataggio locale.
 (function(){
 'use strict';
-const KEY_SOUND='sfide-suoni';
+const KEY_SOUND='testqi.suoni';
 let ctx=null;
 const soundOn=()=>localStorage.getItem(KEY_SOUND)!=='off';
 function setSound(on){localStorage.setItem(KEY_SOUND,on?'on':'off');if(on)beep('ok')}
