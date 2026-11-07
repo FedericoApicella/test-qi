@@ -229,6 +229,7 @@ details .body{padding:0 16px 16px;display:grid;gap:12px}
 .bar.ingame #cardAccedi{display:none}
 
 /* menu ⚙️ in alto a destra: accesso, suoni, installa l'app */
+[hidden]{display:none!important}
 .bar-in{position:relative}
 #barMenu{margin-left:auto;position:relative;flex:none}
 .bar .timer:not(.hidden-timer)~#barMenu{margin-left:0}
