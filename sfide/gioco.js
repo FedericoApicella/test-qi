@@ -1,4 +1,4 @@
-// Sfide di logica a due: stanza, collegamento diretto tra i due browser (WebRTC via PeerJS),
+// Sfide di logica a due: stanza, collegamento tra i due browser (rete.js: ponte MQTT, oppure WebRTC via PeerJS),
 // partita a turni con quesiti identici e punteggio in tempo reale.
 // Chi crea la stanza ("host") decide quando inizia ogni turno e calcola l'esito; l'altro ("ospite") riceve e risponde.
 (function(){
@@ -6,16 +6,7 @@
 const $=(s)=>document.querySelector(s);
 const esc=(s)=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const LETTERS='ABCDEF';
-const PREFIX='sfide-logica-v1-';
 const CODE_CHARS='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-// STUN + TURN gratuiti (Open Relay): senza TURN, da rete mobile a rete mobile il collegamento diretto spesso non si apre.
-const ICE={iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302']},
-  {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
-  {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
-  {urls:'turn:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'}]};
-const PEER_OPTS=Object.assign({config:ICE,pingInterval:4000},window.SFIDE_PEER||{});      // per prove locali: {host:'127.0.0.1',port:9000,path:'/',secure:false}
-const OPEN_MS=12000;                         // attesa massima per il servizio di collegamento
-const JOIN_MS=15000;                         // attesa massima per aprire il canale con l'altro giocatore
 const RESULT_MS=3200;                        // quanto resta visibile l'esito del turno
 const GRACE_MS=2500;                         // attesa della risposta dell'altro dopo lo scadere del tempo
 const {buildGame,cellSVG,cellsSVG,KIND_NAME,itemHtml}=window.Quesiti;
@@ -31,74 +22,53 @@ function fresh(){
     cfg:{rounds:10,time:45,kinds:['mat','num','verb','rot']},seed:0,items:[],i:-1,
     ans:[],         // per turno: [{choice,ms}|null per host, idem per ospite]
     results:[],     // per turno: {pts:[p0,p1]}
-    score:[0,0],streak:[0,0],mine:null,theirs:null,roundAt:0,timeLeft:0,err:'',busy:'',joinCode:'',preset:'classica'};
+    score:[0,0],streak:[0,0],mine:null,theirs:null,roundAt:0,timeLeft:0,err:'',busy:'',joinCode:'',preset:'classica',log:[],via:''};
 }
 S=fresh();
-let peer=null,conn=null,tick=null,graceT=null,nextT=null,joinT=null,openT=null,hbT=null,lastSeen=0;
+let net=null,tick=null,graceT=null,nextT=null,joinT=null,openT=null,hbT=null,lastSeen=0;
 const HB_MS=3000,LOST_MS=20000;            // battito di controllo del collegamento
 const me=()=>S.role==='guest'?1:0;
 const opp=()=>1-me();
 const names=()=>{const n=[S.role==='guest'?S.oppName:S.name,S.role==='guest'?S.name:S.oppName];return n};
 
 // ========================= rete =========================
+// Il collegamento vero sta in rete.js (ponte MQTT, poi PeerJS). Qui: stanza, battito, messaggi di gioco, diagnostica.
+const VIA=(new URLSearchParams(location.search).get('via')||'auto').toLowerCase();
 function makeCode(){let c='';for(let i=0;i<4;i++)c+=CODE_CHARS[Math.floor(Math.random()*CODE_CHARS.length)];return c}
-function send(msg){if(conn&&conn.open){try{conn.send(msg)}catch(e){}}}
-function destroyNet(){clearInterval(hbT);hbT=null;clearTimeout(openT);if(conn){try{conn.close()}catch(e){}}if(peer){try{peer.destroy()}catch(e){}}conn=null;peer=null;clearTimeout(joinT)}
+function log(msg){const t=new Date();S.log.push(t.toTimeString().slice(0,8)+' '+msg);if(S.log.length>60)S.log.shift();const d=document.getElementById('diagLog');if(d)d.textContent=S.log.join('\n')}
+function send(msg){if(net)net.send(msg)}
+function destroyNet(){clearInterval(hbT);hbT=null;if(net){net.close();net=null}}
 function onLost(){
   clearInterval(hbT);hbT=null;if(!S.connected)return;
-  S.connected=false;conn=null;
+  log('collegamento con l\'altro giocatore perso');
+  S.connected=false;
   if(S.screen!=='home'){S.err=(S.oppName||'L\'altro giocatore')+' si è scollegato.';if(S.screen==='round'||S.screen==='countdown'||S.screen==='result'){stopTimer();clearTimeout(nextT);clearTimeout(graceT);S.screen='end'}render()}
 }
-function netError(msg){S.err=msg;S.busy='';render()}
-
-function createRoom(tries){
-  tries=tries||0;S.role='host';S.solo=false;S.code=makeCode();S.busy='Creo la stanza…';S.err='';render();
-  peer=new Peer(PREFIX+S.code,PEER_OPTS);
-  clearTimeout(openT);openT=setTimeout(()=>{if(S.screen!=='lobby'&&S.role==='host'){destroyNet();netError('Il servizio di collegamento non risponde. Controlla di avere rete e premi «Crea la stanza» di nuovo.')}},OPEN_MS);
-  peer.on('open',()=>{clearTimeout(openT);S.busy='';S.screen='lobby';render()});
-  peer.on('connection',c=>{
-    if(conn&&conn.open){c.on('open',()=>{c.send({t:'full'});setTimeout(()=>c.close(),500)});return}
-    bindConn(c);
-  });
-  peer.on('error',e=>{
-    if(e.type==='unavailable-id'&&tries<5){destroyNet();createRoom(tries+1);return}
-    netError(describeErr(e));
-  });
-  peer.on('disconnected',()=>{if(peer&&!peer.destroyed)peer.reconnect()});
+function netError(msg){log('errore: '+msg);S.err=msg;S.busy='';render()}
+function callbacks(){
+  return{log,
+    onReady(){S.busy='';S.via=net?net.via:'';if(S.role==='host'){S.screen='lobby';render()}else{S.busy='Cerco la stanza '+S.code+'…';render()}},
+    onPeer(){S.connected=true;S.busy='';S.via=net?net.via:'';lastSeen=Date.now();send({t:'hello',name:S.name||(S.role==='host'?'Giocatore 1':'Giocatore 2')});
+      clearInterval(hbT);hbT=setInterval(()=>{send({t:'ping'});if(Date.now()-lastSeen>LOST_MS)onLost()},HB_MS);
+      if(S.role==='guest'){S.busy='Collegamento riuscito, attendo…';render()}},
+    onData(m){lastSeen=Date.now();onData(m)},
+    onLost,
+    onError(msg){destroyNet();netError(msg)}};
 }
-function joinRoom(code,retry){
-  retry=retry||0;S.role='guest';S.solo=false;S.code=code;S.busy=retry?'Riprovo a collegarmi…':'Mi collego…';S.err='';S.joinCode=code;render();
-  peer=new Peer(PEER_OPTS);
-  clearTimeout(openT);openT=setTimeout(()=>{if(!S.connected&&S.role==='guest'&&!(peer&&peer.open)){destroyNet();netError('Il servizio di collegamento non risponde. Controlla di avere rete e premi «Entra» di nuovo.')}},OPEN_MS);
-  peer.on('open',()=>{
-    clearTimeout(openT);S.busy='Cerco la stanza '+code+'…';render();
-    const c=peer.connect(PREFIX+code,{reliable:true});
-    bindConn(c);
-    joinT=setTimeout(()=>{if(!S.connected){destroyNet();if(retry<1){joinRoom(code,retry+1)}else netError('Ho trovato la stanza '+code+' ma il collegamento diretto non si apre. Provate a cambiare rete (per esempio Wi-Fi invece dei dati, o viceversa) e premi «Entra» di nuovo.')}},JOIN_MS);
-  });
-  peer.on('error',e=>{if(e.type==='peer-unavailable'){destroyNet();netError('Stanza '+code+' non trovata. Chi l\'ha creata deve avere la pagina aperta sulla schermata della stanza; controlla il codice e premi «Entra».')}else netError(describeErr(e))});
-  peer.on('disconnected',()=>{if(peer&&!peer.destroyed)peer.reconnect()});
+function createRoom(){
+  destroyNet();S.role='host';S.solo=false;S.code=makeCode();S.busy='Creo la stanza…';S.err='';render();
+  log('creo la stanza '+S.code+' (strada: '+VIA+')');
+  net=window.Rete.connetti('host',S.code,VIA,callbacks());
 }
-function describeErr(e){
-  const t=e&&e.type;
-  if(t==='network'||t==='server-error'||t==='socket-error'||t==='socket-closed')return'Non riesco a raggiungere il servizio di collegamento. Controlla la connessione e riprova tra qualche secondo.';
-  if(t==='browser-incompatible')return'Questo browser non supporta il collegamento diretto: prova con Chrome, Safari, Firefox o Edge aggiornati.';
-  return'Errore di collegamento ('+(t||'sconosciuto')+'). Ricarica la pagina e riprova.';
-}
-function bindConn(c){
-  conn=c;
-  c.on('open',()=>{clearTimeout(joinT);S.connected=true;S.busy='';lastSeen=Date.now();send({t:'hello',name:S.name||(S.role==='host'?'Giocatore 1':'Giocatore 2')});
-    clearInterval(hbT);hbT=setInterval(()=>{send({t:'ping'});if(Date.now()-lastSeen>LOST_MS)onLost()},HB_MS);
-    if(S.role==='guest'){S.busy='Collegamento riuscito, attendo…';render()}});
-  c.on('data',m=>{lastSeen=Date.now();onData(m)});
-  c.on('close',onLost);
-  c.on('error',()=>{});
+function joinRoom(code){
+  destroyNet();S.role='guest';S.solo=false;S.code=code;S.busy='Mi collego…';S.err='';S.joinCode=code;render();
+  log('entro nella stanza '+code+' (strada: '+VIA+')');
+  net=window.Rete.connetti('guest',code,VIA,callbacks());
 }
 function onData(m){
   if(!m||typeof m!=='object')return;
   switch(m.t){
-    case'hello':S.oppName=String(m.name||'').slice(0,20)||(S.role==='host'?'Giocatore 2':'Giocatore 1');S.busy='';if(S.screen!=='round'&&S.screen!=='result'&&S.screen!=='countdown')S.screen='lobby';render();break;
-    case'full':destroyNet();S.screen='home';netError('La stanza è già completa: ci sono già due giocatori.');break;
+    case'hello':S.oppName=String(m.name||'').slice(0,20)||(S.role==='host'?'Giocatore 2':'Giocatore 1');S.busy='';log('ciao da '+S.oppName);if(S.screen!=='round'&&S.screen!=='result'&&S.screen!=='countdown')S.screen='lobby';render();break;
     case'start':if(S.role==='guest')startGame(m.seed,m.cfg);break;
     case'round':if(S.role==='guest')startRound(m.i);break;
     case'ans':if(S.i===m.i&&S.screen==='round'){S.theirs={choice:m.choice,ms:m.ms};if(S.role==='host')S.ans[S.i][1]=S.theirs;render();if(S.role==='host')checkRound()}break;
@@ -107,7 +77,13 @@ function onData(m){
     case'bye':onLost();break;
   }
 }
-
+function diagHtml(){
+  const via=S.via==='ponte'?'ponte (server di passaggio)':S.via==='diretto'?'diretto (WebRTC)':'—';
+  return`<details class="diag"><summary>🔍 Diagnostica del collegamento</summary><div class="body"><p class="hint">Strada usata: <b>${via}</b> · stanza: <b class="mono">${esc(S.code||'—')}</b> · ruolo: ${S.role==='host'?'ha creato la stanza':S.role==='guest'?'ospite':'—'} · ${S.connected?'collegato all\'altro giocatore':'non ancora collegato'}</p>
+    <pre id="diagLog" class="mono">${esc(S.log.join('\n')||'(ancora niente)')}</pre>
+    <div class="actions"><button class="btn" data-act="copydiag" type="button">Copia la diagnostica</button></div>
+    <p class="hint">Se qualcosa non va, fai uno screenshot di questo riquadro o premi «Copia» e incollalo nel messaggio.</p></div></details>`;
+}
 // ========================= partita =========================
 function startGame(seed,cfg){
   stopTimer();clearTimeout(nextT);clearTimeout(graceT);
@@ -176,7 +152,7 @@ function endGame(){stopTimer();clearTimeout(nextT);clearTimeout(graceT);S.screen
   render()}
 function recordHtml(){if(S.solo||!S.oppName)return'';const r=FX.load(KEY_REC,{})[(S.oppName||'').trim().toLowerCase()];if(!r)return'';return`<p class="vs-rec">Contro ${esc(r.nome)}: <b>${r.v}</b> vinte · <b>${r.p}</b> perse${r.x?` · ${r.x} pari`:''}</p>`}
 function startSolo(){S.role='host';S.solo=true;S.oppName='';S.connected=false;hostStart()}
-function goHome(){if(S.connected)send({t:'bye'});destroyNet();stopTimer();clearTimeout(nextT);clearTimeout(graceT);const name=S.name;S=fresh();S.name=name;history.replaceState(null,'',location.pathname);render()}
+function goHome(){if(S.connected)send({t:'bye'});destroyNet();stopTimer();clearTimeout(nextT);clearTimeout(graceT);const name=S.name,lg=S.log;S=fresh();S.name=name;S.log=lg;history.replaceState(null,'',location.pathname);render()}
 
 // ========================= interfaccia =========================
 const fmtMs=(ms)=>(ms/1000).toFixed(1).replace('.',',')+' s';
@@ -216,6 +192,7 @@ function act(a,btn){
   if(a==='create'){if(!S.name.trim())S.name='Giocatore 1';createRoom();return}
   if(a==='join'){const jc=$('#joinCode');if(jc)S.joinCode=jc.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);const code=(S.joinCode||'').trim();if(code.length!==4){S.err='Il codice ha 4 caratteri.';render();return}const nm=$('#nameInput');if(nm)S.name=nm.value.slice(0,20);if(!S.name.trim())S.name='Giocatore 2';localStorage.setItem('testqi.nome',S.name);joinRoom(code);return}
   if(a==='retry'){S.err='';if(S.role==='guest'&&S.joinCode)joinRoom(S.joinCode);else createRoom();return}
+  if(a==='copydiag'){copyText('Diagnostica sfida '+(S.code||'')+' · strada '+(S.via||'-')+'\n'+S.log.join('\n'),btn);return}
   if(a==='solo'){if(!S.name.trim())S.name='Tu';startSolo();return}
   if(a==='start'){if(S.role==='host'&&(S.connected||S.solo))hostStart();return}
   if(a==='again'){if(S.role==='host')hostStart();return}
@@ -234,7 +211,7 @@ function rJoin(){
     <div class="card"><div class="field"><label for="nameInput">Il tuo nome</label><input id="nameInput" type="text" maxlength="20" value="${esc(S.name)}" placeholder="Come ti chiami?" autocomplete="nickname" style="max-width:300px"></div>
       <input id="joinCode" type="hidden" value="${esc(S.joinCode)}">
       <div class="actions"><button class="btn primary big wide" data-act="join" ${S.busy?'disabled':''}>${S.busy?`<span class="spin"></span> ${esc(S.busy)}`:'Entra nella stanza'}</button></div></div>
-    <p class="hint">Codice sbagliato? <a href="./" style="color:var(--brand)">Vai alla pagina delle sfide</a> e inseriscilo a mano.</p>`;
+    <p class="hint">Codice sbagliato? <a href="./" style="color:var(--brand)">Vai alla pagina delle sfide</a> e inseriscilo a mano.</p>${diagHtml()}`;
 }
 function rHome(){
   if(S.invited&&S.joinCode.length===4)return rJoin();
@@ -260,7 +237,7 @@ function rHome(){
       </div>
     </div>
     <div class="card"><h3>Nessuno con cui giocare adesso?</h3><p class="hint">Gioca da solo contro il tempo con le stesse regole, oppure allenati area per area con livelli e medaglie.</p><div class="actions"><button class="btn" data-act="solo" ${S.busy?'disabled':''}>Da solo contro il tempo</button><a class="btn" href="allenamento.html">🏋️ Allenamento per area</a><a class="btn" href="../">🏠 Home</a></div></div>
-    <p class="hint">Per mettere in contatto i due browser si usa il servizio gratuito PeerJS; poi la partita viaggia direttamente tra i due browser e non viene salvato nulla. Entrambi devono tenere la pagina aperta per tutta la partita.</p>`;
+    <p class="hint">I due telefoni si parlano attraverso un server di passaggio gratuito (funziona da qualunque rete, anche con i dati del telefono); se non risponde si prova il collegamento diretto. Non viene salvato nulla. Entrambi devono tenere la pagina aperta per tutta la partita.</p>${diagHtml()}`;
 }
 function rLobby(){
   const host=S.role==='host';
@@ -274,12 +251,12 @@ function rLobby(){
       ${S.connected?'':`<div class="actions"><button class="btn primary big wide" data-act="share">📲 ${navigator.share?'Invita un amico':'Copia il link da mandare'}</button></div>`}
       <div class="codebox"><span class="hint">oppure digli il codice</span><span class="code">${esc(S.code)}</span><span class="lnk">${esc(roomLink())}</span><div class="actions"><button class="btn" data-act="copy">Copia il link</button></div></div>
       ${S.err?`<div class="err">${esc(S.err)}</div>`:''}${players}${recordHtml()}${rules}
-      <div class="actions"><button class="btn primary big wide" data-act="start" ${S.connected?'':'disabled'}>${S.connected?'Inizia la sfida':'In attesa dell\'amico…'}</button><button class="btn" data-act="home">Annulla</button></div>`;
+      <div class="actions"><button class="btn primary big wide" data-act="start" ${S.connected?'':'disabled'}>${S.connected?'Inizia la sfida':'In attesa dell\'amico…'}</button><button class="btn" data-act="home">Annulla</button></div>${diagHtml()}`;
   }
   return`<div class="stack"><div class="eyebrow">Stanza ${esc(S.code)}</div><h1>Sei dentro</h1><p class="lede">La partita parte quando ${esc(S.oppName||'chi ha creato la stanza')} preme «Inizia la sfida». Tieni la pagina aperta.</p></div>
     ${S.err?`<div class="err">${esc(S.err)}</div>`:''}${players}${rules}
     <div class="wait"><span class="spin"></span> In attesa dell'avvio…</div>
-    <div class="actions"><button class="btn" data-act="home">Esci dalla stanza</button></div>`;
+    <div class="actions"><button class="btn" data-act="home">Esci dalla stanza</button></div>${diagHtml()}`;
 }
 function rCountdown(){return`<div class="stack"><div class="eyebrow">${S.solo?'Allenamento':'Sfida'} · ${S.items.length} quesiti</div><h1>Pronti?</h1></div><div class="countdown">${S.timeLeft>0?S.timeLeft:'Via!'}</div>`}
 function rRound(){
