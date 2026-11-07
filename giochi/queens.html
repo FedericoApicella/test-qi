@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Queens a livelli · Mente Allenata</title>
+<meta name="description" content="Queens a livelli infiniti: una regina per riga, colonna e regione colorata, senza che si tocchino. Griglie da 5×5 a 11×11 con soluzione unica e grafiche che si sbloccano giocando.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../stile.css">
+<link rel="stylesheet" href="giochi.css">
+</head>
+<body>
+<div class="bar ingame">
+  <div class="bar-in">
+    <a class="back" href="./" aria-label="Tutti i giochi">←</a>
+    <div class="title">👑 Queens</div>
+    <div class="scores" id="barScores"></div>
+    <div class="timer mono" id="barTimer">0:00</div>
+    <span id="barSound"></span>
+    <span id="cardAccedi"></span>
+  </div>
+</div>
+<main class="wrap" id="app">
+  <div class="g-top"><h1>👑 Queens</h1><div class="g-meta" id="gMeta"></div><div class="g-btns" id="gBtns"></div></div>
+  <div class="g-board"><div class="qn" id="board" aria-label="Griglia di Queens"></div></div>
+  <div class="qn-leg"><span>1 tocco = ✕ escludi</span><span>2 tocchi = 👑 regina</span><span>3 tocchi = vuota</span></div>
+  <div class="g-tools">
+    <span class="btn" style="cursor:default">👑 Regine <span class="n" id="qN">0</span></span>
+    <button class="btn" id="bClear">🧹 Pulisci</button>
+    <button class="btn" id="bHint">💡 Aiuto <span class="n" id="hintN">0</span></button>
+  </div>
+  <div class="g-msg" id="msg" aria-live="polite"></div>
+  <p class="foot"><a href="./" style="color:var(--muted)">Tutti i giochi</a> · <a href="../" style="color:var(--muted)">Mente Allenata</a></p>
+</main>
+<script src="../sfide/effetti.js"></script>
+<script src="comune.js"></script>
+<script src="queens.js"></script>
+<script>window.RACCOLTA_ENDPOINT="https://script.google.com/macros/s/AKfycbzgsmL26nxf3wzvzADgJ4ulpLXbfru19l_NfYDS-NGeXM5lYN4QLITrEe-sNHm23iBi/exec";</script>
+<script src="../js/account.js"></script>
+</body>
+</html>
