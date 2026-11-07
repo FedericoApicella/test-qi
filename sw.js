@@ -1,11 +1,11 @@
 /* Service worker di Mente Allenata (qi.stafftech.it).
  * - Pre-carica le pagine e i file statici del sito, così l'app funziona anche offline.
- * - Pagine HTML: prima la rete (per avere sempre l'ultima versione), poi la cache.
- * - File statici (css, js, icone, font): prima la cache, poi la rete.
+ * - Pagine, css, js e manifest: prima la rete (per avere sempre l'ultima versione), poi la cache.
+ * - Icone, immagini e font: prima la cache, poi la rete.
  * - Non tocca mai: le POST, Google Apps Script (raccolta dati e account), PeerJS (sfide).
  * Per pubblicare una nuova versione basta cambiare VERSIONE: il vecchio contenuto viene cancellato.
  */
-const VERSIONE = 'ma-2026-11-07d';
+const VERSIONE = 'ma-2026-11-07e';
 const CACHE = 'mente-allenata-' + VERSIONE;
 const FONT_CACHE = 'mente-allenata-font';
 const PRECARICA = [
@@ -52,7 +52,9 @@ self.addEventListener('fetch', (e) => {
   if (!stessaOrigine && !isFont) return; // Apps Script, PeerJS e tutto il resto passano diretti.
 
   if (isFont) { e.respondWith(staleWhileRevalidate(req, FONT_CACHE)); return; }
-  if (req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html')) {
+  // Pagine, css e js: prima la rete (così ogni modifica arriva subito), la cache solo se manca la linea.
+  // Icone e immagini: prima la cache.
+  if (req.mode === 'navigate' || /\.(html|css|js|webmanifest)$/.test(url.pathname) || url.pathname.endsWith('/')) {
     e.respondWith(reteCache(req));
     return;
   }

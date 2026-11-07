@@ -26,7 +26,7 @@ Il sito https://qi.stafftech.it è anche un'app installabile ("Progressive Web A
 ## File
 
 - `manifest.webmanifest`: nome, colori, icone, scorciatoie.
-- `sw.js`: service worker. Per far scaricare a tutti la nuova versione, cambia la costante `VERSIONE` (basta cambiare la data). Senza cambiarla, le pagine HTML si aggiornano comunque alla prima apertura con rete (strategia "prima la rete"), i file statici (css/js) possono restare vecchi finché non cambia la versione.
+- `sw.js`: service worker. Per far scaricare a tutti la nuova versione, cambia la costante `VERSIONE` (basta cambiare la data). Pagine, css e js arrivano comunque sempre dalla rete quando c'è linea (strategia "prima la rete"); la cache serve solo offline. Cambiare la versione serve a ripulire la cache vecchia.
 - `js/pwa.js`: registra il service worker, mostra il banner "Installa l'app" in home e l'avviso di aggiornamento. Incluso in tutte le pagine.
 - `app/`: icone. `icona.svg` è l'originale; i PNG (192, 512, maskable, apple-touch-icon 180, favicon) sono rasterizzati da quello. Per cambiare icona: modifica l'SVG e rigenera i PNG (ad esempio con Playwright o Inkscape), mantenendo il soggetto nel 80% centrale per la versione "maskable".
 - `app/offline.html`: pagina mostrata se si apre offline una pagina mai visitata.
