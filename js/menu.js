@@ -15,7 +15,7 @@
   wrap.id = 'barMenu';
   wrap.innerHTML =
     '<button type="button" class="btn icon" id="menuBtn" aria-label="Menu: accesso, suoni e impostazioni" aria-haspopup="true" aria-expanded="false" title="Impostazioni">⚙️<i class="dot" hidden></i></button>' +
-    '<div class="menu-pop" id="menuPop" hidden>' +
+    '<div class="menu-pop" id="menuPop" hidden style="display:none">' +
     '<div class="menu-row"><span class="menu-lab">👤 Account</span><span id="cardAccedi"></span></div>' +
     (FX ? '<div class="menu-row"><span class="menu-lab">🎵 Suoni</span>' + FX.soundButtonHtml() + '</div>' : '') +
     '<button type="button" class="menu-row menu-act" id="menuInstalla" hidden><span class="menu-lab">📲 Installa l\'app</span><span class="hint">sul telefono</span></button>' +
@@ -28,7 +28,8 @@
   if (FX) FX.bindSoundButton();
 
   var btn = document.getElementById('menuBtn'), pop = document.getElementById('menuPop');
-  function apri(on) { pop.hidden = !on; btn.setAttribute('aria-expanded', on ? 'true' : 'false'); }
+  function apri(on) { pop.hidden = !on; pop.style.display = on ? '' : 'none'; btn.setAttribute('aria-expanded', on ? 'true' : 'false'); }
+  apri(false);
   btn.addEventListener('click', function (e) { e.stopPropagation(); apri(pop.hidden); });
   document.addEventListener('click', function (e) { if (!pop.hidden && !wrap.contains(e.target)) apri(false); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') apri(false); });
@@ -40,7 +41,7 @@
 
   // installa l'app (vedi js/pwa.js)
   var inst = document.getElementById('menuInstalla');
-  function aggInst() { inst.hidden = !(window.PWA && window.PWA.possibile()); }
+  function aggInst() { var ok = !!(window.PWA && window.PWA.possibile()); inst.hidden = !ok; inst.style.display = ok ? '' : 'none'; }
   window.addEventListener('testqi:pwa', aggInst);
   inst.addEventListener('click', function () { apri(false); if (window.PWA) window.PWA.installa(); });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', aggInst); else aggInst();
