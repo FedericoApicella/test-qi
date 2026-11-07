@@ -15,6 +15,7 @@ In locale basta aprire `index.html` con un browser.
 - `index.html`: l'intero test (domande, timer, calcolo del punteggio).
 - `sfide/`: le sfide di logica a due (pagina `sfide/index.html`): un giocatore crea una stanza e manda il codice, l'altro entra, si risponde agli stessi quesiti a tempo e vince chi fa più punti. I quesiti sono generati da `sfide/quesiti.js` (matrici, serie, analogie, rotazioni, derivati dal test); il collegamento tra i due browser è diretto (WebRTC tramite PeerJS, libreria inclusa con licenza MIT).
 - `js/raccolta.js`: raccolta anonima e facoltativa dei risultati, per misurare l'affidabilità.
+- `js/account.js`: mini accesso facoltativo con nome utente e password (email solo per recuperare la password): per chi ha l'account, risultati, progressi e badge (le chiavi `testqi.*` di localStorage) si ritrovano su tutti i dispositivi. Usa lo stesso Apps Script della raccolta, in una scheda separata del foglio.
 - `analisi/`: script di analisi (alfa, test-retest, statistiche per item) ed endpoint di esempio.
 - `data/mars-ib/`: parametri pubblici di difficoltà delle matrici MaRs-IB (licenza MIT).
 - `docs/calibrazione.md`: soglie di affidabilità, fonti aperte verificate e piano di taratura.
