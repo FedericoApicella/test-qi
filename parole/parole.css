@@ -76,7 +76,13 @@ body.playing main.wrap{padding-bottom:190px}
 .lvpick button.next{border-color:var(--brand);color:var(--brand)}
 @media (min-width:900px){.kb{position:static;width:100%;background:transparent;border:0;backdrop-filter:none;margin-top:4px}body.playing main.wrap{padding-bottom:64px}}
 /* crittografato */
-.cw .c.cr .n{font-size:clamp(.42rem,1.9vw,.68rem);color:var(--brand);font-weight:700}
+.cw .c.cr .n{font-size:clamp(.6rem,2.6vw,.85rem);color:var(--brand);font-weight:800;left:3px;top:1px}
+.cw.cw-cr .c{font-size:clamp(.85rem,3.6vw,1.35rem);align-content:end;padding-bottom:6%}
+.cw .c.hyp{color:var(--muted);font-style:italic;font-weight:500;background:#f3f0ff}
+.keymap .kn.hyp b{color:var(--muted);font-style:italic;font-weight:500}
+.hypbar{padding:8px 10px;border-radius:12px;background:var(--bg);border:1px dashed var(--border-strong)}
+.hypbar.on{border-color:var(--brand);background:var(--brand-50)}
+.kb button.on{background:var(--brand);color:#fff}
 .cw .c.same{box-shadow:inset 0 0 0 2px var(--brand-300)}
 .keymap{display:flex;flex-wrap:wrap;gap:4px;justify-content:center}
 .keymap .kn{appearance:none;border:2px solid var(--border);background:var(--surface);border-radius:8px;width:38px;height:44px;display:grid;place-items:center;gap:0;font:inherit;cursor:pointer;padding:2px}

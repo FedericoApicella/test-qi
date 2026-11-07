@@ -140,7 +140,7 @@ function startCritto(L){
   const nGiven=L<5?5:L<15?4:3;const given=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).slice(0,nGiven);
   const map={};given.forEach(ch=>map[num[ch]]=ch);
   const first=z.slots[0];
-  S={mode:'critto',L,z,num,letters:order,map,given:new Set(given.map(ch=>num[ch])),cy:first.y,cx:first.x,dir:first.dir,hints:0,pts:0,wrong:0,start:Date.now(),done:false,okSlots:{},okNums:new Set(given.map(ch=>num[ch]))};
+  S={mode:'critto',L,z,num,letters:order,map,given:new Set(given.map(ch=>num[ch])),cy:first.y,cx:first.x,dir:first.dir,hints:0,pts:0,wrong:0,start:Date.now(),done:false,okSlots:{},okNums:new Set(given.map(ch=>num[ch])),hyp:{},hypMode:false};
   document.body.classList.add('playing');FX.beep('start');render();
 }
 const crittoNumAt=(y,x)=>S.num[S.z.cells[y][x].ch];
@@ -169,9 +169,15 @@ function crittoType(ch){
   if(S.done)return;const s=curSlot();if(!s)return;
   const n=crittoNumAt(S.cy,S.cx);
   if(S.okNums.has(n)){crittoAdvance(s,1);render();return}
-  crittoAssign(n,ch);if(!S.done){crittoAdvance(s,1)}render();
+  if(S.hypMode){S.hyp[n]=ch;crittoAdvance(s,1);render();return}  // ipotesi: a matita, non viene valutata
+  delete S.hyp[n];crittoAssign(n,ch);if(!S.done){crittoAdvance(s,1)}render();
 }
-function crittoBack(){if(S.done)return;const s=curSlot();if(!s)return;const n=crittoNumAt(S.cy,S.cx);if(S.map[n]&&!S.okNums.has(n)){delete S.map[n]}else{crittoAdvance(s,-1);const m=crittoNumAt(S.cy,S.cx);if(!S.okNums.has(m))delete S.map[m]}render()}
+function crittoBack(){if(S.done)return;const s=curSlot();if(!s)return;const n=crittoNumAt(S.cy,S.cx);
+  if(S.hypMode){if(S.hyp[n])delete S.hyp[n];else{crittoAdvance(s,-1);delete S.hyp[crittoNumAt(S.cy,S.cx)]}render();return}
+  if(S.map[n]&&!S.okNums.has(n)){delete S.map[n]}else if(S.hyp[n]){delete S.hyp[n]}else{crittoAdvance(s,-1);const m=crittoNumAt(S.cy,S.cx);if(!S.okNums.has(m))delete S.map[m]}render()}
+// ipotesi: conferma tutte (diventano lettere vere e vengono controllate) o cancella tutte
+function crittoHypConfirm(){const ns=Object.keys(S.hyp).map(Number);if(!ns.length)return;ns.forEach(n=>{const ch=S.hyp[n];delete S.hyp[n];if(!S.okNums.has(n)){for(const k in S.map){if(S.map[k]===ch&&+k!==n&&!S.okNums.has(+k))delete S.map[k]}S.map[n]=ch}});S.hypMode=false;crittoCheckAll();render()}
+function crittoHypClear(){S.hyp={};render()}
 function crittoHint(){
   if(S.done)return;let n=crittoNumAt(S.cy,S.cx);
   if(S.okNums.has(n)){const s=curSlot();const dy=s.dir?1:0,dx=s.dir?0:1;let f=null;for(let i=0;i<s.w.length;i++){const m=crittoNumAt(s.y+dy*i,s.x+dx*i);if(!S.okNums.has(m)){f=m;S.cy=s.y+dy*i;S.cx=s.x+dx*i;break}}if(f==null){const rest=S.letters.filter(ch=>!S.okNums.has(S.num[ch]));if(!rest.length)return;f=S.num[rest[0]]}n=f}
@@ -188,11 +194,14 @@ function renderCritto(){
   const inWord=(y,x)=>s&&(s.dir?(x===s.x&&y>=s.y&&y<s.y+s.w.length):(y===s.y&&x>=s.x&&x<s.x+s.w.length));
   let cells='';for(let y=0;y<N;y++)for(let x=0;x<N;x++){const c=z.cells[y][x];if(!c){cells+=`<div class="c b"></div>`;continue}
     const n=S.num[c.ch];const cls=['c','cr'];if(inWord(y,x))cls.push('word');if(n===curN)cls.push('same');if(S.cy===y&&S.cx===x)cls.push('cur');if(S.okNums.has(n))cls.push(S.given.has(n)?'hint':'lock');if(bad[y+','+x])cls.push('bad');
-    cells+=`<div class="${cls.join(' ')}" data-y="${y}" data-x="${x}"><span class="n">${n}</span>${S.map[n]||''}</div>`}
-  const key=S.letters.map((ch,i)=>{const n=i+1;const cls=['kn'];if(S.okNums.has(n))cls.push('ok');if(n===curN)cls.push('on');return`<button class="${cls.join(' ')}" data-num="${n}"><span class="n">${n}</span><b>${S.map[n]||'·'}</b></button>`}).join('');
+    if(!S.map[n]&&S.hyp[n])cls.push('hyp');
+    cells+=`<div class="${cls.join(' ')}" data-y="${y}" data-x="${x}"><span class="n">${n}</span>${S.map[n]||S.hyp[n]||''}</div>`}
+  const key=S.letters.map((ch,i)=>{const n=i+1;const cls=['kn'];if(S.okNums.has(n))cls.push('ok');if(n===curN)cls.push('on');if(!S.map[n]&&S.hyp[n])cls.push('hyp');return`<button class="${cls.join(' ')}" data-num="${n}"><span class="n">${n}</span><b>${S.map[n]||S.hyp[n]||'·'}</b></button>`}).join('');
+  const nHyp=Object.keys(S.hyp).length;
+  const hypBar=`<div class="tools hypbar ${S.hypMode?'on':''}"><button class="btn ${S.hypMode?'primary':''}" data-act="hyp">✏️ Ipotesi ${S.hypMode?'attive':''}</button>${nHyp?`<button class="btn" data-act="hypConfirm">✓ Conferma ${nHyp}</button><button class="btn" data-act="hypClear">✕ Cancella</button>`:''}<span class="hint">${S.hypMode?'Le lettere che scrivi ora sono a matita: non contano come errori.':'Come le note del Sudoku: prova lettere senza rischiare.'}</span></div>`;
   const nOk=Object.keys(S.okSlots).length;
   return`${lvNavHtml('critto')}<div class="grid-wrap"><div class="clue-now" id="clueNow"><span class="dir">${curN}</span><span>${S.okNums.has(curN)?`= <b>${S.map[curN]}</b> (certa)`:S.map[curN]?`= <b>${S.map[curN]}</b> · scrivi un'altra lettera per cambiarla`:'scrivi la lettera che pensi corrisponda a questo numero'}</span><span class="arrows"><button class="btn icon" data-act="prevSlot" aria-label="precedente">‹</button><button class="btn icon" data-act="nextSlot" aria-label="successiva">›</button></span></div>
-  <div class="cw" style="grid-template-columns:repeat(${N},minmax(0,1fr))">${cells}</div><p class="hint" style="text-align:center">${nOk}/${z.slots.length} parole · ${S.okNums.size}/${S.letters.length} lettere certe · ogni numero è sempre la stessa lettera</p><div class="keymap">${key}</div><p class="hint">Niente definizioni: parti dalle lettere date, prova le parole che riconosci e il resto si sblocca a catena. Una parola completa e giusta diventa verde e fissa le sue lettere.</p></div>${kbHtml()}`;
+  <div class="cw cw-cr" style="grid-template-columns:repeat(${N},minmax(0,1fr))">${cells}</div>${hypBar}<p class="hint" style="text-align:center">${nOk}/${z.slots.length} parole · ${S.okNums.size}/${S.letters.length} lettere certe · ogni numero è sempre la stessa lettera</p><div class="keymap">${key}</div><p class="hint">Niente definizioni: parti dalle lettere date, prova le parole che riconosci e il resto si sblocca a catena. Una parola completa e giusta diventa verde e fissa le sue lettere.</p></div>${kbHtml()}`;
 }
 function quit(){S=null;document.body.classList.remove('playing');render()}
 
@@ -325,8 +334,9 @@ function finish(){
 // ---------- render ----------
 const starsHtml=(n)=>'★'.repeat(n)+'☆'.repeat(3-n);
 function kbHtml(){
+  const hyp=S&&S.mode==='critto'?`<button class="w ${S.hypMode?'on':''}" data-act="hyp">✏️ ${S.hypMode?'Ipotesi ✓':'Ipotesi'}</button>`:'';
   const rows=['QWERTYUIOP','ASDFGHJKL','ZXCVBNM'];
-  return`<div class="kb" id="kb"><div class="r">${rows[0].split('').map(k=>`<button data-k="${k}">${k}</button>`).join('')}</div><div class="r">${rows[1].split('').map(k=>`<button data-k="${k}">${k}</button>`).join('')}</div><div class="r"><button class="w" data-act="hint">💡 Aiuto</button>${rows[2].split('').map(k=>`<button data-k="${k}">${k}</button>`).join('')}<button class="w" data-act="back">⌫</button></div></div>`;
+  return`<div class="kb" id="kb"><div class="r">${rows[0].split('').map(k=>`<button data-k="${k}">${k}</button>`).join('')}</div><div class="r">${rows[1].split('').map(k=>`<button data-k="${k}">${k}</button>`).join('')}</div><div class="r">${hyp}<button class="w" data-act="hint">💡 Aiuto</button>${rows[2].split('').map(k=>`<button data-k="${k}">${k}</button>`).join('')}<button class="w" data-act="back">⌫</button></div></div>`;
 }
 function lvNavHtml(mode){
   const m=P[mode];const L=S.L;
@@ -394,6 +404,9 @@ document.addEventListener('click',e=>{
   if(!S||S.done)return;
   if(act==='hint'){S.mode==='cody'?codyHint():S.mode==='critto'?crittoHint():cruciHint();return}
   if(act==='back'){S.mode==='cody'?codyBack():S.mode==='critto'?crittoBack():cruciBack();return}
+  if(act==='hyp'){S.hypMode=!S.hypMode;FX.beep('tick');render();return}
+  if(act==='hypConfirm'){crittoHypConfirm();return}
+  if(act==='hypClear'){crittoHypClear();return}
   if(act==='guess'){if(S.solvedHidden)return;S.guessHidden=!S.guessHidden;S.hg='';render();return}
   if(act==='prevSlot'||act==='nextSlot'){const s=curSlot();const k=S.z.slots.indexOf(s);const n=S.z.slots[(k+(act==='nextSlot'?1:S.z.slots.length-1))%S.z.slots.length];cruciGoSlot(n);return}
   if(t.dataset.k&&t.closest('.kb')){S.mode==='cody'?codyType(t.dataset.k):S.mode==='critto'?crittoType(t.dataset.k):cruciType(t.dataset.k);return}
