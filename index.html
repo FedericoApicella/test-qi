@@ -166,7 +166,7 @@ details .body{padding:0 16px 16px;display:grid;gap:12px}
 (function(){
 'use strict';
 // Versione degli item: cambia quando cambia anche un solo item (gli id restano stabili per item invariati).
-const QI_VERSION='2.0';
+const QI_VERSION='2.1';
 // Endpoint facoltativo (es. Google Apps Script) per la raccolta anonima: window.RACCOLTA_ENDPOINT o window.QI_SUBMIT_URL.
 const QI_SUBMIT_URL=(window.RACCOLTA_ENDPOINT||window.QI_SUBMIT_URL||'');
 
@@ -467,10 +467,10 @@ function rotItems(){
 
 // ========================= sezioni =========================
 const FULL_SECTIONS=[
-  {id:'mat',name:'Matrici di ragionamento',short:'Matrici',dominio:'matrici',time:14*60,kind:'matrix',items:matrixItems(),
+  {id:'mat',name:'Matrici di ragionamento',short:'Matrici',dominio:'matrici',time:18*60,kind:'matrix',items:matrixItems(),
    intro:'Ogni griglia 3×3 segue una o più regole (per riga, per colonna o entrambe). Individua le regole e scegli, tra le sei alternative, la figura che completa la casella mancante.',
    tips:['Le regole possono riguardare forma, riempimento, dimensione, numero, rotazione o combinazione di segmenti.','Gli item diventano progressivamente più difficili: più elementi e più regole insieme.']},
-  {id:'num',name:'Serie numeriche',short:'Serie',dominio:'serie',time:8*60,kind:'choice',items:numItems(),
+  {id:'num',name:'Serie numeriche',short:'Serie',dominio:'serie',time:12*60,kind:'choice',items:numItems(),
    intro:'Ogni serie segue una regola matematica. Individua la regola e scegli il numero che continua correttamente la serie.',
    tips:['Le regole possono combinare più operazioni, alternarsi tra un numero e il successivo o intrecciare due serie.']},
   {id:'verb',name:'Analogie verbali',short:'Analogie',dominio:'analogie',time:6*60,kind:'choice',items:verbItems(),
@@ -479,14 +479,14 @@ const FULL_SECTIONS=[
   {id:'mem',name:'Memoria di lavoro',short:'Memoria',dominio:'memoria',time:12*60,kind:'memory',items:MEM_CFG.map(c=>Object.assign({},c)),
    intro:'Ti verranno mostrati dei simboli uno alla volta. Nei primi item dovrai riscrivere le cifre in ordine inverso (dall\'ultima alla prima). Negli ultimi item vedrai cifre e lettere mescolate: riscrivi prima le cifre in ordine crescente, poi le lettere in ordine alfabetico.',
    tips:['Esempio inverso: vedi 4 – 1 – 7, scrivi 714.','Esempio cifre e lettere: vedi M – 3 – B – 8, scrivi 38BM.','Due prove per ogni lunghezza, da 3 a 8 simboli. Non usare carta e penna: la sezione misura la memoria, non la scrittura.']},
-  {id:'rot',name:'Rotazione spaziale',short:'Rotazione',dominio:'spaziale',time:10*60,kind:'rotation',items:rotItems(),
+  {id:'rot',name:'Rotazione spaziale',short:'Rotazione',dominio:'spaziale',time:8*60,kind:'rotation',items:rotItems(),
    intro:'Ti viene mostrata una figura. Tra le quattro alternative, una sola è la stessa figura ruotata sul piano. Le altre sono riflesse allo specchio o sono figure diverse.',
    tips:['Una figura riflessa non è una rotazione valida, anche se ruotata.']},
 ];
 FULL_SECTIONS.forEach(s=>s.items.forEach((it,i)=>{it.origIdx=i}));
 // Forma breve: 8 item per dominio presi lungo tutta la scala di difficoltà (stessi id della forma completa).
 const SHORT_IDX=[0,3,6,9,12,15,17,19];
-const SHORT_TIME={mat:6*60,num:4*60,verb:3*60,mem:5*60,rot:4*60};
+const SHORT_TIME={mat:7*60,num:5*60,verb:3*60,mem:5*60,rot:3*60};
 // Parametri provvisori di conversione (non derivati da un campione normativo): da sostituire con le norme empiriche.
 const NORMS={full:{mean:70,sd:12,rel:0.90,label:'Test completo'},short:{mean:28,sd:5,rel:0.80,label:'Stima rapida'}};
 let SECTIONS,TOTAL_ITEMS,TOTAL_MIN,NORM,FORM='full';
@@ -519,10 +519,10 @@ function updateBar(){
   const sec=SECTIONS[state.s];
   const inTest=state.screen==='item'||state.screen==='section';
   $('#barSec').textContent=inTest?`${state.s+1}/${SECTIONS.length} · ${sec.name}`:'Test QI Multidominio';
-  $('#barCnt').textContent=state.screen==='item'?`item ${state.i+1}/${sec.items.length}`:'';
+  if(state.screen==='item'){const left=sec.items.length-state.i;const per=Math.max(0,Math.floor(state.timeLeft/left));$('#barCnt').textContent=`item ${state.i+1}/${sec.items.length} · ~${per} s/item`}else $('#barCnt').textContent='';
   const t=$('#barTimer');
   t.classList.toggle('hidden-timer',state.screen!=='item');
-  if(state.screen==='item'){t.textContent=fmtTime(Math.max(0,state.timeLeft));t.classList.toggle('low',state.timeLeft<=30)}
+  if(state.screen==='item'){t.textContent=fmtTime(Math.max(0,state.timeLeft));t.classList.toggle('low',state.timeLeft<=60)}
   let done=0;for(let k=0;k<state.s;k++)done+=SECTIONS[k].items.length;if(state.screen==='item')done+=state.i;if(state.screen==='results'||state.screen==='demo')done=TOTAL_ITEMS;
   $('#barProg').style.width=(done/TOTAL_ITEMS*100)+'%';
 }
@@ -691,6 +691,7 @@ function rIntro(){
   <div class="card stack">
     <h2>Prima di iniziare</h2>
     <p>Serve un momento senza interruzioni (la maggior parte delle persone finisce prima del tempo massimo). Ogni sezione ha un limite di tempo: allo scadere, gli item non risposti contano come errati. Non si può tornare indietro.</p>
+    <p>Il tempo è calcolato per finire senza correre: accanto al contatore vedi quanti secondi hai in media per ciascun item rimasto. Se un item ti blocca, usa "Salta" e vai avanti. Tra una sezione e l'altra il tempo è fermo: puoi fare una pausa.</p>
     <p>Rispondi da solo, senza calcolatrice né carta e penna. Se non sai una risposta, scegli quella che ritieni più probabile: non ci sono penalità per gli errori.</p>
     <p>Il risultato è più attendibile se è la prima volta che fai questo test: alla seconda prova il punteggio tende a salire per effetto dell'apprendimento.</p>
   </div>
