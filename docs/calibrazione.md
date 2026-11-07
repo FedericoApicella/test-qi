@@ -108,6 +108,15 @@ uno script Apps Script pubblicato come web app (`analisi/endpoint-apps-script.gs
 istruzioni nel file). Alternative: Supabase o un Cloudflare Worker. Senza endpoint
 resta il pulsante "scarica i miei dati" che produce il file JSON.
 
+Versioni (`test_version`): il test del QI usa `QI_VERSION` (2.2 dal 7 novembre 2026:
+item 1-40 per dominio, forme breve/completa/estesa indicate in `forma` e `demo.forma`).
+I mini-test per area (`misura/`, `test.html?area=mat|num|verb|mem|rot`) usano gli item
+41-64 di ogni dominio, mai somministrati nel test principale, e una versione propria
+`area-<id>-<AREA_VERSION>` (per esempio `area-mat-1.0`), con `forma` = `area-mat`.
+Vanno analizzati separatamente: 24 item di un solo dominio, alfa attesa 0,85
+(SEM ≈ 5,8 punti). Ogni modifica di item o tempi di un mini-test cambia solo
+`AREA_VERSION`; i record delle due famiglie non vanno mai uniti.
+
 Nel test vanno aggiunte, alla fine e facoltative, tre domande: fascia d'età, titolo di
 studio, lingua madre. Servono per le norme e per controllare che gli item non
 funzionino diversamente per gruppi diversi (DIF).
