@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Modalità storia · Test del QI</title>
+<meta name="description" content="Livelli infiniti per allenare la mente divertendosi: mini-giochi facili, enigmi sempre più difficili, cuori, stelle e un boss ogni dieci livelli. Progressi salvati sul tuo dispositivo.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../stile.css">
+<link rel="stylesheet" href="storia.css">
+</head>
+<body>
+<div class="bar">
+  <div class="bar-in">
+    <div class="title" id="barTitle">Storia</div>
+    <div class="scores" id="barScores"></div>
+    <div class="timer mono hidden-timer" id="barTimer">--</div>
+    <span id="barSound"></span>
+    <span id="cardAccedi"></span>
+  </div>
+  <div class="progress"><i id="barProg"></i></div>
+</div>
+<main class="wrap" id="app" aria-live="polite"></main>
+<script src="../sfide/quesiti.js"></script>
+<script src="../sfide/effetti.js"></script>
+<script src="minigiochi.js"></script>
+<script src="storia.js"></script>
+<script>window.RACCOLTA_ENDPOINT="https://script.google.com/macros/s/AKfycbzgsmL26nxf3wzvzADgJ4ulpLXbfru19l_NfYDS-NGeXM5lYN4QLITrEe-sNHm23iBi/exec";</script>
+<script src="../js/account.js"></script>
+</body>
+</html>

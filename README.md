@@ -6,7 +6,7 @@ Un test del QI in una sola pagina HTML, pensato per essere il più affidabile po
 
 ## Come si usa
 
-Il test è pubblicato con GitHub Pages: apri la pagina del repository e fai il test dal browser, senza installare nulla. Le sfide a due sono alla pagina `sfide/` dello stesso sito.
+Il test è pubblicato con GitHub Pages: apri la pagina del repository e fai il test dal browser, senza installare nulla. Le sfide a due sono alla pagina `sfide/` dello stesso sito, la modalità storia a livelli alla pagina `storia/`.
 
 In locale basta aprire `index.html` con un browser.
 
@@ -17,6 +17,7 @@ In locale basta aprire `index.html` con un browser.
 - `stile.css`: tema grafico comune a tutte le pagine (un solo colore di marca, nessun tema scuro di sistema).
 - `sfide/allenamento.html`: allenamento per area con difficoltà adattiva, spiegazioni, livelli, medaglie e Sprint 60 secondi; progressi salvati nel browser.
 - `sfide/`: le sfide di logica a due (pagina `sfide/index.html`): un giocatore crea una stanza e manda il codice, l'altro entra, si risponde agli stessi quesiti a tempo e vince chi fa più punti. I quesiti sono generati da `sfide/quesiti.js` (matrici, serie, analogie, rotazioni, derivati dal test); il collegamento tra i due browser è diretto (WebRTC tramite PeerJS, libreria inclusa con licenza MIT).
+- `storia/`: la modalità storia (pagina `storia/index.html`): livelli infiniti divisi in mondi da dieci, con tre cuori, stelle e un boss ogni dieci livelli. I primi mondi sono mini-giochi facili (`storia/minigiochi.js`: intruso, conta le forme, memoria lampo, colore della parola, calcolo lampo, il più grande); salendo compaiono i quesiti del test generati da `sfide/quesiti.js` e i tempi si stringono. Progressi nel browser (chiave `testqi.storia`).
 - `js/raccolta.js`: raccolta anonima e facoltativa dei risultati, per misurare l'affidabilità.
 - `js/account.js`: mini accesso facoltativo con nome utente e password (email solo per recuperare la password): per chi ha l'account, risultati, progressi e badge (le chiavi `testqi.*` di localStorage) si ritrovano su tutti i dispositivi. Usa lo stesso Apps Script della raccolta, in una scheda separata del foglio.
 - `analisi/`: script di analisi (alfa, test-retest, statistiche per item) ed endpoint di esempio.
