@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sudoku a livelli · Mente Allenata</title>
+<meta name="description" content="Sudoku a livelli infiniti: si parte da griglie piccole e facili, la difficoltà sale piano, soluzione sempre unica, note, aiuti e grafiche che si sbloccano giocando.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../stile.css">
+<link rel="stylesheet" href="giochi.css">
+</head>
+<body>
+<div class="bar ingame">
+  <div class="bar-in">
+    <a class="back" href="./" aria-label="Tutti i giochi">←</a>
+    <div class="title">🔢 Sudoku</div>
+    <div class="scores" id="barScores"></div>
+    <div class="timer mono" id="barTimer">0:00</div>
+    <span id="barSound"></span>
+    <span id="cardAccedi"></span>
+  </div>
+</div>
+<main class="wrap" id="app">
+  <div class="g-top"><h1>🔢 Sudoku</h1><div class="g-meta" id="gMeta"></div><div class="g-btns" id="gBtns"></div></div>
+  <div class="g-board"><div class="sd" id="board" aria-label="Griglia del sudoku"></div></div>
+  <div class="sd-pad" id="pad"></div>
+  <div class="g-tools">
+    <button class="btn" id="bNote">✏️ Note</button>
+    <button class="btn" id="bDel">⌫ Cancella</button>
+    <button class="btn" id="bHint">💡 Aiuto <span class="n" id="hintN">0</span></button>
+    <span class="btn" id="errBox" style="cursor:default">❌ Errori <span class="n" id="errN">0</span></span>
+  </div>
+  <div class="g-msg" id="msg" aria-live="polite"></div>
+  <p class="foot"><a href="./" style="color:var(--muted)">Tutti i giochi</a> · <a href="../" style="color:var(--muted)">Mente Allenata</a></p>
+</main>
+<script src="../sfide/effetti.js"></script>
+<script src="comune.js"></script>
+<script src="sudoku.js"></script>
+<script>window.RACCOLTA_ENDPOINT="https://script.google.com/macros/s/AKfycbzgsmL26nxf3wzvzADgJ4ulpLXbfru19l_NfYDS-NGeXM5lYN4QLITrEe-sNHm23iBi/exec";</script>
+<script src="../js/account.js"></script>
+</body>
+</html>
