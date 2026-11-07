@@ -139,7 +139,7 @@ details .body{padding:0 16px 16px;display:grid;gap:12px}
 (function(){
 'use strict';
 // Versione degli item: cambia quando cambia anche un solo item (gli id restano stabili per item invariati).
-const QI_VERSION='2.1';
+const QI_VERSION='2.2';
 // Endpoint facoltativo (es. Google Apps Script) per la raccolta anonima: window.RACCOLTA_ENDPOINT o window.QI_SUBMIT_URL.
 const QI_SUBMIT_URL=(window.RACCOLTA_ENDPOINT||window.QI_SUBMIT_URL||'');
 
@@ -225,6 +225,27 @@ const MAT_SPECS=[
   {slots:3,rules:[['shape','latin',0],['fill','latin2',1],['size','latin',2],['fill','row',0]]},
   {overlay:'xor',k:3},
   {slots:3,rules:[['shape','latin',0],['fill','latin2',0],['size','latin',1],['shape','col',1],['fill','row',2]]},
+  // item 21-40: seconda scala, usata dalla forma estesa
+  {slots:1,rules:[['fill','row']]},
+  {slots:1,rules:[['size','col']]},
+  {slots:1,rules:[['count','col']]},
+  {slots:1,rules:[['fill','latin']]},
+  {slots:1,rules:[['shape','col'],['size','row']]},
+  {slots:1,rules:[['rot','row'],['fill','col']],arrow:true},
+  {slots:1,rules:[['fill','latin'],['size','latin2']]},
+  {overlay:'add',k:2},
+  {slots:1,rules:[['shape','latin2'],['count','col'],['fill','row']]},
+  {slots:2,rules:[['fill','row',0],['shape','col',1]]},
+  {slots:2,rules:[['size','latin',0],['shape','latin2',1]]},
+  {overlay:'xor',k:2},
+  {slots:1,rules:[['shape','latin2'],['fill','latin'],['size','row'],['count','col']]},
+  {slots:2,rules:[['shape','latin2',0],['size','latin',0],['fill','row',1]]},
+  {slots:3,rules:[['fill','row',0],['shape','col',1],['shape','row',2]]},
+  {overlay:'add',k:3},
+  {slots:2,rules:[['shape','latin',0],['size','latin2',0],['fill','latin',1],['shape','row',1]]},
+  {slots:3,rules:[['shape','latin2',0],['fill','latin',1],['shape','latin',2],['size','col',1]]},
+  {overlay:'xor',k:3},
+  {slots:3,rules:[['shape','latin',0],['fill','latin2',0],['shape','latin2',1],['fill','col',1],['size','row',2]]},
 ];
 const RULE_TEXT={row:'cambia per riga',col:'cambia per colonna',latin:'quadrato latino (ogni valore una volta per riga e colonna)',latin2:'quadrato latino inverso'};
 const ATTR_TEXT={shape:'forma',fill:'riempimento',size:'dimensione',rot:'rotazione',count:'numero'};
@@ -314,6 +335,27 @@ const NUM_RAW=[
   [[4,9,25,49,121],169,'quadrati dei numeri primi'],
   [[1,2,6,24,120],720,'fattoriali: ×2, ×3, ×4…'],
   [[2,12,36,80,150],252,'n² × (n+1)'],
+  // item 21-40
+  [[7,10,13,16],19,'+3'],
+  [[64,32,16,8],4,'÷2'],
+  [[1,3,6,10,15],21,'differenze crescenti: +2, +3, +4…'],
+  [[100,81,64,49,36],25,'quadrati decrescenti'],
+  [[9,7,10,8,11,9],12,'alternanza −2, +3'],
+  [[4,12,36,108],324,'×3'],
+  [[2,5,10,17,26],37,'n² + 1'],
+  [[1,2,4,7,11,16],22,'differenze crescenti: +1, +2, +3…'],
+  [[5,6,8,11,15,20],26,'differenze crescenti: +1, +2, +3…'],
+  [[3,7,15,31,63],127,'×2 +1'],
+  [[6,11,21,41,81],161,'×2 −1'],
+  [[8,5,10,7,14,11],22,'alternanza −3 e ×2'],
+  [[1,4,10,22,46],94,'×2 +2'],
+  [[16,8,24,12,36,18],54,'alternanza ÷2 e ×3'],
+  [[1,10,11,21,32,53],85,'somma dei due precedenti'],
+  [[2,4,12,48,240],1440,'×2, ×3, ×4, ×5, ×6'],
+  [[1,2,5,14,41],122,'×3 −1'],
+  [[2,9,28,65,126],217,'n³ + 1'],
+  [[1,5,14,30,55],91,'differenze: +4, +9, +16, +25, +36 (quadrati)'],
+  [[2,3,6,18,108],1944,'prodotto dei due precedenti'],
 ];
 function numItems(){
   const rng=mulberry32(2024);
@@ -347,6 +389,27 @@ const VERB_RAW=[
   ['Mitigare','Attenuare','Esacerbare',['Aggravare','Alleviare','Ignorare','Risolvere','Moderare'],'sinonimi'],
   ['Introduzione','Saggio','Ouverture',['Opera','Concerto','Coro','Teatro','Orchestra'],'parte iniziale e intero'],
   ['Lapidario','Prolisso','Ermetico',['Esplicito','Oscuro','Chiuso','Breve','Poetico'],'contrari (lessico ricercato)'],
+  // item 21-40
+  ['Notte','Buio','Giorno',['Luce','Sole','Mattina','Caldo','Cielo'],'momento e sua condizione'],
+  ['Gallina','Uovo','Ape',['Miele','Fiore','Alveare','Pungiglione','Ronzio'],'animale e suo prodotto'],
+  ['Pittore','Quadro','Scrittore',['Libro','Penna','Biblioteca','Lettore','Pagina'],'autore e opera'],
+  ['Penna','Scrivere','Forbici',['Tagliare','Carta','Cucire','Affilare','Aprire'],'strumento e funzione'],
+  ['Orologio','Tempo','Bilancia',['Peso','Cucina','Equilibrio','Misura','Chilo'],'strumento e grandezza misurata'],
+  ['Cuoco','Cucina','Farmacista',['Farmacia','Medicina','Ospedale','Laboratorio','Ricetta'],'professionista e suo luogo di lavoro'],
+  ['Lupo','Branco','Ape',['Sciame','Alveare','Nido','Miele','Stormo'],'individuo e gruppo'],
+  ['Seme','Pianta','Uovo',['Pulcino','Gallina','Nido','Guscio','Frittata'],'origine e sviluppo'],
+  ['Parola','Frase','Nota',['Melodia','Suono','Strumento','Pentagramma','Silenzio'],'elemento e insieme'],
+  ['Sorriso','Gioia','Lacrime',['Tristezza','Occhi','Fazzoletto','Rabbia','Sorpresa'],'segno ed emozione'],
+  ['Timido','Audace','Modesto',['Vanitoso','Gentile','Povero','Umile','Famoso'],'contrari'],
+  ['Geologo','Rocce','Botanico',['Piante','Animali','Insetti','Stelle','Fossili'],'studioso e oggetto di studio'],
+  ['Vocabolario','Parole','Atlante',['Mappe','Viaggi','Paesi','Geografia','Strade'],'raccolta e suo contenuto'],
+  ['Ipotesi','Verifica','Accusa',['Processo','Avvocato','Colpa','Prigione','Legge'],'affermazione e sua prova'],
+  ['Prudente','Avventato','Frugale',['Spendaccione','Ricco','Generoso','Povero','Avaro'],'contrari'],
+  ['Benevolo','Malevolo','Ottimista',['Pessimista','Triste','Realista','Cinico','Infelice'],'contrari'],
+  ['Chirurgo','Precisione','Diplomatico',['Tatto','Potere','Viaggio','Lingua','Trattato'],'professionista e qualità richiesta'],
+  ['Carta','Cellulosa','Vetro',['Silice','Cristallo','Finestra','Ferro','Argilla'],'materiale e suo componente'],
+  ['Eufemismo','Attenuare','Iperbole',['Esagerare','Confrontare','Ripetere','Negare','Abbreviare'],'figura retorica e sua funzione'],
+  ['Effimero','Perenne','Fallace',['Veritiero','Falso','Fragile','Rapido','Dubbio'],'contrari (lessico ricercato)'],
 ];
 function verbItems(){
   const rng=mulberry32(99);
@@ -354,17 +417,19 @@ function verbItems(){
 }
 
 // ========================= item: memoria di lavoro =========================
-const MEM_CFG=[3,3,4,4,5,5,6,6,7,7,8,8].map(len=>({type:'back',len})).concat([4,4,5,5,6,6,7,7].map(len=>({type:'ln',len})));
+const MEM_CFG=[3,3,4,4,5,5,6,6,7,7,8,8].map(len=>({type:'back',len})).concat([4,4,5,5,6,6,7,7].map(len=>({type:'ln',len})))
+  .concat([3,3,4,4,5,5,6,6,7,7,8,8,9,9].map(len=>({type:'fwd',len})),[9,9].map(len=>({type:'back',len})),[8,8,9,9].map(len=>({type:'ln',len})));
 const MEM_LETTERS='BCDFGHKLMNPRSTVZ';
 function genMemSeq(cfg){
   const seq=[];
-  if(cfg.type==='back'){let prev=-1;while(seq.length<cfg.len){const d=Math.floor(Math.random()*9)+1;if(d===prev)continue;seq.push(String(d));prev=d}}
+  if(cfg.type==='back'||cfg.type==='fwd'){let prev=-1;while(seq.length<cfg.len){const d=Math.floor(Math.random()*9)+1;if(d===prev)continue;seq.push(String(d));prev=d}}
   else{const nL=Math.floor(cfg.len/2),nD=cfg.len-nL;const ls=shuffled(MEM_LETTERS.split(''),Math.random).slice(0,nL);const ds=shuffled('123456789'.split(''),Math.random).slice(0,nD);
     let mix;do{mix=shuffled([...ls,...ds],Math.random)}while(mix.join('')===memAnswer(cfg,mix));seq.push(...mix)}
   return seq;
 }
 function memAnswer(cfg,seq){
   if(cfg.type==='back')return seq.slice().reverse().join('');
+  if(cfg.type==='fwd')return seq.join('');
   const ds=seq.filter(s=>/\d/.test(s)).sort(),ls=seq.filter(s=>/[A-Z]/.test(s)).sort();return[...ds,...ls].join('');
 }
 
@@ -424,12 +489,34 @@ const ROT_RAW=[
   {t:[[0,0],[1,0],[1,1],[1,2],[2,2],[3,2],[3,1],[3,3]],m:[3,1]},
   {t:[[0,0],[0,1],[1,1],[2,1],[2,2],[3,2],[3,3],[4,3],[4,2]],m:[2,1]},
 ];
+// Polimini casuali (seme fisso), chirali e non congruenti alle figure precedenti.
+function growShape(n,rng){
+  const cells=[[0,0]];const has=new Set(['0,0']);
+  while(cells.length<n){const b=pick(cells,rng);const d=pick([[1,0],[-1,0],[0,1],[0,-1]],rng);const c=[b[0]+d[0],b[1]+d[1]];const k=c.join(',');if(has.has(k))continue;has.add(k);cells.push(c)}
+  return norm(cells);
+}
+function extraRotRaw(){
+  const rng=mulberry32(9001);const out=[];const seen=new Set();
+  ROT_RAW.forEach(it=>allSym(it.t).forEach(c=>seen.add(key(c))));
+  const sizes=[4,5,6,6,6,6,7,7,7,7,8,8,8,8,9,9,9,9,10,10];
+  sizes.forEach((n,i)=>{
+    for(let t=0;t<3000;t++){
+      const c=growShape(t<1500?n:n+1,rng);const syms=allSym(c);const ks=syms.map(key); // oltre 1500 tentativi passa alla taglia successiva
+      if(ks.slice(0,4).some(k=>ks.slice(4).includes(k)))continue; // non chirale
+      if(ks.some(k=>seen.has(k)))continue; // già usata
+      ks.forEach(k=>seen.add(k));
+      out.push({t:c,m:i>=10?pick(c,rng):null});break;
+    }
+  });
+  return out;
+}
 function rotItems(){
   const rng=mulberry32(4242);
-  return ROT_RAW.map((it,i)=>{
+  return ROT_RAW.concat(extraRotRaw()).map((it,i)=>{
     const mx=Math.min(...it.t.map(c=>c[0])),my=Math.min(...it.t.map(c=>c[1]));
     const f={cells:norm(it.t),mark:it.m?[it.m[0]-mx,it.m[1]-my]:null};
     const ks=[1+Math.floor(rng()*3),1+Math.floor(rng()*4)%4,1+Math.floor(rng()*4)%4,Math.floor(rng()*4)];
+    if(fkey(rotF(f,ks[0]))===fkey(f))ks[0]=[1,2,3].find(k=>fkey(rotF(f,k))!==fkey(f))||1; // figure con simmetria di 180°
     const mir=tf(f,'m');let m2=rotF(mir,ks[2]);if(fkey(m2)===fkey(rotF(mir,ks[1])))m2=rotF(mir,(ks[2]+1)%4);
     const diff=differentShape(f,rng);
     const opts=[{f:rotF(f,ks[0]),kind:'rot'},{f:rotF(mir,ks[1]),kind:'mirror'},{f:m2,kind:'mirror'},{f:rotF(diff,ks[3]),kind:'diff'}];
@@ -450,22 +537,27 @@ const FULL_SECTIONS=[
    intro:'In ogni item la prima coppia di parole ha una certa relazione. Scegli la parola che forma, con la terza, la stessa relazione.',
    tips:['Esempio: Dito : Mano = Petalo : Fiore (parte e intero).']},
   {id:'mem',name:'Memoria di lavoro',short:'Memoria',dominio:'memoria',time:12*60,kind:'memory',items:MEM_CFG.map(c=>Object.assign({},c)),
-   intro:'Ti verranno mostrati dei simboli uno alla volta. Nei primi item dovrai riscrivere le cifre in ordine inverso (dall\'ultima alla prima). Negli ultimi item vedrai cifre e lettere mescolate: riscrivi prima le cifre in ordine crescente, poi le lettere in ordine alfabetico.',
-   tips:['Esempio inverso: vedi 4 – 1 – 7, scrivi 714.','Esempio cifre e lettere: vedi M – 3 – B – 8, scrivi 38BM.','Due prove per ogni lunghezza, da 3 a 8 simboli. Non usare carta e penna: la sezione misura la memoria, non la scrittura.']},
+   intro:'Ti verranno mostrati dei simboli uno alla volta. Ogni item dice prima cosa dovrai fare: riscrivere le cifre nello stesso ordine, riscriverle in ordine inverso (dall\'ultima alla prima), oppure, con cifre e lettere mescolate, scrivere prima le cifre in ordine crescente e poi le lettere in ordine alfabetico.',
+   tips:['Esempio inverso: vedi 4 – 1 – 7, scrivi 714.','Esempio cifre e lettere: vedi M – 3 – B – 8, scrivi 38BM.','Due prove per ogni lunghezza. Non usare carta e penna: la sezione misura la memoria, non la scrittura.']},
   {id:'rot',name:'Rotazione spaziale',short:'Rotazione',dominio:'spaziale',time:8*60,kind:'rotation',items:rotItems(),
    intro:'Ti viene mostrata una figura. Tra le quattro alternative, una sola è la stessa figura ruotata sul piano. Le altre sono riflesse allo specchio o sono figure diverse.',
    tips:['Una figura riflessa non è una rotazione valida, anche se ruotata.']},
 ];
 FULL_SECTIONS.forEach(s=>s.items.forEach((it,i)=>{it.origIdx=i}));
-// Forma breve: 8 item per dominio presi lungo tutta la scala di difficoltà (stessi id della forma completa).
+// Forme: breve (8 item per dominio lungo la scala), completa (item 1-20), estesa (item 1-40 intercalati per difficoltà).
 const SHORT_IDX=[0,3,6,9,12,15,17,19];
-const SHORT_TIME={mat:7*60,num:5*60,verb:3*60,mem:5*60,rot:3*60};
+const FULL_IDX=Array.from({length:20},(_,i)=>i);
+const EXT_IDX=[];for(let i=0;i<20;i++)EXT_IDX.push(i,20+i);
+const FORM_IDX={short:SHORT_IDX,full:FULL_IDX,ext:EXT_IDX};
+const FORM_TIME={short:{mat:7*60,num:5*60,verb:3*60,mem:5*60,rot:3*60},full:{mat:18*60,num:12*60,verb:6*60,mem:12*60,rot:8*60},ext:{mat:36*60,num:24*60,verb:12*60,mem:24*60,rot:16*60}};
+const formMin=(f)=>Math.round(Object.values(FORM_TIME[f]).reduce((a,b)=>a+b,0)/60);
+const formCi=(f)=>Math.round(1.96*15*Math.sqrt(1-NORMS[f].rel));
 // Parametri provvisori di conversione (non derivati da un campione normativo): da sostituire con le norme empiriche.
-const NORMS={full:{mean:70,sd:12,rel:0.90,label:'Test completo'},short:{mean:28,sd:5,rel:0.80,label:'Stima rapida'}};
+const NORMS={short:{mean:28,sd:5,rel:0.80,label:'Stima rapida',forma:'breve'},full:{mean:70,sd:12,rel:0.90,label:'Test completo',forma:'completa'},ext:{mean:140,sd:22,rel:0.95,label:'Test esteso',forma:'estesa'}};
 let SECTIONS,TOTAL_ITEMS,TOTAL_MIN,NORM,FORM='full';
 function applyForm(form){
-  FORM=form==='short'?'short':'full';
-  SECTIONS=FULL_SECTIONS.map(s=>Object.assign({},s,{items:FORM==='short'?SHORT_IDX.map(i=>s.items[i]):s.items,time:FORM==='short'?SHORT_TIME[s.id]:s.time}));
+  FORM=FORM_IDX[form]?form:'full';
+  SECTIONS=FULL_SECTIONS.map(s=>Object.assign({},s,{items:FORM_IDX[FORM].map(i=>s.items[i]),time:FORM_TIME[FORM][s.id]}));
   TOTAL_ITEMS=SECTIONS.reduce((n,s)=>n+s.items.length,0);
   TOTAL_MIN=Math.round(SECTIONS.reduce((n,s)=>n+s.time,0)/60);
   NORM=NORMS[FORM];
@@ -473,7 +565,7 @@ function applyForm(form){
 applyForm('full');
 const ITEM_PREFIX={mat:'mat',num:'ser',verb:'ana',mem:'mem',rot:'spa'};
 const itemId=(sec,i)=>`${ITEM_PREFIX[sec.id]}_${String(sec.items[i].origIdx+1).padStart(2,'0')}`;
-window.__qi={get SECTIONS(){return SECTIONS},applyForm,memAnswer,allSym,symsF,fkey,key,get state(){return state},set state(v){state=v},render:()=>render()};
+window.__qi={get SECTIONS(){return SECTIONS},FULL_SECTIONS,applyForm,memAnswer,allSym,symsF,fkey,key,get state(){return state},set state(v){state=v},render:()=>render()};
 
 // ========================= stato =========================
 let state=null;
@@ -550,7 +642,7 @@ function saveLocalResult(){
     const R=computeResults();const domini={};
     R.per.forEach(p=>{domini[p.sec.dominio]=Math.round(100*p.correct/p.n)});
     const lista=JSON.parse(localStorage.getItem('testqi.risultati')||'[]');
-    lista.push({data:new Date(state.finishedAt).toISOString(),forma:FORM==='short'?'breve':'completa',versione:QI_VERSION,qi:R.iq,lo:R.lo,hi:R.hi,pct:R.pct,grezzo:R.raw,totale:TOTAL_ITEMS,domini});
+    lista.push({data:new Date(state.finishedAt).toISOString(),forma:NORM.forma,versione:QI_VERSION,qi:R.iq,lo:R.lo,hi:R.hi,pct:R.pct,grezzo:R.raw,totale:TOTAL_ITEMS,domini});
     localStorage.setItem('testqi.risultati',JSON.stringify(lista.slice(-60)));
   }catch(e){}
 }
@@ -566,7 +658,7 @@ function buildRecord(){
   });
   return{schema:1,test_version:QI_VERSION,pid:null,sessione:null,giorni_dalla_precedente:null,iniziato:new Date(state.startedAt).toISOString(),concluso:new Date(state.finishedAt).toISOString(),
     agente:navigator.userAgent||null,schermo:screen?screen.width+'x'+screen.height:null,lingua_browser:navigator.language||null,consenso:state.consent,
-    item:items,punteggio_grezzo:R.raw,qi_stimato:R.iq,demo:Object.assign({forma:FORM==='short'?'breve':'completa'},state.demo||{}),forma:FORM==='short'?'breve':'completa',nascosto:state.hidden,sid:state.sid};
+    item:items,punteggio_grezzo:R.raw,qi_stimato:R.iq,demo:Object.assign({forma:NORM.forma},state.demo||{}),forma:NORM.forma,nascosto:state.hidden,sid:state.sid};
 }
 async function submitRecord(){
   const rec=buildRecord();state.sent='pending';
@@ -660,17 +752,18 @@ function showCopyBox(txt){let ta=$('#copyBox');if(!ta){ta=document.createElement
 function rIntro(){
   return`
   <div class="stack">
-    <div class="eyebrow">Strumento di autovalutazione · 5 domini · 100 o 40 item</div>
+    <div class="eyebrow">Strumento di autovalutazione · 5 domini · 40, 100 o 200 item</div>
     <h1>Test QI Multidominio</h1>
     <p class="lede">Un test di ragionamento a tempo che copre cinque aree cognitive e restituisce un punteggio sulla scala del QI (media 100, deviazione standard 15) con intervallo di confidenza.</p>
   </div>
   <div class="domains">
-    ${FULL_SECTIONS.map(s=>`<div class="domain"><b>${esc(s.name)}</b><span>${s.items.length} item · ${Math.round(s.time/60)} min (breve: ${SHORT_IDX.length} item · ${Math.round(SHORT_TIME[s.id]/60)} min)</span></div>`).join('')}
+    ${FULL_SECTIONS.map(s=>`<div class="domain"><b>${esc(s.name)}</b><span>${SHORT_IDX.length} / ${FULL_IDX.length} / ${EXT_IDX.length} item · ${Math.round(FORM_TIME.short[s.id]/60)} / ${Math.round(FORM_TIME.full[s.id]/60)} / ${Math.round(FORM_TIME.ext[s.id]/60)} min</span></div>`).join('')}
   </div>
   <div class="card stack">
-    <h2>Due versioni</h2>
-    <p><strong>Test completo</strong>: 100 item, fino a ${Math.round(FULL_SECTIONS.reduce((n,s)=>n+s.time,0)/60)} minuti. È la versione che misura meglio: intervallo di confidenza ±${Math.round(1.96*15*Math.sqrt(1-NORMS.full.rel))} punti.</p>
-    <p><strong>Stima rapida</strong>: 40 item (8 per dominio, scelti lungo tutta la scala di difficoltà), fino a ${Math.round(Object.values(SHORT_TIME).reduce((a,b)=>a+b,0)/60)} minuti. Dà solo un'indicazione di massima: intervallo di confidenza ±${Math.round(1.96*15*Math.sqrt(1-NORMS.short.rel))} punti.</p>
+    <h2>Tre versioni</h2>
+    <p><strong>Stima rapida</strong>: 40 item (8 per dominio, scelti lungo tutta la scala di difficoltà), fino a ${formMin('short')} minuti. Dà solo un'indicazione di massima: intervallo di confidenza ±${formCi('short')} punti.</p>
+    <p><strong>Test completo</strong>: 100 item, fino a ${formMin('full')} minuti (di solito 35–45). Buon equilibrio tra durata e precisione: intervallo di confidenza ±${formCi('full')} punti.</p>
+    <p><strong>Test esteso</strong>: 200 item (40 per dominio), fino a ${formMin('ext')} minuti, cioè quasi due ore: prevedi una sessione intera, con le pause tra le sezioni. È la versione più precisa: intervallo di confidenza ±${formCi('ext')} punti.</p>
   </div>
   <div class="card stack">
     <h2>Prima di iniziare</h2>
@@ -686,7 +779,7 @@ function rIntro(){
     <p>Il test è in fase di taratura: alla fine, le tue risposte per item e i tempi vengono salvati <strong>in forma anonima</strong> (nessun nome, e-mail o identificativo) per stimare la difficoltà degli item e costruire norme reali. Puoi disattivarlo.</p>
     <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="consent" ${state.consent===false?'':'checked'} style="margin-top:4px"> <span>Acconsento al salvataggio anonimo delle mie risposte per la taratura.</span></label>
   </div>
-  <div class="actions" id="startBtns"><button class="btn ${location.hash==='#breve'?'':'primary'}" data-act="start" data-form="full">Inizia il test completo (100 item)</button><button class="btn ${location.hash==='#breve'?'primary':''}" data-act="start" data-form="short">Stima rapida (40 item)</button></div>`;
+  <div class="actions" id="startBtns"><button class="btn ${location.hash==='#breve'?'primary':''}" data-act="start" data-form="short">Stima rapida (40 item, ~${formMin('short')} min)</button><button class="btn ${location.hash==='#breve'||location.hash==='#esteso'?'':'primary'}" data-act="start" data-form="full">Test completo (100 item, ~${formMin('full')} min)</button><button class="btn ${location.hash==='#esteso'?'primary':''}" data-act="start" data-form="ext">Test esteso (200 item, ~${formMin('ext')} min)</button></div>`;
 }
 
 function rSection(){
@@ -747,13 +840,13 @@ function rItem(){
   }
   // memoria
   if(!state.mem){state.mem={seq:genMemSeq(it),phase:'show',pos:-1}}
-  const instr=it.type==='back'?'Memorizza le cifre: dovrai riscriverle in ordine inverso.':'Memorizza i simboli: dovrai scrivere prima le cifre in ordine crescente, poi le lettere in ordine alfabetico.';
+  const instr=it.type==='back'?'Memorizza le cifre: dovrai riscriverle in ordine inverso.':it.type==='fwd'?'Memorizza le cifre: dovrai riscriverle nello stesso ordine.':'Memorizza i simboli: dovrai scrivere prima le cifre in ordine crescente, poi le lettere in ordine alfabetico.';
   if(state.mem.phase==='show'){
     return`${head}<p class="q">${instr}<span class="small">${it.len} simboli</span></p><div class="memshow" id="memShow"><span class="small">Pronto…</span></div>`;
   }
-  const label=it.type==='back'?'Scrivi le cifre in ordine inverso':'Scrivi prima le cifre in ordine crescente, poi le lettere in ordine alfabetico';
+  const label=it.type==='back'?'Scrivi le cifre in ordine inverso':it.type==='fwd'?'Scrivi le cifre nello stesso ordine':'Scrivi prima le cifre in ordine crescente, poi le lettere in ordine alfabetico';
   return`${head}<p class="q">${instr}</p>
-    <div class="field"><label for="memInput">${label}</label><input id="memInput" type="text" inputmode="${it.type==='back'?'numeric':'text'}" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="${it.len}" placeholder="${'·'.repeat(it.len)}"><span class="hint">${it.len} caratteri, senza spazi. Invio per confermare.</span></div>${nav()}`;
+    <div class="field"><label for="memInput">${label}</label><input id="memInput" type="text" inputmode="${it.type==='ln'?'text':'numeric'}" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="${it.len}" placeholder="${'·'.repeat(it.len)}"><span class="hint">${it.len} caratteri, senza spazi. Invio per confermare.</span></div>${nav()}`;
 }
 function runMemShow(){
   clearTimeout(memTimer);
@@ -822,7 +915,7 @@ function rResults(){
   <div class="card stack">
     <h2>Profilo per dominio</h2>
     <div class="bars">${R.per.map(p=>`<div class="barrow"><span class="name">${esc(p.sec.name)}</span><span class="track"><i style="width:${p.correct/p.n*100}%"></i></span><span class="val">${p.correct}/${p.n}</span></div>`).join('')}</div>
-    <p class="hint">Punteggio grezzo totale: <b class="mono">${R.raw}/${TOTAL_ITEMS}</b>. Con ${SECTIONS[0].items.length} item per dominio, le differenze tra domini sono indicative: uno scarto di ${FORM==='short'?'1–2':'2–3'} punti rientra nel margine di errore.</p>
+    <p class="hint">Punteggio grezzo totale: <b class="mono">${R.raw}/${TOTAL_ITEMS}</b>. Con ${SECTIONS[0].items.length} item per dominio, le differenze tra domini sono indicative: uno scarto di ${FORM==='short'?'1–2':FORM==='ext'?'3–4':'2–3'} punti rientra nel margine di errore.</p>
   </div>
   <div class="card stack">
     <h2>Attendibilità di questa somministrazione</h2>
