@@ -24,6 +24,7 @@
     { "name": "Fai il test", "short_name": "Test", "url": "/test.html?da=app", "icons": [{ "src": "/app/icona-192.png", "sizes": "192x192" }] },
     { "name": "Allenati", "short_name": "Allenamento", "url": "/sfide/allenamento.html?da=app", "icons": [{ "src": "/app/icona-192.png", "sizes": "192x192" }] },
     { "name": "Sfida un amico", "short_name": "Sfida", "url": "/sfide/?da=app", "icons": [{ "src": "/app/icona-192.png", "sizes": "192x192" }] },
-    { "name": "Modalità storia", "short_name": "Storia", "url": "/storia/?da=app", "icons": [{ "src": "/app/icona-192.png", "sizes": "192x192" }] }
+    { "name": "Modalità storia", "short_name": "Storia", "url": "/storia/?da=app", "icons": [{ "src": "/app/icona-192.png", "sizes": "192x192" }] },
+    { "name": "Parole crociate", "short_name": "Parole", "url": "/parole/?da=app", "icons": [{ "src": "/app/icona-192.png", "sizes": "192x192" }] }
   ]
 }

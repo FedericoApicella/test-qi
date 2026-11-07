@@ -62,10 +62,13 @@
     <a class="tile" href="sfide/"><span class="pill">2 giocatori</span><span class="ic">⚔️</span><b>Sfida un amico</b><span>Stessi quesiti, stesso tempo, punteggi in diretta. Crea una stanza e manda il codice.</span><span class="cta">Crea una stanza →</span></a>
     <a class="tile" href="sfide/allenamento.html#gioca"><span class="pill">6 giochi</span><span class="ic">🎮</span><b>Gioca</b><span>Partite da un minuto: sequenza luminosa, vero o falso, trova la coppia, sprint e altri.</span><span class="cta">Gioca →</span></a>
     <a class="tile" href="sfide/allenamento.html#allenati"><span class="pill">5 aree</span><span class="ic">🏋️</span><b>Allenati sul serio</b><span>N-back, rotazione mentale e percorsi adattivi per area: progressi misurati nel tempo, livelli e medaglie.</span><span class="cta">Allenati →</span></a>
+    <a class="tile" href="parole/" id="cardParole"><span class="pill">infiniti</span><span class="ic">🔤</span><b>Parole crociate</b><span>Parola nascosta stile CodyCross e cruciverba classici in italiano: livelli senza fine e sfida del giorno.</span><span class="cta">Gioca →</span></a>
     <a class="tile" href="giochi/" id="cardGiochi"><span class="pill">A livelli</span><span class="ic">🧩</span><b>Sudoku, Mahjong e Queens</b><span>Livelli infiniti che salgono piano, tetto di difficoltà a scelta e nuove grafiche da sbloccare giocando.</span><span class="cta">Gioca →</span></a>
     <a class="tile" href="storia/" id="cardStoria"><span class="ic">🗺️</span><b>Modalità storia</b><span>Livelli infiniti, mondi da sbloccare, boss e stelle da conquistare.</span><span class="cta">Scopri →</span></a>
   </div>
 </section>
+
+<section class="card stack" id="abilita"><div class="sec-head"><h2>Le tue <span class="grad">abilità di gioco</span></h2><span class="hint">crescono con giochi, storia, allenamento e parole</span></div><div id="abilitaBox"></div></section>
 
 <section class="card stack" id="profilo">
   <div class="sec-head"><h2>Il tuo <span class="grad">profilo</span></h2><span class="hint" id="profiloNota"></span></div>
@@ -79,6 +82,7 @@
 <!-- Mini accesso facoltativo (nome utente e password): salva risultati e progressi tra dispositivi. -->
 <script src="js/account.js"></script>
 <script src="sfide/effetti.js"></script>
+<script src="js/abilita.js"></script>
 <!-- Menu ⚙️ in alto a destra: accesso, suoni, installa l'app. -->
 <script src="js/menu.js"></script>
 <script>
@@ -123,6 +127,7 @@ if(!testVals&&!trainVals){
   $('#profiloNota').textContent='Salvato su questo dispositivo';
   $('#shareBtn').addEventListener('click',()=>{const ta=$('#shareTxt');const b=$('#shareBtn');const done=()=>{b.textContent='Copiato!'};if(navigator.share){navigator.share({text:ta.value}).catch(()=>{})}else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(done).catch(()=>{ta.focus();ta.select()})}else{ta.focus();ta.select()}});
 }
+if(window.Abilita){$('#abilitaBox').innerHTML=window.Abilita.widgetHtml('');window.addEventListener('testqi:account',()=>{$('#abilitaBox').innerHTML=window.Abilita.widgetHtml('')})}
 })();
 </script>
 <!-- App installabile (PWA): service worker, banner "Installa l'app", avviso aggiornamenti. -->
