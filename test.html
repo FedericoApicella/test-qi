@@ -6,6 +6,8 @@
 <!-- Taratura: le risposte anonime (solo con consenso) vanno al foglio Google tramite js/raccolta.js. -->
 <script>window.RACCOLTA_ENDPOINT="https://script.google.com/macros/s/AKfycbzgsmL26nxf3wzvzADgJ4ulpLXbfru19l_NfYDS-NGeXM5lYN4QLITrEe-sNHm23iBi/exec";</script>
 <script src="js/raccolta.js"></script>
+<!-- Mini accesso facoltativo (nome utente e password): salva risultati e progressi tra dispositivi. -->
+<script src="js/account.js"></script>
 <title>Test QI Multidominio</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="stile.css">
@@ -530,7 +532,7 @@ function endSection(timedOut){
   if(timedOut)state.timeouts[sec.id]=state.i; // item raggiunto allo scadere
   stopTimer();clearTimeout(memTimer);
   if(state.s+1<SECTIONS.length){state.s++;state.screen='section';state.sel=null;state.mem=null}
-  else{state.screen='demo';state.finishedAt=Date.now()}
+  else{state.screen='demo';state.finishedAt=Date.now();saveLocalResult()}
   render();window.scrollTo({top:0});
 }
 function finishDemo(){
@@ -542,6 +544,16 @@ function finishDemo(){
 }
 
 // ========================= taratura: record anonimo =========================
+// Storico dei risultati nel browser (chiave testqi.risultati, sincronizzata tra dispositivi da js/account.js per chi ha l'account).
+function saveLocalResult(){
+  try{
+    const R=computeResults();const domini={};
+    R.per.forEach(p=>{domini[p.sec.dominio]=Math.round(100*p.correct/p.n)});
+    const lista=JSON.parse(localStorage.getItem('testqi.risultati')||'[]');
+    lista.push({data:new Date(state.finishedAt).toISOString(),forma:FORM==='short'?'breve':'completa',versione:QI_VERSION,qi:R.iq,lo:R.lo,hi:R.hi,pct:R.pct,grezzo:R.raw,totale:TOTAL_ITEMS,domini});
+    localStorage.setItem('testqi.risultati',JSON.stringify(lista.slice(-60)));
+  }catch(e){}
+}
 function buildRecord(){
   const R=computeResults();
   const items=[];
@@ -600,14 +612,6 @@ function computeResults(){
   const sem=15*Math.sqrt(1-NORM.rel);const ci=Math.round(1.96*sem);
   const pct=Math.round(normCdf((iq-100)/15)*100);
   return{per,raw,iq,ci,pct,lo:Math.max(55,iq-ci),hi:Math.min(145,iq+ci)};
-}
-// Profilo per dominio salvato nel browser (letto dalla home): ultimo risultato e storico breve.
-function saveProfile(R){
-  try{const dom={};R.per.forEach(p=>{dom[p.sec.dominio]=Math.round(p.correct/p.n*100)});
-    const rec={data:Date.now(),forma:FORM==='short'?'breve':'completa',versione:QI_VERSION,qi:R.iq,lo:R.lo,hi:R.hi,pct:R.pct,grezzo:R.raw,domini:dom};
-    const hist=JSON.parse(localStorage.getItem('testqi.risultati')||'[]');
-    if(!hist.some(h=>h.data===state.finishedAt))hist.push(Object.assign(rec,{data:state.finishedAt||rec.data}));
-    localStorage.setItem('testqi.risultati',JSON.stringify(hist.slice(-30)))}catch(e){}
 }
 const BANDS=[[130,999,'Molto superiore'],[120,129,'Superiore'],[110,119,'Medio-alto'],[90,109,'Nella media'],[80,89,'Medio-basso'],[70,79,'Basso'],[0,69,'Molto basso']];
 function iqLabel(iq){for(const [lo,hi,name]of BANDS)if(iq>=lo&&iq<=hi)return name;return''}
@@ -803,7 +807,6 @@ function rResults(){
     }).join('');
     return`<h3>${esc(sec.name)}</h3><div class="rev">${rows}</div>`;
   }).join('');
-  saveProfile(R);
   const shareTxt=`Il mio QI stimato è ${R.iq} (${iqLabel(R.iq).toLowerCase()}, ${R.pct}° percentile) con il test di logica multidominio. Profilo: ${R.per.map(p=>`${p.sec.short} ${Math.round(p.correct/p.n*100)}%`).join(', ')}. Provalo anche tu: ${location.origin+location.pathname.replace(/[^/]*$/,'')}`;
   return`
   <div class="stack">
