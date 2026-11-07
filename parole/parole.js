@@ -169,14 +169,14 @@ function crittoType(ch){
   if(S.done)return;const s=curSlot();if(!s)return;
   const n=crittoNumAt(S.cy,S.cx);
   if(S.okNums.has(n)){crittoAdvance(s,1);render();return}
-  if(S.hypMode){S.hyp[n]=ch;crittoAdvance(s,1);render();return}  // ipotesi: a matita, non viene valutata
+  if(S.hypMode){let h=S.hyp[n]||'';if(h.includes(ch))h=h.replace(ch,'');else{h+=ch;if(h.length>3)h=h.slice(-3)}if(h)S.hyp[n]=h;else delete S.hyp[n];render();return}  // ipotesi: fino a 3 lettere a matita per numero, non valutate
   delete S.hyp[n];crittoAssign(n,ch);if(!S.done){crittoAdvance(s,1)}render();
 }
 function crittoBack(){if(S.done)return;const s=curSlot();if(!s)return;const n=crittoNumAt(S.cy,S.cx);
-  if(S.hypMode){if(S.hyp[n])delete S.hyp[n];else{crittoAdvance(s,-1);delete S.hyp[crittoNumAt(S.cy,S.cx)]}render();return}
+  if(S.hypMode){if(S.hyp[n]){const h=S.hyp[n].slice(0,-1);if(h)S.hyp[n]=h;else delete S.hyp[n]}else{crittoAdvance(s,-1);delete S.hyp[crittoNumAt(S.cy,S.cx)]}render();return}
   if(S.map[n]&&!S.okNums.has(n)){delete S.map[n]}else if(S.hyp[n]){delete S.hyp[n]}else{crittoAdvance(s,-1);const m=crittoNumAt(S.cy,S.cx);if(!S.okNums.has(m))delete S.map[m]}render()}
 // ipotesi: conferma tutte (diventano lettere vere e vengono controllate) o cancella tutte
-function crittoHypConfirm(){const ns=Object.keys(S.hyp).map(Number);if(!ns.length)return;ns.forEach(n=>{const ch=S.hyp[n];delete S.hyp[n];if(!S.okNums.has(n)){for(const k in S.map){if(S.map[k]===ch&&+k!==n&&!S.okNums.has(+k))delete S.map[k]}S.map[n]=ch}});S.hypMode=false;crittoCheckAll();render()}
+function crittoHypConfirm(){const ns=Object.keys(S.hyp).map(Number).filter(n=>S.hyp[n].length===1);if(!ns.length){FX.beep('bad');return}ns.forEach(n=>{const ch=S.hyp[n];delete S.hyp[n];if(!S.okNums.has(n)){for(const k in S.map){if(S.map[k]===ch&&+k!==n&&!S.okNums.has(+k))delete S.map[k]}S.map[n]=ch}});S.hypMode=false;crittoCheckAll();render()}
 function crittoHypClear(){S.hyp={};render()}
 function crittoHint(){
   if(S.done)return;let n=crittoNumAt(S.cy,S.cx);
@@ -195,10 +195,11 @@ function renderCritto(){
   let cells='';for(let y=0;y<N;y++)for(let x=0;x<N;x++){const c=z.cells[y][x];if(!c){cells+=`<div class="c b"></div>`;continue}
     const n=S.num[c.ch];const cls=['c','cr'];if(inWord(y,x))cls.push('word');if(n===curN)cls.push('same');if(S.cy===y&&S.cx===x)cls.push('cur');if(S.okNums.has(n))cls.push(S.given.has(n)?'hint':'lock');if(bad[y+','+x])cls.push('bad');
     if(!S.map[n]&&S.hyp[n])cls.push('hyp');
+    if(!S.map[n]&&S.hyp[n]&&S.hyp[n].length>1)cls.push('hyp2');
     cells+=`<div class="${cls.join(' ')}" data-y="${y}" data-x="${x}"><span class="n">${n}</span>${S.map[n]||S.hyp[n]||''}</div>`}
   const key=S.letters.map((ch,i)=>{const n=i+1;const cls=['kn'];if(S.okNums.has(n))cls.push('ok');if(n===curN)cls.push('on');if(!S.map[n]&&S.hyp[n])cls.push('hyp');return`<button class="${cls.join(' ')}" data-num="${n}"><span class="n">${n}</span><b>${S.map[n]||S.hyp[n]||'·'}</b></button>`}).join('');
-  const nHyp=Object.keys(S.hyp).length;
-  const hypBar=`<div class="tools hypbar ${S.hypMode?'on':''}"><button class="btn ${S.hypMode?'primary':''}" data-act="hyp">✏️ Ipotesi ${S.hypMode?'attive':''}</button>${nHyp?`<button class="btn" data-act="hypConfirm">✓ Conferma ${nHyp}</button><button class="btn" data-act="hypClear">✕ Cancella</button>`:''}<span class="hint">${S.hypMode?'Le lettere che scrivi ora sono a matita: non contano come errori.':'Come le note del Sudoku: prova lettere senza rischiare.'}</span></div>`;
+  const nHyp=Object.keys(S.hyp).length,nHyp1=Object.values(S.hyp).filter(h=>h.length===1).length;
+  const hypBar=`<div class="tools hypbar ${S.hypMode?'on':''}"><button class="btn ${S.hypMode?'primary':''}" data-act="hyp">✏️ Ipotesi ${S.hypMode?'attive':''}</button>${nHyp?`<button class="btn" data-act="hypConfirm" ${nHyp1?'':'disabled'}>✓ Conferma ${nHyp1}</button><button class="btn" data-act="hypClear">✕ Cancella</button>`:''}<span class="hint">${S.hypMode?'A matita: fino a 3 lettere per numero, non contano come errori. Ripeti una lettera per toglierla. Si confermano i numeri con una sola lettera.':'Come le note del Sudoku: prova fino a 3 lettere per numero senza rischiare.'}</span></div>`;
   const nOk=Object.keys(S.okSlots).length;
   return`${lvNavHtml('critto')}<div class="grid-wrap"><div class="clue-now" id="clueNow"><span class="dir">${curN}</span><span>${S.okNums.has(curN)?`= <b>${S.map[curN]}</b> (certa)`:S.map[curN]?`= <b>${S.map[curN]}</b> · scrivi un'altra lettera per cambiarla`:'scrivi la lettera che pensi corrisponda a questo numero'}</span><span class="arrows"><button class="btn icon" data-act="prevSlot" aria-label="precedente">‹</button><button class="btn icon" data-act="nextSlot" aria-label="successiva">›</button></span></div>
   <div class="cw cw-cr" style="grid-template-columns:repeat(${N},minmax(0,1fr))">${cells}</div>${hypBar}<p class="hint" style="text-align:center">${nOk}/${z.slots.length} parole · ${S.okNums.size}/${S.letters.length} lettere certe · ogni numero è sempre la stessa lettera</p><div class="keymap">${key}</div><p class="hint">Niente definizioni: parti dalle lettere date, prova le parole che riconosci e il resto si sblocca a catena. Una parola completa e giusta diventa verde e fissa le sue lettere.</p></div>${kbHtml()}`;
