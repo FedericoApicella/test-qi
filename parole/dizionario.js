@@ -1,4 +1,4 @@
-// Dizionario italiano per cruciverba e parole crociate stile CodyCross.
+// Dizionario italiano per cruciverba e parole crociate a parola nascosta.
 // Ogni voce: [PAROLA (senza accenti), definizione, tema, difficoltà 1-3]
 // Scritto a mano per questo sito: nessuna dipendenza esterna, licenza come il resto del repo.
 window.DIZIONARIO=[

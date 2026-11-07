@@ -2,7 +2,7 @@
 .kpi{background:rgba(255,255,255,.16);border-radius:14px;padding:10px 14px;display:grid;gap:2px}
 .kpi b{font-family:var(--font-mono);font-size:1.4rem;line-height:1.1}
 .kpi span{font-size:.8rem;opacity:.9}
-/* Parole crociate: griglia, righe CodyCross e tastiera a schermo */
+/* Parole crociate: griglia, righe della parola nascosta e tastiera a schermo */
 .modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
 .lvnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .lvnav .lv{font-family:var(--font-mono);font-weight:600;font-size:1.1rem;padding:4px 12px;border-radius:999px;background:var(--brand-100);color:var(--brand)}
