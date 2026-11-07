@@ -1,4 +1,4 @@
-// Parole crociate infinite: "Parola nascosta" (stile CodyCross) e cruciverba classici,
+// Parole crociate infinite: "Parola nascosta" e cruciverba classici,
 // generati in italiano dal dizionario del sito con un seme per livello (ogni livello è sempre uguale per tutti).
 (function(){
 'use strict';
@@ -27,7 +27,7 @@ function loadP(){return Object.assign({cody:{max:1,done:{}},cruci:{max:1,done:{}
 let P=loadP();const saveP=()=>FX.save(KEY,P);
 window.addEventListener('testqi:account',()=>{P=loadP();if(!S)render()});
 
-// ---------- generatore "parola nascosta" (CodyCross) ----------
+// ---------- generatore "parola nascosta" ----------
 function buildCody(seed,L){
   const r=rng(seed),d=diffOf(L);
   const hidLen=Math.min(9,4+Math.floor(d*6));
@@ -133,7 +133,7 @@ function startCruci(L){
 }
 function quit(){S=null;document.body.classList.remove('playing');render()}
 
-// ---------- logica Cody ----------
+// ---------- logica parola nascosta ----------
 function codyRow(){return S.rows[S.cur]}
 function codyFirstEmpty(row){for(let i=0;i<row.letters.length;i++)if(!row.letters[i])return i;return -1}
 function codyType(ch){
@@ -290,7 +290,7 @@ function renderHome(){
   return`<section class="hero"><div class="eyebrow">Livelli infiniti · in italiano · senza registrazione</div><h1>Parole crociate</h1><p>Due giochi: la <b>parola nascosta</b> (risolvi le definizioni a tema, le lettere evidenziate formano la parola verticale) e il <b>cruciverba classico</b>. Ogni livello è generato dal nostro dizionario e sale di difficoltà: non finiscono mai.</p><div class="kpis"><div class="kpi"><b>${P.punti}</b><span>punti totali</span></div><div class="kpi"><b>${P.parole}</b><span>parole risolte</span></div><div class="kpi"><b>${stars(P.cody)+stars(P.cruci)}</b><span>stelle</span></div><div class="kpi"><b>${P.best}</b><span>record livello</span></div></div></section>
   <a class="daily" href="#" data-play="daily"><b>📅 Sfida del giorno${dailyDone?' · fatta ✓ '+starsHtml(dailyDone.stars):''}</b><span>Una parola nascosta uguale per tutti, punti doppi. ${dailyDone?'Hai fatto '+dailyDone.pts+' punti: domani ce n\'è una nuova.':'Nuova ogni giorno a mezzanotte.'}</span></a>
   <div class="modes">
-    <div class="tile"><span class="pill">${nDone(P.cody)} livelli</span><span class="ic">🔤</span><b>Parola nascosta</b><span>Stile CodyCross: ogni riga una definizione, la colonna evidenziata nasconde una parola. Indovinala in anticipo per il bonus.</span>${pickLv('cody')}<span class="cta"><button class="btn primary" data-play="cody" data-l="${P.cody.max}">Livello ${P.cody.max} →</button></span></div>
+    <div class="tile"><span class="pill">${nDone(P.cody)} livelli</span><span class="ic">🔤</span><b>Parola nascosta</b><span>Ogni riga una definizione, la colonna evidenziata nasconde una parola. Indovinala in anticipo per il bonus.</span>${pickLv('cody')}<span class="cta"><button class="btn primary" data-play="cody" data-l="${P.cody.max}">Livello ${P.cody.max} →</button></span></div>
     <div class="tile"><span class="pill">${nDone(P.cruci)} livelli</span><span class="ic">▦</span><b>Cruciverba</b><span>Classico, con orizzontali e verticali. La griglia cresce con i livelli: da 7×7 a 13×13.</span>${pickLv('cruci')}<span class="cta"><button class="btn primary" data-play="cruci" data-l="${P.cruci.max}">Livello ${P.cruci.max} →</button></span></div>
   </div>
   <section class="card stack"><h2>Come funziona</h2><ul style="margin:0;padding-left:18px;display:grid;gap:6px"><li>Tocca una riga o una casella e scrivi con la tastiera. Quando una parola è completa viene controllata subito: verde se è giusta, le lettere sbagliate si colorano di rosso.</li><li>Hai <b>${FREE_HINTS} aiuti gratis</b> per livello (rivelano una lettera); poi costano ${HINT_COST} punti. Nessuno resta mai bloccato.</li><li>Tre stelle se finisci senza errori e con al massimo un aiuto. I livelli già fatti si possono rigiocare.</li><li>Ogni livello fa crescere le tue <a href="../abilita/">abilità di gioco</a>: Parole, Creatività, Logica e Memoria.</li></ul></section>
