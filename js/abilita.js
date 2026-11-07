@@ -13,7 +13,7 @@ const SKILLS=[
   {id:'attenzione',nome:'Attenzione',ic:'🎯',desc:'Intrusi, Stroop, conta le forme, boss della storia.'},
   {id:'parole',nome:'Parole',ic:'📚',desc:'Vocabolario, definizioni, analogie verbali.'}
 ];
-const FONTI={parole:{nome:'Parole crociate',url:'parole/',ic:'🔤'},allenamento:{nome:'Allenamento',url:'sfide/allenamento.html',ic:'🏋️'},storia:{nome:'Modalità storia',url:'storia/',ic:'🗺️'},sfide:{nome:'Sfide',url:'sfide/',ic:'⚔️'},test:{nome:'Test del QI',url:'test.html',ic:'🧪'},missioni:{nome:'Missioni',url:'abilita/',ic:'🎁'}};
+const FONTI={giochi:{nome:'Sudoku, Mahjong e Queens',url:'giochi/',ic:'🧩'},parole:{nome:'Parole crociate',url:'parole/',ic:'🔤'},allenamento:{nome:'Allenamento',url:'sfide/allenamento.html',ic:'🏋️'},storia:{nome:'Modalità storia',url:'storia/',ic:'🗺️'},sfide:{nome:'Sfide',url:'sfide/',ic:'⚔️'},test:{nome:'Test del QI',url:'test.html',ic:'🧪'},missioni:{nome:'Missioni',url:'abilita/',ic:'🎁'}};
 const load=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
 const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const pad=(n)=>String(n).padStart(2,'0');
@@ -54,7 +54,8 @@ function registra(fonte,punti,opts){
 const AREA_MAP={mat:{logica:3,attenzione:1},num:{logica:2,velocita:2},verb:{parole:3,creativita:1},mem:{memoria:4},rot:{logica:2,attenzione:2}};
 function contatori(){
   const all=load('testqi.allenamento',null),st=load('testqi.storia',null),sf=load('testqi.sfide',{}),ris=load('testqi.risultati',[]);
-  const c={allen:{},sprint:all?(all.sprintN||0):0,storiaXp:st?(st.xp||0):0,storiaStelle:st?Object.values(st.stars||{}).reduce((a,b)=>a+b,0):0,sfide:Object.values(sf).reduce((n,r)=>n+(r.v||0)+(r.p||0)+(r.x||0),0),test:ris.length};
+  const gi=load('testqi.giochi',null);const giochi={};if(gi)['sudoku','mahjong','queens'].forEach(g=>{giochi[g]=gi[g]&&gi[g].stelle?Object.values(gi[g].stelle).reduce((a,b)=>a+b,0)+Object.keys(gi[g].stelle).length*2:0});
+  const c={giochi,allen:{},sprint:all?(all.sprintN||0):0,storiaXp:st?(st.xp||0):0,storiaStelle:st?Object.values(st.stars||{}).reduce((a,b)=>a+b,0):0,sfide:Object.values(sf).reduce((n,r)=>n+(r.v||0)+(r.p||0)+(r.x||0),0),test:ris.length};
   if(all&&all.aree)for(const a in all.aree)c.allen[a]=all.aree[a].done||0;
   return c;
 }
@@ -70,6 +71,7 @@ function importa(){
   const dx=c.storiaXp-(v.storiaXp||0),dst=c.storiaStelle-(v.storiaStelle||0);
   if(dx>0||dst>0){const u=Math.round(dx/6)+dst*8;tot+=registra('storia',{logica:Math.round(u*.4),attenzione:Math.round(u*.3),velocita:Math.round(u*.2),memoria:Math.round(u*.1)})}
   const df=c.sfide-(v.sfide||0);if(df>0)tot+=registra('sfide',{velocita:12*df,logica:10*df,attenzione:4*df});
+  const GM={sudoku:{logica:4,attenzione:2},mahjong:{attenzione:3,memoria:2,velocita:1},queens:{logica:4,creativita:2}};const gp={};for(const g in c.giochi){const d=c.giochi[g]-(v.giochi&&v.giochi[g]||0);if(d>0)for(const s in GM[g])gp[s]=(gp[s]||0)+d*GM[g][s]}if(Object.keys(gp).length)tot+=registra('giochi',gp);
   const dt=c.test-(v.test||0);if(dt>0)tot+=registra('test',{logica:60*dt,memoria:20*dt,parole:20*dt,attenzione:20*dt});
   P.visti=c;saveP();return tot;
 }

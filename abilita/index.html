@@ -67,7 +67,7 @@ function render(){
   const s=A.stato();
   $('#kpis').innerHTML=`<div class="kpi"><b>${s.totale}</b><span>punteggio medio</span></div><div class="kpi"><b>${s.livello}</b><span>livello giocatore</span></div><div class="kpi"><b>${s.serie}${s.serie?' 🔥':''}</b><span>giorni di fila</span></div><div class="kpi"><b>${s.xp}</b><span>punti totali</span></div>`;
   const pct=Math.min(100,Math.round(100*s.oggi/s.obiettivo));
-  const F=A.FONTI;const fontiMis=['parole','allenamento','storia','sfide'];
+  const F=A.FONTI;const fontiMis=['parole','giochi','allenamento','storia','sfide'];
   const nf=fontiMis.filter(f=>s.fontiOggi[f]>0).length;
   const mis=fontiMis.map(f=>`<a class="mis ${s.fontiOggi[f]?'ok':''}" href="../${F[f].url}"><span class="ic">${F[f].ic}</span><b>${F[f].nome}</b><span class="st">${s.fontiOggi[f]?'✓ +'+s.fontiOggi[f]:'da fare'}</span></a>`).join('');
   $('#oggi').innerHTML=`<div class="two"><div class="stack" style="justify-items:center;text-align:center"><div class="ring" style="--p:${pct}"><span>${pct}%</span></div><div><b>${s.oggi} / ${s.obiettivo} punti</b><br><span class="hint">${pct>=100?'Obiettivo raggiunto! Serie salva. 🔥':'Raggiungi l\'obiettivo per allungare la serie.'}</span></div><div class="hint">Livello ${s.livello}: ${s.xpLivello}/${s.xpProssimo} punti al prossimo</div><div class="lvbar" style="width:100%"><i style="width:${Math.min(100,100*s.xpLivello/s.xpProssimo)}%"></i></div></div>
