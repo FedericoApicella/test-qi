@@ -22,6 +22,8 @@
 .cell.bad{color:var(--bad);border-color:var(--bad)}
 .cell.lock{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
 .cell.hint{color:var(--brand)}
+.cell.gift{color:var(--warn);border-color:var(--warn);background:var(--warn-soft);animation:gift .6s}
+@keyframes gift{0%{transform:scale(.4) rotate(-20deg);opacity:0}60%{transform:scale(1.25)}100%{transform:scale(1)}}
 .crow.ok .cell{background:transparent;border-color:transparent;color:var(--ok)}
 .crow.ok .cell.key{background:var(--ok);color:#fff}
 .hidden-word{display:grid;gap:6px;justify-items:center;padding:14px;border-radius:16px;background:var(--grad);color:#fff;text-align:center;cursor:pointer}

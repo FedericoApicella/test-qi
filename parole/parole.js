@@ -157,10 +157,22 @@ function codyBack(){
 function codyCheck(ri){
   const row=S.rows[ri],z=S.z.rows[ri];
   if(row.letters.join('')===z.w){row.ok=true;row.fixed.fill(true);const pts=Math.max(3,10+z.w.length-3*row.wrong);S.pts+=pts;FX.beep(row.wrong?'ok':'streak');FX.floatText($('#row'+ri),'+'+pts);
-    codyAfterSolve();}
+    codyGift(ri);codyAfterSolve();}
   else{row.wrong++;S.wrong++;for(let i=0;i<z.w.length;i++)row.bad[i]=row.letters[i]!==z.w[i];FX.beep('bad');FX.shake($('#row'+ri));
     // le lettere sbagliate si cancellano da sole dopo un attimo, così si riprova subito
     setTimeout(()=>{if(!S||S.mode!=='cody')return;const rw=S.rows[ri];if(rw.ok)return;for(let i=0;i<rw.letters.length;i++)if(rw.bad[i]&&!rw.fixed[i]){rw.letters[i]='';rw.bad[i]=false}S.pos=codyFirstEmpty(rw);render()},700);}
+}
+// premio: ogni parola indovinata regala qualche lettera nelle righe ancora aperte
+function codyGift(from){
+  const n=S.daily?2:(diffOf(S.L)<.5?2:1);
+  const open=[];S.rows.forEach((r,i)=>{if(r.ok||i===from)return;r.letters.forEach((l,k)=>{if(!r.fixed[k]&&k!==S.z.rows[i].k)open.push([i,k])})});
+  for(let g=0;g<n&&open.length;g++){
+    const [i,k]=open.splice(Math.floor(Math.random()*open.length),1)[0];const r=S.rows[i],z=S.z.rows[i];
+    r.letters[k]=z.w[k];r.fixed[k]=true;r.bad[k]=false;r.gift=r.gift||{};r.gift[k]=true;S.gifts=(S.gifts||0)+1;
+    // togli dalla lista le altre caselle della stessa riga se ora è quasi piena
+    if(r.letters.every(Boolean))codyCheck(i);
+  }
+  if(n&&open.length>=0)S.giftFlash=Date.now();
 }
 function codyAfterSolve(){
   const col=S.z.rows.map((z,i)=>S.rows[i].ok||S.rows[i].fixed[z.k]);
@@ -262,10 +274,10 @@ function renderCody(){
   const hidden=`<div class="hidden-word ${S.guessHidden?'on':''}" id="hidden" data-act="guess"><small>${S.solvedHidden?'Parola nascosta trovata!':'Parola nascosta · tocca per provare a indovinarla subito (bonus)'}</small><div class="cells">${z.hidden.split('').map((ch,i)=>`<span class="cell ${S.guessHidden?(S.hg[i]?'on':''):(col[i]?'on':'')}" style="--cs:${cs}px">${S.guessHidden?(S.hg[i]||''):(col[i]||'')}</span>`).join('')}</div>${S.solvedHidden?`<small>${esc(z.hiddenDef)}</small>`:(S.guessHidden?'<small>Scrivi la parola con la tastiera · tocca di nuovo per annullare</small>':'')}</div>`;
   const rows=z.rows.map((zr,i)=>{const r=S.rows[i];const on=S.cur===i&&!S.guessHidden;
     const cells=[];for(let x=0;x<z.width;x++){const k=x-zr.off;if(k<0||k>=zr.w.length){cells.push(`<span class="cell gap" style="--cs:${cs}px"></span>`);continue}
-      const cls=['cell'];if(k===zr.k)cls.push('key');if(on&&S.pos===k&&!r.ok)cls.push('cur');if(r.bad[k])cls.push('bad');if(r.fixed[k]&&!r.ok)cls.push('hint');
+      const cls=['cell'];if(k===zr.k)cls.push('key');if(on&&S.pos===k&&!r.ok)cls.push('cur');if(r.bad[k])cls.push('bad');if(r.fixed[k]&&!r.ok)cls.push(r.gift&&r.gift[k]?'gift':'hint');
       cells.push(`<span class="${cls.join(' ')}" style="--cs:${cs}px" data-row="${i}" data-k="${k}">${r.letters[k]||''}</span>`)}
     return`<div class="crow ${on?'on':''} ${r.ok?'ok':''}" id="row${i}" data-row="${i}"><div class="def"><span class="n">${i+1}.</span><span>${esc(zr.def)}</span><span class="hint" style="margin-left:auto;white-space:nowrap">${zr.w.length} lettere</span></div><div class="cells">${cells.join('')}</div></div>`}).join('');
-  return`${lvNavHtml('cody')}<div class="card stack"><div class="sec-head"><span class="theme">🏷️ ${TEMI[z.tema]||z.tema}</span><span class="hint">${S.rows.filter(r=>r.ok).length}/${z.rows.length} parole</span></div>${hidden}<div class="cody">${rows}</div></div>${kbHtml()}`;
+  return`${lvNavHtml('cody')}<div class="card stack"><div class="sec-head"><span class="theme">🏷️ ${TEMI[z.tema]||z.tema}</span><span class="hint">${S.rows.filter(r=>r.ok).length}/${z.rows.length} parole${S.giftFlash&&Date.now()-S.giftFlash<2500?' · 🎁 lettere regalo!':''}</span></div>${hidden}<div class="cody">${rows}</div></div>${kbHtml()}`;
 }
 function renderCruci(){
   const z=S.z,N=z.N;const s=curSlot();const dy=s?(s.dir?1:0):0,dx=s?(s.dir?0:1):0;
@@ -280,7 +292,7 @@ function renderCruci(){
 function renderWin(){
   const m=S.mode==='cody'?'cody':'cruci';const next=S.L+1;
   const abil=S.mode==='cody'?'Parole, Creatività e Logica':'Parole, Logica e Memoria';
-  return`<div class="win"><div class="big">${S.stars===3?'🏆':S.stars===2?'🎉':'👏'}</div><h2>${S.daily?'Sfida del giorno completata!':`Livello ${S.L} completato!`}</h2><div style="font-size:1.8rem;color:var(--warn)">${starsHtml(S.stars)}</div><div class="statsrow"><div class="stat"><div class="v">+${S.total}</div><div class="l">punti</div></div><div class="stat"><div class="v">${Math.floor(S.secs/60)}:${String(S.secs%60).padStart(2,'0')}</div><div class="l">tempo</div></div><div class="stat"><div class="v">${S.wrong}</div><div class="l">errori</div></div><div class="stat"><div class="v">${S.hints}</div><div class="l">aiuti</div></div></div>${S.perfect?'<p><b>Perfetto!</b> Nessun errore e nessun aiuto: +25 punti.</p>':''}${S.hiddenEarly?`<p>Hai indovinato la parola nascosta con ${S.hiddenEarly} righe ancora aperte: bonus creatività!</p>`:''}<p class="hint">Abilità di gioco aggiornate: ${abil}. <a href="../abilita/">Vedi il grafico</a></p><div class="actions">${S.daily?`<button class="btn primary" data-act="home">Torna alle parole</button>`:`<button class="btn primary" data-act="next">Livello ${next} →</button><button class="btn" data-act="home">Menu</button>`}</div></div>`;
+  return`<div class="win"><div class="big">${S.stars===3?'🏆':S.stars===2?'🎉':'👏'}</div><h2>${S.daily?'Sfida del giorno completata!':`Livello ${S.L} completato!`}</h2><div style="font-size:1.8rem;color:var(--warn)">${starsHtml(S.stars)}</div><div class="statsrow"><div class="stat"><div class="v">+${S.total}</div><div class="l">punti</div></div><div class="stat"><div class="v">${Math.floor(S.secs/60)}:${String(S.secs%60).padStart(2,'0')}</div><div class="l">tempo</div></div><div class="stat"><div class="v">${S.wrong}</div><div class="l">errori</div></div><div class="stat"><div class="v">${S.hints}</div><div class="l">aiuti</div></div></div>${S.gifts?`<p class="hint">🎁 ${S.gifts} lettere regalo ricevute.</p>`:''}${S.perfect?'<p><b>Perfetto!</b> Nessun errore e nessun aiuto: +25 punti.</p>':''}${S.hiddenEarly?`<p>Hai indovinato la parola nascosta con ${S.hiddenEarly} righe ancora aperte: bonus creatività!</p>`:''}<p class="hint">Abilità di gioco aggiornate: ${abil}. <a href="../abilita/">Vedi il grafico</a></p><div class="actions">${S.daily?`<button class="btn primary" data-act="home">Torna alle parole</button>`:`<button class="btn primary" data-act="next">Livello ${next} →</button><button class="btn" data-act="home">Menu</button>`}</div></div>`;
 }
 function renderHome(){
   const today=AB.dayKey();const dailyDone=P.giorno[today];
@@ -293,7 +305,7 @@ function renderHome(){
     <div class="tile"><span class="pill">${nDone(P.cody)} livelli</span><span class="ic">🔤</span><b>Parola nascosta</b><span>Ogni riga una definizione, la colonna evidenziata nasconde una parola. Indovinala in anticipo per il bonus.</span>${pickLv('cody')}<span class="cta"><button class="btn primary" data-play="cody" data-l="${P.cody.max}">Livello ${P.cody.max} →</button></span></div>
     <div class="tile"><span class="pill">${nDone(P.cruci)} livelli</span><span class="ic">▦</span><b>Cruciverba</b><span>Classico, con orizzontali e verticali. La griglia cresce con i livelli: da 7×7 a 13×13.</span>${pickLv('cruci')}<span class="cta"><button class="btn primary" data-play="cruci" data-l="${P.cruci.max}">Livello ${P.cruci.max} →</button></span></div>
   </div>
-  <section class="card stack"><h2>Come funziona</h2><ul style="margin:0;padding-left:18px;display:grid;gap:6px"><li>Tocca una riga o una casella e scrivi con la tastiera. Quando una parola è completa viene controllata subito: verde se è giusta, le lettere sbagliate si colorano di rosso.</li><li>Hai <b>${FREE_HINTS} aiuti gratis</b> per livello (rivelano una lettera); poi costano ${HINT_COST} punti. Nessuno resta mai bloccato.</li><li>Tre stelle se finisci senza errori e con al massimo un aiuto. I livelli già fatti si possono rigiocare.</li><li>Ogni livello fa crescere le tue <a href="../abilita/">abilità di gioco</a>: Parole, Creatività, Logica e Memoria.</li></ul></section>
+  <section class="card stack"><h2>Come funziona</h2><ul style="margin:0;padding-left:18px;display:grid;gap:6px"><li>Tocca una riga o una casella e scrivi con la tastiera. Quando una parola è completa viene controllata subito: verde se è giusta, le lettere sbagliate si colorano di rosso.</li><li>Nella parola nascosta ogni parola indovinata ti <b>regala una o due lettere</b> 🎁 nelle righe ancora aperte.</li><li>Hai <b>${FREE_HINTS} aiuti gratis</b> per livello (rivelano una lettera); poi costano ${HINT_COST} punti. Nessuno resta mai bloccato.</li><li>Tre stelle se finisci senza errori e con al massimo un aiuto. I livelli già fatti si possono rigiocare.</li><li>Ogni livello fa crescere le tue <a href="../abilita/">abilità di gioco</a>: Parole, Creatività, Logica e Memoria.</li></ul></section>
   <section class="card">${AB.widgetHtml('../')}</section>
   <p class="foot"><a href="../" style="color:var(--muted)">← Torna alla home</a> · dizionario di ${ALL.length} parole scritto per questo sito</p>`;
 }
