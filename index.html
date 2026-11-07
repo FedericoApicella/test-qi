@@ -2,14 +2,687 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Test QI</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- Per la taratura: definire window.QI_SUBMIT_URL (endpoint POST JSON) oppure caricare js/raccolta.js prima di questo file. -->
+<title>Test QI Multidominio</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap">
 <style>
-  body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 4rem auto; padding: 0 1rem; color: #222; }
+/* Layout: una colonna centrata (max 720px); barra di stato sticky con sezione · item · timer; le schermate si alternano nello stesso contenitore. */
+:root{
+  --bg:#f2f5f6; --surface:#ffffff; --fg:#141c23; --muted:#5b6974; --border:#d3dbe0; --border-strong:#aeb9c1;
+  --accent:#0b6e66; --accent-fg:#ffffff; --accent-soft:#d8eeea;
+  --warn:#8a5200; --warn-soft:#fdf0d8; --ok:#1d7a3b; --ok-soft:#dcf2e3; --bad:#b4261e; --bad-soft:#fae0de;
+  --focus:#2563eb;
+  --font-body:'Figtree',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --font-mono:'Spline Sans Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1418; --surface:#161e24; --fg:#e5ebef; --muted:#97a4ad; --border:#2a353d; --border-strong:#46545e;
+    --accent:#3fcabb; --accent-fg:#06211e; --accent-soft:#17403b;
+    --warn:#f2b45c; --warn-soft:#3a2a10; --ok:#63d184; --ok-soft:#153a24; --bad:#f28b82; --bad-soft:#4a1f1b;
+    --focus:#7fb0ff; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1418; --surface:#161e24; --fg:#e5ebef; --muted:#97a4ad; --border:#2a353d; --border-strong:#46545e;
+  --accent:#3fcabb; --accent-fg:#06211e; --accent-soft:#17403b;
+  --warn:#f2b45c; --warn-soft:#3a2a10; --ok:#63d184; --ok-soft:#153a24; --bad:#f28b82; --bad-soft:#4a1f1b;
+  --focus:#7fb0ff; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+h1,h2,h3{text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:clamp(1.7rem,4vw,2.3rem);font-weight:700;letter-spacing:-.01em}
+h2{font-size:1.35rem;font-weight:600}
+h3{font-size:1.05rem;font-weight:600}
+p{margin:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+
+/* status bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--border)}
+.bar-in{max-width:720px;margin:0 auto;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;align-items:center;gap:12px;min-height:52px}
+.bar .sec{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .cnt{color:var(--muted);font-family:var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.bar .timer{margin-left:auto;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:600;padding:4px 10px;border-radius:6px;background:var(--accent-soft);color:var(--fg);white-space:nowrap}
+.bar .timer.low{background:var(--warn-soft);color:var(--warn)}
+.bar .timer.hidden-timer{visibility:hidden}
+.progress{height:3px;background:var(--border)}
+.progress>i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+
+/* page */
+.wrap{max-width:720px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:24px}
+.eyebrow{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.lede{font-size:1.1rem;color:var(--muted);max-width:60ch}
+.stack{display:grid;gap:12px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px}
+.note{background:var(--warn-soft);border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);color:var(--fg);border-radius:10px;padding:14px 16px;font-size:.95rem}
+.note strong{color:var(--warn)}
+.btn{appearance:none;border:1px solid var(--border-strong);background:var(--surface);border-radius:8px;padding:11px 18px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{border-color:var(--fg)}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.actions .spacer{flex:1}
+.domains{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.domain{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:grid;gap:4px}
+.domain b{font-weight:600}
+.domain span{color:var(--muted);font-size:.9rem}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+td,th{text-align:left;padding:8px 6px;border-bottom:1px solid var(--border);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:.85rem;text-transform:uppercase;letter-spacing:.05em}
+td.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;text-align:right}
+
+/* item */
+.q{font-size:1.15rem;font-weight:500}
+.q .small{display:block;color:var(--muted);font-size:.9rem;font-weight:400;margin-top:4px}
+.seq{font-family:var(--font-mono);font-size:clamp(1.4rem,5vw,2rem);font-weight:600;letter-spacing:.04em;display:flex;flex-wrap:wrap;gap:.3em .6em;align-items:baseline}
+.seq .qm{color:var(--accent)}
+.analogy{font-size:clamp(1.3rem,4.5vw,1.8rem);font-weight:600;display:flex;flex-wrap:wrap;gap:.25em .5em;align-items:baseline}
+.analogy .qm{color:var(--accent)}
+.analogy .op{color:var(--muted);font-weight:400}
+.opts{display:grid;gap:10px}
+.opts.text{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.opts.fig{grid-template-columns:repeat(auto-fit,minmax(100px,1fr))}
+.opt{appearance:none;border:2px solid var(--border);background:var(--surface);border-radius:10px;padding:12px 14px;cursor:pointer;display:flex;align-items:center;gap:12px;text-align:left;min-width:0}
+.opt:hover{border-color:var(--border-strong)}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.opt .k{font-family:var(--font-mono);font-size:.8rem;color:var(--muted);flex:none;width:1.4em}
+.opt .v{font-weight:500;min-width:0;overflow-wrap:anywhere}
+.opt.fig{flex-direction:column;align-items:center;gap:6px;padding:10px}
+.opt.fig svg{width:100%;height:auto;max-width:110px;aspect-ratio:1;color:var(--fg)}
+.figbox svg{aspect-ratio:1}
+.example svg{aspect-ratio:1}
+svg{display:block;max-width:100%}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:360px;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px}
+.grid3 .cell{aspect-ratio:1;min-width:0;border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--fg)}
+.grid3 .cell svg{width:92%;height:92%}
+.grid3 .cell.ask{border:2px dashed var(--accent);color:var(--accent);font-family:var(--font-mono);font-size:1.8rem;font-weight:600}
+.figbox{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;display:inline-flex;color:var(--fg)}
+.figbox svg{width:150px;height:150px}
+.memshow{height:160px;display:flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-family:var(--font-mono);font-size:4rem;font-weight:600;letter-spacing:.05em}
+.memshow.small{font-size:1.05rem;color:var(--muted);font-family:var(--font-body);font-weight:400}
+.field{display:grid;gap:6px}
+.field label{font-weight:500}
+.field input{font:inherit;font-family:var(--font-mono);font-size:1.4rem;letter-spacing:.15em;padding:10px 12px;border:2px solid var(--border);border-radius:8px;background:var(--surface);color:var(--fg);width:100%;max-width:360px}
+.field input:focus{border-color:var(--accent);outline:none}
+.hint{color:var(--muted);font-size:.9rem}
+
+/* results */
+.score{display:grid;gap:6px;padding:22px 24px;background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.score .big{font-family:var(--font-mono);font-size:clamp(2.6rem,9vw,4rem);font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.score .ci{color:var(--muted)}
+.score .label{font-weight:600;color:var(--accent)}
+.bars{display:grid;gap:10px}
+.barrow{display:grid;grid-template-columns:minmax(120px,160px) 1fr auto;gap:12px;align-items:center}
+.barrow .name{font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.barrow .track{height:12px;background:var(--border);border-radius:6px;overflow:hidden}
+.barrow .track>i{display:block;height:100%;background:var(--accent);border-radius:6px}
+.barrow .val{font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--muted);font-size:.9rem;white-space:nowrap}
+.flags{display:grid;gap:8px}
+.flag{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:8px;background:var(--warn-soft);font-size:.95rem}
+.flag.ok{background:var(--ok-soft)}
+details{border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+details summary{cursor:pointer;padding:12px 16px;font-weight:600}
+details .body{padding:0 16px 16px;display:grid;gap:12px}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.8rem;font-weight:600}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.skip{background:var(--border);color:var(--muted)}
+.rev{display:grid;gap:8px}
+.revrow{display:grid;grid-template-columns:2.2rem 1fr auto;gap:10px;align-items:center;font-size:.95rem;padding:6px 0;border-bottom:1px solid var(--border)}
+.revrow .n{font-family:var(--font-mono);color:var(--muted)}
+.revrow .d{min-width:0;overflow-wrap:anywhere}
+.revrow svg{width:44px;height:44px;vertical-align:middle;color:var(--fg)}
+.example{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.example .cap{font-size:.85rem;color:var(--muted);text-align:center}
+.example .ex{display:grid;gap:4px;justify-items:center}
+.example svg{width:72px;height:72px;color:var(--fg)}
+@media (max-width:480px){
+  .barrow{grid-template-columns:1fr auto;}
+  .barrow .track{grid-column:1/-1}
+  .grid3{max-width:100%}
+}
+@media (prefers-reduced-motion:reduce){ .progress>i{transition:none} }
 </style>
 </head>
 <body>
-  <h1>Test QI</h1>
-  <p>Il test è in preparazione: la prima versione arriverà a breve con una pull request.</p>
+
+<div class="bar">
+  <div class="bar-in">
+    <div class="sec" id="barSec">Test QI Multidominio</div>
+    <div class="cnt" id="barCnt"></div>
+    <div class="timer mono hidden-timer" id="barTimer">--:--</div>
+  </div>
+  <div class="progress"><i id="barProg"></i></div>
+</div>
+<main class="wrap" id="app" aria-live="polite"></main>
+
+<script>
+(function(){
+'use strict';
+// Taratura: endpoint opzionale (es. Google Apps Script) che riceve un POST JSON anonimo a fine test.
+const QI_VERSION='1.0';
+const QI_SUBMIT_URL=(window.QI_SUBMIT_URL||'');
+// ========================= utilità =========================
+const $=(s)=>document.querySelector(s);
+const esc=(s)=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let uid=0;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shuffled(arr,rng){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+// options[0] è la risposta corretta: mescola e registra l'indice
+function withAnswer(options,rng){const perm=shuffled(options.map((_,i)=>i),rng);return{options:perm.map(i=>options[i]),answer:perm.indexOf(0)}}
+const fmtTime=(s)=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+const LETTERS='ABCDEF';
+
+// ========================= disegno figure =========================
+const SHAPE={
+  circle:(x,y,r)=>`<circle cx="${x}" cy="${y}" r="${r}"/>`,
+  square:(x,y,r)=>`<rect x="${x-r}" y="${y-r}" width="${2*r}" height="${2*r}"/>`,
+  triangle:(x,y,r)=>`<polygon points="${x},${y-r} ${x+r*0.95},${y+r*0.72} ${x-r*0.95},${y+r*0.72}"/>`,
+  diamond:(x,y,r)=>`<polygon points="${x},${y-r} ${x+r},${y} ${x},${y+r} ${x-r},${y}"/>`,
+  arrow:(x,y,r)=>`<polygon points="${x},${y-r} ${x+r*0.85},${y+r*0.7} ${x},${y+r*0.25} ${x-r*0.85},${y+r*0.7}"/>`,
+};
+function drawShape(sh,x,y,r,fill,rot){
+  const p=SHAPE[sh](x,y,r), tr=rot?` transform="rotate(${rot} ${x} ${y})"`:'';
+  const line=`stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"`;
+  if(fill==='full')return`<g${tr} fill="currentColor" ${line}>${p}</g>`;
+  if(fill==='none')return`<g${tr} fill="none" ${line}>${p}</g>`;
+  const id='cl'+(++uid);
+  return`<g${tr}><clipPath id="${id}"><rect x="${x-r-3}" y="${y-r-3}" width="${r+3}" height="${2*r+6}"/></clipPath><g fill="currentColor" clip-path="url(#${id})">${p}</g><g fill="none" ${line}>${p}</g></g>`;
+}
+const SEG={h0:[20,20,80,20],h1:[20,50,80,50],h2:[20,80,80,80],v0:[20,20,20,80],v1:[50,20,50,80],v2:[80,20,80,80],d1:[20,20,80,80],d2:[80,20,20,80]};
+const POS={1:[[50,50,26]],2:[[30,50,17],[70,50,17]],3:[[50,27,14],[28,71,14],[72,71,14]],4:[[30,30,15],[70,30,15],[30,70,15],[70,70,15]]};
+function cellSVG(spec,attrs){
+  let inner='';
+  if(spec.segs){inner=spec.segs.map(k=>{const s=SEG[k];return`<line x1="${s[0]}" y1="${s[1]}" x2="${s[2]}" y2="${s[3]}" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>`}).join('')}
+  else if(spec.stack){const o=spec.els[0],i=spec.els[1];inner=drawShape(o.shape,50,50,36,o.fill,o.rot||0)+drawShape(i.shape,50,50,13,i.fill,i.rot||0)}
+  else{const n=spec.els.length;const pos=POS[n];inner=spec.els.map((e,k)=>{const p=pos[k];const r=p[2]*(e.size==='s'?0.6:e.size==='l'?1.3:1);return drawShape(e.shape,p[0],p[1],r,e.fill,e.rot||0)}).join('')}
+  return`<svg viewBox="0 0 100 100" ${attrs||''} aria-hidden="true">${inner}</svg>`;
+}
+function cellsSVG(cells,attrs){ // polimino
+  const xs=cells.map(c=>c[0]),ys=cells.map(c=>c[1]);
+  const w=Math.max(...xs)+1,h=Math.max(...ys)+1,n=Math.max(w,h,4);
+  const u=100/n,ox=(n-w)/2*u,oy=(n-h)/2*u;
+  const rects=cells.map(c=>`<rect x="${(ox+c[0]*u+1.5).toFixed(1)}" y="${(oy+c[1]*u+1.5).toFixed(1)}" width="${(u-3).toFixed(1)}" height="${(u-3).toFixed(1)}" rx="2"/>`).join('');
+  return`<svg viewBox="0 0 100 100" ${attrs||''} aria-hidden="true"><g fill="currentColor" stroke="currentColor" stroke-width="1">${rects}</g></svg>`;
+}
+
+// ========================= item: matrici =========================
+const SH=['circle','square','triangle'],FL=['none','half','full'];
+const el=(shape,fill,x)=>Object.assign({shape,fill},x||{});
+const cell=(els,x)=>Object.assign({els},x||{});
+const rep=(e,n)=>Array.from({length:n},()=>Object.assign({},e));
+function matrixItems(){
+  const rng=mulberry32(7331);const out=[];
+  const push=(grid,opts,rule)=>{const w=withAnswer(opts,rng);out.push({grid,options:w.options,answer:w.answer,rule})};
+  // 1 — forma per riga, riempimento per colonna
+  {const g=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)g.push(cell([el(SH[r],FL[c])]));
+   push(g,[g[8],cell([el('triangle','half')]),cell([el('square','full')]),cell([el('circle','full')]),cell([el('triangle','none')]),cell([el('diamond','full')])],'Forma costante per riga, riempimento costante per colonna.')}
+  // 2 — forma per colonna, numero per riga
+  {const g=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)g.push(cell(rep(el(SH[c],'full'),r+1)));
+   push(g,[g[8],cell(rep(el('triangle','full'),2)),cell(rep(el('square','full'),3)),cell(rep(el('triangle','none'),3)),cell(rep(el('circle','full'),3)),cell(rep(el('triangle','full'),4))],'Forma costante per colonna, il numero cresce di uno a ogni riga.')}
+  // 3 — rotazione freccia + riempimento per colonna
+  {const g=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)g.push(cell([el('arrow',FL[c],{rot:(r*90+c*45)%360})]));
+   push(g,[g[8],cell([el('arrow','full',{rot:225})]),cell([el('arrow','full',{rot:315})]),cell([el('arrow','half',{rot:270})]),cell([el('arrow','full',{rot:180})]),cell([el('arrow','none',{rot:270})])],'La freccia ruota di 45° a ogni colonna e di 90° a ogni riga; il riempimento dipende dalla colonna.')}
+  // 4 — quadrato latino forma + riempimento
+  {const g=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)g.push(cell([el(SH[(r+c)%3],FL[(r+2*c)%3])]));
+   push(g,[g[8],cell([el('square','half')]),cell([el('square','full')]),cell([el('triangle','none')]),cell([el('circle','none')]),cell([el('diamond','none')])],'In ogni riga e colonna compaiono tutte e tre le forme e tutti e tre i riempimenti una sola volta.')}
+  // 5 — somma di segmenti
+  {const rows=[[['h0'],['v1']],[['v0','v2'],['h2']],[['d1','h1'],['v2','h0']]];const g=[];
+   rows.forEach(([a,b])=>{g.push({segs:a},{segs:b},{segs:[...a,...b]})});
+   push(g,[g[8],{segs:['d1','h1','v2']},{segs:['d1','h1','h0']},{segs:['d1','v2','h0']},{segs:['d2','h1','v2','h0']},{segs:['d1','h1','v2','h0','h2']}],'La terza figura di ogni riga è la somma delle prime due.')}
+  // 6 — quadrato latino a tre attributi
+  {const g=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)g.push(cell(rep(el(SH[(r+c)%3],FL[(r+2*c)%3]),((2*r+c)%3)+1)));
+   push(g,[g[8],cell(rep(el('square','none'),2)),cell([el('square','half')]),cell([el('triangle','none')]),cell(rep(el('square','none'),3)),cell([el('circle','none')])],'Forma, riempimento e numero seguono ciascuno un quadrato latino: ogni valore una sola volta per riga e colonna.')}
+  // 7 — XOR di segmenti
+  {const rows=[[['h0','v1'],['v1','h2']],[['d1','d2','v1'],['d2','h1']],[['h0','v0','d1'],['v0','d2']]];const g=[];
+   rows.forEach(([a,b])=>{const x=[...a.filter(s=>!b.includes(s)),...b.filter(s=>!a.includes(s))];g.push({segs:a},{segs:b},{segs:x})});
+   push(g,[g[8],{segs:['h0','v0','d1','d2']},{segs:['h0','d1']},{segs:['d1','d2']},{segs:['h0','d2']},{segs:['h0','v0','d2']}],'La terza figura contiene i segmenti presenti in una sola delle prime due (quelli in comune spariscono).')}
+  // 8 — figura annidata: esterno latino, interno latino, riempimento per colonna
+  {const IN=['diamond','circle','triangle'];const g=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)g.push(cell([el(SH[(r+c)%3],'none'),el(IN[(r+2*c)%3],FL[c])],{stack:true}));
+   push(g,[g[8],cell([el('square','none'),el('diamond','half')],{stack:true}),cell([el('square','none'),el('circle','full')],{stack:true}),cell([el('triangle','none'),el('diamond','full')],{stack:true}),cell([el('square','none'),el('triangle','full')],{stack:true}),cell([el('circle','none'),el('diamond','full')],{stack:true})],'Forma esterna e forma interna seguono due quadrati latini diversi; il riempimento interno dipende dalla colonna.')}
+  return out;
+}
+
+// ========================= item: serie numeriche =========================
+function numItems(){
+  const rng=mulberry32(2024);
+  const raw=[
+    {seq:[3,6,9,12],opts:[15,14,16,18,13],rule:'+3'},
+    {seq:[1,2,4,8,16],opts:[32,24,20,30,34],rule:'×2'},
+    {seq:[1,4,9,16,25],opts:[36,30,35,49,32],rule:'quadrati: 1², 2², 3²…'},
+    {seq:[2,3,5,8,12],opts:[17,16,15,18,14],rule:'differenze crescenti: +1, +2, +3, +4, +5'},
+    {seq:[5,10,8,16,14,28],opts:[26,56,30,24,32],rule:'alternanza ×2 e −2'},
+    {seq:[3,5,9,17,33],opts:[65,66,49,64,57],rule:'×2 −1'},
+    {seq:[2,3,5,7,11,13],opts:[17,15,16,19,14],rule:'numeri primi'},
+    {seq:[4,9,25,49,121],opts:[169,144,125,143,165],rule:'quadrati dei numeri primi'},
+  ];
+  return raw.map(it=>{const w=withAnswer(it.opts,rng);return{seq:it.seq,options:w.options,answer:w.answer,rule:it.rule}});
+}
+
+// ========================= item: analogie verbali =========================
+function verbItems(){
+  const rng=mulberry32(99);
+  const raw=[
+    {a:'Caldo',b:'Freddo',c:'Alto',opts:['Basso','Largo','Lungo','Grande','Stretto'],rule:'contrari'},
+    {a:'Gatto',b:'Miagolare',c:'Cane',opts:['Abbaiare','Correre','Mordere','Nitrire','Scodinzolare'],rule:'animale e suo verso'},
+    {a:'Scala',b:'Gradino',c:'Collana',opts:['Perla','Oro','Collo','Gioiello','Fermaglio'],rule:'intero e sua unità ripetuta'},
+    {a:'Medico',b:'Ospedale',c:'Giudice',opts:['Tribunale','Legge','Avvocato','Sentenza','Prigione'],rule:'professionista e suo luogo di lavoro'},
+    {a:'Uva',b:'Vino',c:'Olive',opts:['Olio','Albero','Raccolta','Frantoio','Salamoia'],rule:'materia prima e prodotto derivato'},
+    {a:'Termometro',b:'Temperatura',c:'Barometro',opts:['Pressione','Umidità','Vento','Altitudine','Tempo'],rule:'strumento e grandezza misurata'},
+    {a:'Avaro',b:'Generosità',c:'Codardo',opts:['Coraggio','Paura','Forza','Viltà','Onore'],rule:'persona e qualità che le manca'},
+    {a:'Scarso',b:'Abbondante',c:'Effimero',opts:['Duraturo','Fragile','Breve','Leggero','Rapido'],rule:'contrari (lessico meno comune)'},
+  ];
+  return raw.map(it=>{const w=withAnswer(it.opts,rng);return{a:it.a,b:it.b,c:it.c,options:w.options,answer:w.answer,rule:it.rule}});
+}
+
+// ========================= item: memoria di lavoro =========================
+const MEM_CFG=[{type:'back',len:3},{type:'back',len:4},{type:'back',len:5},{type:'back',len:6},{type:'back',len:7},{type:'ln',len:4},{type:'ln',len:5},{type:'ln',len:6}];
+const MEM_LETTERS='BCDFGHKLMNPRSTVZ';
+function genMemSeq(cfg){
+  const seq=[];
+  if(cfg.type==='back'){let prev=-1;while(seq.length<cfg.len){const d=Math.floor(Math.random()*9)+1;if(d===prev)continue;seq.push(String(d));prev=d}}
+  else{const nL=Math.floor(cfg.len/2),nD=cfg.len-nL;const ls=shuffled(MEM_LETTERS.split(''),Math.random).slice(0,nL);const ds=shuffled('123456789'.split(''),Math.random).slice(0,nD);const mix=shuffled([...ls,...ds],Math.random);
+    // evita che siano già in ordine finale
+    seq.push(...mix)}
+  return seq;
+}
+function memAnswer(cfg,seq){
+  if(cfg.type==='back')return seq.slice().reverse().join('');
+  const ds=seq.filter(s=>/\d/.test(s)).sort(),ls=seq.filter(s=>/[A-Z]/.test(s)).sort();return[...ds,...ls].join('');
+}
+
+// ========================= item: rotazione spaziale =========================
+const rotC=(cells)=>norm(cells.map(([x,y])=>[-y,x]));
+const mirC=(cells)=>norm(cells.map(([x,y])=>[-x,y]));
+function norm(cells){const mx=Math.min(...cells.map(c=>c[0])),my=Math.min(...cells.map(c=>c[1]));return cells.map(([x,y])=>[x-mx,y-my]).sort((a,b)=>a[0]-b[0]||a[1]-b[1])}
+const key=(cells)=>JSON.stringify(norm(cells));
+function rotN(cells,k){let c=norm(cells);for(let i=0;i<k;i++)c=rotC(c);return c}
+function allSym(cells){const out=[];let c=norm(cells);for(let i=0;i<4;i++){out.push(c);c=rotC(c)}c=mirC(cells);for(let i=0;i<4;i++){out.push(c);c=rotC(c)}return out}
+function rotItems(){
+  const rng=mulberry32(4242);
+  const raw=[
+    {t:[[0,0],[0,1],[0,2],[1,2]],d:[[0,0],[0,1],[0,2],[1,1]],k:[1,1,2,1]},
+    {t:[[0,0],[0,1],[0,2],[0,3],[1,3]],d:[[0,0],[0,1],[0,2],[0,3],[1,2]],k:[2,1,3,2]},
+    {t:[[0,0],[1,0],[0,1],[1,1],[0,2]],d:[[0,0],[1,0],[2,0],[1,1],[1,2]],k:[1,2,3,1]},
+    {t:[[1,0],[1,1],[1,2],[0,2],[0,3]],d:[[1,0],[1,1],[1,2],[0,2],[0,1]],k:[3,1,2,2]},
+    {t:[[1,0],[2,0],[0,1],[1,1],[1,2]],d:[[1,0],[2,0],[0,1],[1,1],[0,2]],k:[2,3,1,3]},
+    {t:[[1,0],[0,1],[1,1],[1,2],[1,3]],d:[[1,0],[0,1],[1,1],[1,2],[0,3]],k:[3,2,1,1]},
+    {t:[[0,0],[1,0],[1,1],[1,2],[2,2],[2,3]],d:[[0,0],[1,0],[1,1],[1,2],[2,2],[0,1]],k:[1,3,2,3]},
+    {t:[[0,0],[1,0],[1,1],[1,2],[2,2],[3,2],[3,1],[3,3]],d:[[0,0],[1,0],[1,1],[1,2],[2,2],[3,2],[3,1],[0,1]],k:[3,2,1,2]},
+  ];
+  return raw.map(it=>{
+    const opts=[rotN(it.t,it.k[0]),rotN(mirC(it.t),it.k[1]),rotN(mirC(it.t),it.k[2]),rotN(it.d,it.k[3])];
+    const w=withAnswer(opts.map((c,i)=>({cells:c,kind:i===0?'rot':i===3?'diff':'mirror'})),rng);
+    return{target:norm(it.t),options:w.options,answer:w.answer};
+  });
+}
+
+// ========================= sezioni =========================
+const SECTIONS=[
+  {id:'mat',name:'Matrici di ragionamento',short:'Matrici',time:600,kind:'matrix',items:matrixItems(),
+   intro:'Ogni griglia 3×3 segue una o più regole (per riga, per colonna o entrambe). Individua la regola e scegli, tra le sei alternative, la figura che completa la casella mancante.',
+   tips:['Le regole possono riguardare forma, riempimento, numero, rotazione o combinazione di segmenti.','Gli item diventano progressivamente più difficili.']},
+  {id:'num',name:'Serie numeriche',short:'Serie',time:360,kind:'choice',items:numItems(),
+   intro:'Ogni serie segue una regola matematica. Individua la regola e scegli il numero che continua correttamente la serie.',
+   tips:['Le regole possono combinare più operazioni o alternarsi tra un numero e il successivo.']},
+  {id:'verb',name:'Analogie verbali',short:'Analogie',time:300,kind:'choice',items:verbItems(),
+   intro:'In ogni item la prima coppia di parole ha una certa relazione. Scegli la parola che forma, con la terza, la stessa relazione.',
+   tips:['Esempio: Ruota : Bicicletta = Ala : Aereo (parte e intero).']},
+  {id:'mem',name:'Memoria di lavoro',short:'Memoria',time:420,kind:'memory',items:MEM_CFG.map(c=>Object.assign({},c)),
+   intro:'Ti verranno mostrati dei simboli uno alla volta. Nei primi item dovrai riscrivere le cifre in ordine inverso (dall\'ultima alla prima). Negli ultimi item vedrai cifre e lettere mescolate: riscrivi prima le cifre in ordine crescente, poi le lettere in ordine alfabetico.',
+   tips:['Esempio inverso: vedi 4 – 1 – 7, scrivi 714.','Esempio cifre e lettere: vedi M – 3 – B – 8, scrivi 38BM.','Non usare carta e penna: la sezione misura la memoria, non la scrittura.']},
+  {id:'rot',name:'Rotazione spaziale',short:'Rotazione',time:480,kind:'rotation',items:rotItems(),
+   intro:'Ti viene mostrata una figura. Tra le quattro alternative, una sola è la stessa figura ruotata sul piano. Le altre sono riflesse allo specchio o sono figure diverse.',
+   tips:['Una figura riflessa non è una rotazione valida, anche se ruotata.']},
+];
+const TOTAL_ITEMS=SECTIONS.reduce((n,s)=>n+s.items.length,0);
+window.__qi={SECTIONS,memAnswer,allSym,key,get state(){return state},set state(v){state=v},render:()=>render()};
+
+// ========================= stato =========================
+let state={screen:'intro',s:0,i:0,answers:{},rts:{},timeLeft:null,sel:null,mem:null,timeouts:{},hidden:0,startedAt:null,finishedAt:null,itemAt:null,consent:true,sent:null,sid:null};
+SECTIONS.forEach(s=>{state.answers[s.id]=Array(s.items.length).fill(null);state.rts[s.id]=Array(s.items.length).fill(null)});
+let tick=null,memTimer=null;
+const newId=()=>Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);
+
+function save(){/* nessuna persistenza oltre lo snapshot del viewer */}
+function startTimer(){stopTimer();tick=setInterval(()=>{if(state.screen!=='item')return;state.timeLeft--;updateBar();if(state.timeLeft<=0){endSection(true)}},1000)}
+function stopTimer(){if(tick){clearInterval(tick);tick=null}}
+
+function updateBar(){
+  const sec=SECTIONS[state.s];
+  const inTest=state.screen==='item'||state.screen==='section';
+  $('#barSec').textContent=inTest?`${state.s+1}/${SECTIONS.length} · ${sec.name}`:'Test QI Multidominio';
+  $('#barCnt').textContent=state.screen==='item'?`item ${state.i+1}/${sec.items.length}`:'';
+  const t=$('#barTimer');
+  t.classList.toggle('hidden-timer',state.screen!=='item');
+  if(state.screen==='item'){t.textContent=fmtTime(Math.max(0,state.timeLeft));t.classList.toggle('low',state.timeLeft<=30)}
+  let done=0;for(let k=0;k<state.s;k++)done+=SECTIONS[k].items.length;if(state.screen==='item')done+=state.i;if(state.screen==='results')done=TOTAL_ITEMS;
+  $('#barProg').style.width=(done/TOTAL_ITEMS*100)+'%';
+}
+
+// ========================= flusso =========================
+function startTest(){
+  const consent=!!(($('#consent')||{checked:true}).checked);
+  state={screen:'section',s:0,i:0,answers:{},rts:{},timeLeft:null,sel:null,mem:null,timeouts:{},hidden:0,startedAt:Date.now(),finishedAt:null,itemAt:null,consent,sent:null,sid:newId()};
+  SECTIONS.forEach(s=>{state.answers[s.id]=Array(s.items.length).fill(null);state.rts[s.id]=Array(s.items.length).fill(null)});
+  render();
+}
+function startSection(){
+  const sec=SECTIONS[state.s];
+  state.screen='item';state.i=0;state.timeLeft=sec.time;state.sel=null;state.mem=null;state.itemAt=Date.now();
+  startTimer();render();
+}
+function recordRt(){const sec=SECTIONS[state.s];if(state.itemAt)state.rts[sec.id][state.i]=Date.now()-state.itemAt}
+function submitAnswer(){
+  const sec=SECTIONS[state.s];
+  if(sec.kind==='memory'){
+    const inp=$('#memInput');const v=inp?inp.value.toUpperCase().replace(/[^0-9A-Z]/g,''):'';
+    state.answers[sec.id][state.i]={seq:state.mem.seq,given:v};
+  }else{state.answers[sec.id][state.i]=state.sel}
+  recordRt();nextItem();
+}
+function nextItem(){
+  const sec=SECTIONS[state.s];
+  state.sel=null;state.mem=null;
+  if(state.i+1<sec.items.length){state.i++;state.itemAt=Date.now();render()}else endSection(false);
+}
+function endSection(timedOut){
+  const sec=SECTIONS[state.s];
+  if(timedOut)state.timeouts[sec.id]=state.i; // item raggiunto allo scadere
+  stopTimer();clearTimeout(memTimer);
+  if(state.s+1<SECTIONS.length){state.s++;state.screen='section';state.sel=null;state.mem=null}
+  else{state.screen='results';state.finishedAt=Date.now();if(state.consent)submitRecord()}
+  render();window.scrollTo({top:0});
+}
+
+// ========================= taratura: record anonimo =========================
+function buildRecord(){
+  const R=computeResults();
+  const sections={};
+  SECTIONS.forEach(sec=>{
+    const a=state.answers[sec.id];
+    sections[sec.id]={
+      ids:a.map((_,i)=>itemId(sec,i)),
+      correct:a.map((x,i)=>isCorrect(sec,i,x)?1:0),
+      answered:a.map(x=>x===null||(x&&x.given==='')?0:1),
+      given:a.map(x=>x===null?null:(sec.kind==='memory'?x.given:x)),
+      rt:state.rts[sec.id],
+      timedOut:sec.id in state.timeouts,
+    };
+  });
+  return{v:QI_VERSION,sid:state.sid,ts:new Date(state.startedAt).toISOString(),durationSec:Math.round((state.finishedAt-state.startedAt)/1000),
+    raw:R.raw,iq:R.iq,hidden:state.hidden,viewport:[window.innerWidth,window.innerHeight],lang:navigator.language||'',sections};
+}
+const ITEM_PREFIX={mat:'mat',num:'ser',verb:'ana',mem:'mem',rot:'spa'};
+const itemId=(sec,i)=>`${ITEM_PREFIX[sec.id]}_${String(i+1).padStart(2,'0')}`;
+// Ponte verso il modulo condiviso js/raccolta.js del repository, se caricato nella pagina.
+function submitViaRaccolta(rec){
+  const Rc=window.Raccolta;if(!Rc||typeof Rc.registra!=='function')return false;
+  try{
+    if(typeof Rc.init==='function')Rc.init({endpoint:window.RACCOLTA_ENDPOINT||QI_SUBMIT_URL||null,testVersion:QI_VERSION});
+    SECTIONS.forEach(sec=>{const s=rec.sections[sec.id];sec.items.forEach((it,i)=>{
+      const g=s.given[i];const risposta=g===null?null:(sec.kind==='memory'?g:LETTERS[g]);
+      Rc.registra({id:itemId(sec,i),dominio:sec.short.toLowerCase(),corretto:s.correct[i],risposta,rt_ms:s.rt[i]});
+    })});
+    if(typeof Rc.chiudi==='function')Rc.chiudi({punteggio_grezzo:rec.raw,qi_stimato:rec.iq,demo:{lingua:rec.lang}});
+    return true;
+  }catch(e){return false}
+}
+async function submitRecord(){
+  const rec=buildRecord();state.sent='pending';
+  let ok=submitViaRaccolta(rec);
+  if(QI_SUBMIT_URL){
+    try{await fetch(QI_SUBMIT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(rec)});ok=true}catch(e){}
+  }
+  if(!ok&&window.claude&&window.claude.use){
+    try{const db=await window.claude.use('db');if(db){await db.collection('sessions').doc(rec.sid).set(rec);ok=true}}catch(e){}
+  }
+  state.sent=ok?'ok':'fail';
+  const el=$('#sendStatus');if(el)el.innerHTML=sendStatusHtml();
+}
+function sendStatusHtml(){
+  if(!state.consent)return`<span>Hai scelto di non condividere le risposte: nessun dato è stato inviato.</span>`;
+  if(state.sent==='pending')return`<span>Invio delle risposte anonime per la taratura…</span>`;
+  if(state.sent==='ok')return`<span>Risposte anonime salvate per la taratura del test. Grazie!</span>`;
+  return`<span>Non è stato possibile salvare automaticamente le risposte. Puoi contribuire copiando i dati anonimi qui sotto.</span> <button class="btn" data-act="copy" id="copyBtn">Copia i dati</button>`;
+}
+
+// ========================= punteggio =========================
+function isCorrect(sec,idx,ans){
+  if(ans===null||ans===undefined)return false;
+  if(sec.kind==='memory'){return ans.given===memAnswer(sec.items[idx],ans.seq)}
+  return ans===sec.items[idx].answer;
+}
+function erf(x){const s=Math.sign(x);x=Math.abs(x);const t=1/(1+0.3275911*x);const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);return s*y}
+const normCdf=(z)=>0.5*(1+erf(z/Math.SQRT2));
+// Parametri provvisori di conversione (non derivati da un campione normativo).
+const NORM={mean:23,sd:6.5,rel:0.85};
+function computeResults(){
+  const per=SECTIONS.map(sec=>{const a=state.answers[sec.id];let c=0,ans=0;a.forEach((x,i)=>{if(x!==null){ans++;if(isCorrect(sec,i,x))c++}});return{sec,correct:c,answered:ans,n:sec.items.length}});
+  const raw=per.reduce((n,p)=>n+p.correct,0);
+  const z=(raw-NORM.mean)/NORM.sd;
+  let iq=Math.round(100+15*z);iq=Math.max(55,Math.min(145,iq));
+  const sem=15*Math.sqrt(1-NORM.rel);const ci=Math.round(1.96*sem);
+  const pct=Math.round(normCdf((iq-100)/15)*100);
+  return{per,raw,iq,ci,pct,lo:Math.max(55,iq-ci),hi:Math.min(145,iq+ci)};
+}
+function rawToIq(raw){const z=(raw-NORM.mean)/NORM.sd;return Math.max(55,Math.min(145,Math.round(100+15*z)))}
+const BANDS=[[130,999,'Molto superiore'],[120,129,'Superiore'],[110,119,'Medio-alto'],[90,109,'Nella media'],[80,89,'Medio-basso'],[70,79,'Basso'],[0,69,'Molto basso']];
+function conversionTableHtml(currentRaw){
+  const ci=Math.round(1.96*15*Math.sqrt(1-NORM.rel));
+  const rows=[];for(let r=TOTAL_ITEMS;r>=0;r--){const iq=rawToIq(r);const pct=normCdf((iq-100)/15)*100;const cur=r===currentRaw;
+    rows.push(`<tr${cur?' style="font-weight:600;background:var(--accent-soft)"':''}><td class="num">${r}</td><td class="num">${iq}</td><td class="num">${Math.max(55,iq-ci)}–${Math.min(145,iq+ci)}</td><td class="num">${pct<1?'<1':pct>99?'>99':Math.round(pct)}</td><td>${iqLabel(iq)}</td></tr>`)}
+  const bands=BANDS.map(([lo,hi,name])=>{const p=(normCdf(((Math.min(hi,999)+0.5)-100)/15)-normCdf(((lo-0.5)-100)/15))*100;const rng=lo===0?`< 70`:hi===999?`≥ 130`:`${lo}–${hi}`;return`<tr><td>${rng}</td><td>${name}</td><td class="num">${p<1?p.toFixed(1):Math.round(p)}%</td></tr>`}).join('');
+  return`<div class="stack">
+    <p class="hint">Conversione provvisoria: assume una media grezza di ${NORM.mean} su ${TOTAL_ITEMS} e una deviazione standard di ${NORM.sd}, cioè QI = 100 + 15 × (grezzo − ${NORM.mean}) / ${NORM.sd}, limitato a 55–145. L'intervallo di confidenza al 95% (±${ci}) deriva da un'attendibilità ipotizzata di ${NORM.rel}. Quando la taratura reale sarà completata, questa tabella verrà sostituita dalle norme empiriche.</p>
+    <div style="overflow-x:auto"><table><thead><tr><th>Grezzo</th><th>QI</th><th>IC 95%</th><th>Percentile</th><th>Fascia</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>
+    <h3>Fasce di QI e quota di popolazione attesa</h3>
+    <div style="overflow-x:auto"><table><thead><tr><th>QI</th><th>Fascia</th><th>Popolazione</th></tr></thead><tbody>${bands}</tbody></table></div>
+    <p class="hint">Le quote per fascia derivano dalla distribuzione normale con media 100 e DS 15, la stessa convenzione dei test clinici (per esempio WAIS-IV): circa il 68% delle persone si colloca tra 85 e 115, circa il 95% tra 70 e 130.</p>
+  </div>`;
+}
+function iqLabel(iq){if(iq>=130)return'Molto superiore alla media';if(iq>=120)return'Superiore alla media';if(iq>=110)return'Medio-alto';if(iq>=90)return'Nella media';if(iq>=80)return'Medio-basso';if(iq>=70)return'Basso';return'Molto basso'}
+
+// ========================= rendering =========================
+const app=$('#app');
+function render(){
+  updateBar();
+  const fn={intro:rIntro,section:rSection,item:rItem,results:rResults}[state.screen];
+  app.innerHTML=fn();
+  bind();
+}
+function bind(){
+  app.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click',()=>act(b.dataset.act,b)));
+  app.querySelectorAll('.opt').forEach(o=>o.addEventListener('click',()=>{state.sel=Number(o.dataset.i);app.querySelectorAll('.opt').forEach(x=>x.classList.toggle('sel',Number(x.dataset.i)===state.sel));const n=$('#nextBtn');if(n)n.disabled=false}));
+  const inp=$('#memInput');if(inp){inp.focus();inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();submitAnswer()}})}
+  if(state.screen==='item'&&SECTIONS[state.s].kind==='memory'&&state.mem&&state.mem.phase==='show')runMemShow();
+}
+function act(a){
+  if(a==='start')startTest();
+  else if(a==='startSection')startSection();
+  else if(a==='next')submitAnswer();
+  else if(a==='skip'){state.sel=null;if(SECTIONS[state.s].kind==='memory'){state.answers[SECTIONS[state.s].id][state.i]={seq:state.mem.seq,given:''}}nextItem()}
+  else if(a==='restart'){state.screen='intro';render();window.scrollTo({top:0})}
+  else if(a==='copy'){const txt=JSON.stringify(buildRecord());const b=$('#copyBtn');const done=()=>{if(b)b.textContent='Copiato'};
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done).catch(()=>showCopyBox(txt))}else showCopyBox(txt)}
+}
+function showCopyBox(txt){let ta=$('#copyBox');if(!ta){ta=document.createElement('textarea');ta.id='copyBox';ta.readOnly=true;ta.style.cssText='width:100%;height:120px;font-family:var(--font-mono);font-size:.8rem;margin-top:8px';$('#sendStatus').appendChild(ta)}ta.value=txt;ta.focus();ta.select()}
+
+function rIntro(){
+  return`
+  <div class="stack">
+    <div class="eyebrow">Strumento di autovalutazione · 40 item · 5 domini</div>
+    <h1>Test QI Multidominio</h1>
+    <p class="lede">Un test di ragionamento a tempo che copre cinque aree cognitive e restituisce un punteggio sulla scala del QI (media 100, deviazione standard 15) con intervallo di confidenza.</p>
+  </div>
+  <div class="domains">
+    ${SECTIONS.map(s=>`<div class="domain"><b>${esc(s.name)}</b><span>${s.items.length} item · ${Math.round(s.time/60)} min</span></div>`).join('')}
+  </div>
+  <div class="card stack">
+    <h2>Prima di iniziare</h2>
+    <p>Servono circa <strong>35 minuti</strong> senza interruzioni. Ogni sezione ha un limite di tempo: allo scadere, gli item non risposti contano come errati. Non si può tornare indietro.</p>
+    <p>Rispondi da solo, senza calcolatrice né carta e penna. Se non sai una risposta, scegli quella che ritieni più probabile: non ci sono penalità per gli errori.</p>
+    <p>Il risultato è più attendibile se è la prima volta che fai questo test: alla seconda prova il punteggio tende a salire per effetto dell'apprendimento.</p>
+  </div>
+  <div class="note"><strong>Non è un test clinico.</strong> Il punteggio è una stima indicativa a scopo di esercizio e curiosità. Non sostituisce una valutazione psicometrica somministrata da un professionista con strumenti standardizzati (per esempio WAIS-IV), e i parametri di conversione in QI sono provvisori, non derivati da un campione normativo.</div>
+  <details><summary>Come si calcola il QI (tabella provvisoria)</summary><div class="body">${conversionTableHtml(-1)}</div></details>
+  <div class="card stack">
+    <h2>Aiuta a tarare il test</h2>
+    <p>Il test è in fase di taratura: alla fine, le tue risposte per item e i tempi vengono salvati <strong>in forma anonima</strong> (nessun nome, e-mail o identificativo) per stimare la difficoltà degli item e costruire norme reali. Puoi disattivarlo.</p>
+    <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="consent" ${state.consent===false?'':'checked'} style="margin-top:4px"> <span>Acconsento al salvataggio anonimo delle mie risposte per la taratura.</span></label>
+  </div>
+  <div class="actions"><button class="btn primary" data-act="start">Inizia il test</button></div>`;
+}
+
+function rSection(){
+  const sec=SECTIONS[state.s];
+  let example='';
+  if(sec.kind==='rotation'){
+    const t=[[0,0],[0,1],[0,2],[1,2]];
+    example=`<div class="example">
+      <div class="ex">${cellsSVG(t)}<div class="cap">Figura data</div></div>
+      <div class="ex">${cellsSVG(rotN(t,1))}<div class="cap">Ruotata: valida</div></div>
+      <div class="ex">${cellsSVG(mirC(t))}<div class="cap">Riflessa: non valida</div></div>
+    </div>`;
+  }else if(sec.kind==='matrix'){
+    example=`<div class="example">
+      <div class="ex">${cellSVG(cell([el('circle','none')]))}<div class="cap">riga 1</div></div>
+      <div class="ex">${cellSVG(cell([el('circle','full')]))}<div class="cap">riga 1</div></div>
+      <div class="ex">${cellSVG(cell([el('square','none')]))}<div class="cap">riga 2</div></div>
+      <div class="ex">${cellSVG(cell([el('square','full')]))}<div class="cap">riga 2 · risposta</div></div>
+    </div>`;
+  }
+  return`
+  <div class="stack">
+    <div class="eyebrow">Sezione ${state.s+1} di ${SECTIONS.length}</div>
+    <h1>${esc(sec.name)}</h1>
+    <p class="lede">${esc(sec.intro)}</p>
+  </div>
+  <div class="card stack">
+    ${example}
+    <ul style="margin:0;padding-left:1.2em;display:grid;gap:6px">${sec.tips.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>
+    <p><strong>${sec.items.length} item · ${Math.round(sec.time/60)} minuti.</strong> Il tempo parte quando premi il pulsante.</p>
+  </div>
+  <div class="actions"><button class="btn primary" data-act="startSection">Avvia la sezione</button></div>`;
+}
+
+function rItem(){
+  const sec=SECTIONS[state.s],it=sec.items[state.i];
+  const head=`<div class="eyebrow">${esc(sec.name)} · item ${state.i+1} di ${sec.items.length}</div>`;
+  const nav=(canSkip=true)=>`<div class="actions"><button class="btn primary" id="nextBtn" data-act="next" ${state.sel===null&&sec.kind!=='memory'?'disabled':''}>Conferma</button>${canSkip?`<button class="btn" data-act="skip">Salta</button>`:''}</div>`;
+  if(sec.kind==='matrix'){
+    const grid=it.grid.map((c,k)=>k===8?`<div class="cell ask">?</div>`:`<div class="cell">${cellSVG(c)}</div>`).join('');
+    return`${head}<p class="q">Quale figura completa la griglia?</p><div class="grid3">${grid}</div>
+      <div class="opts fig">${it.options.map((o,k)=>`<button class="opt fig" data-i="${k}" aria-label="Opzione ${LETTERS[k]}">${cellSVG(o)}<span class="k">${LETTERS[k]}</span></button>`).join('')}</div>${nav()}`;
+  }
+  if(sec.kind==='choice'&&sec.id==='num'){
+    return`${head}<p class="q">Quale numero continua la serie?</p>
+      <div class="seq mono">${it.seq.map(n=>`<span>${n}</span>`).join('')}<span class="qm">?</span></div>
+      <div class="opts text">${it.options.map((o,k)=>`<button class="opt" data-i="${k}"><span class="k">${LETTERS[k]}</span><span class="v mono">${o}</span></button>`).join('')}</div>${nav()}`;
+  }
+  if(sec.kind==='choice'){
+    return`${head}<p class="q">Quale parola completa l'analogia?</p>
+      <div class="analogy"><span>${esc(it.a)}</span><span class="op">:</span><span>${esc(it.b)}</span><span class="op">=</span><span>${esc(it.c)}</span><span class="op">:</span><span class="qm">?</span></div>
+      <div class="opts text">${it.options.map((o,k)=>`<button class="opt" data-i="${k}"><span class="k">${LETTERS[k]}</span><span class="v">${esc(o)}</span></button>`).join('')}</div>${nav()}`;
+  }
+  if(sec.kind==='rotation'){
+    return`${head}<p class="q">Quale alternativa è la stessa figura ruotata (non riflessa)?</p>
+      <div class="figbox">${cellsSVG(it.target)}</div>
+      <div class="opts fig">${it.options.map((o,k)=>`<button class="opt fig" data-i="${k}" aria-label="Opzione ${LETTERS[k]}">${cellsSVG(o.cells)}<span class="k">${LETTERS[k]}</span></button>`).join('')}</div>${nav()}`;
+  }
+  // memoria
+  if(!state.mem){state.mem={seq:genMemSeq(it),phase:'show',pos:-1}}
+  const instr=it.type==='back'?'Memorizza le cifre: dovrai riscriverle in ordine inverso.':'Memorizza i simboli: dovrai scrivere prima le cifre in ordine crescente, poi le lettere in ordine alfabetico.';
+  if(state.mem.phase==='show'){
+    return`${head}<p class="q">${instr}<span class="small">${it.len} simboli</span></p><div class="memshow" id="memShow"><span class="small">Pronto…</span></div>`;
+  }
+  const label=it.type==='back'?'Scrivi le cifre in ordine inverso':'Scrivi prima le cifre in ordine crescente, poi le lettere in ordine alfabetico';
+  return`${head}<p class="q">${instr}</p>
+    <div class="field"><label for="memInput">${label}</label><input id="memInput" type="text" inputmode="${it.type==='back'?'numeric':'text'}" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="${it.len}" placeholder="${'·'.repeat(it.len)}"><span class="hint">${it.len} caratteri, senza spazi. Invio per confermare.</span></div>${nav()}`;
+}
+function runMemShow(){
+  clearTimeout(memTimer);
+  const box=$('#memShow');if(!box)return;
+  const seq=state.mem.seq;let pos=-1;
+  const step=()=>{
+    if(state.screen!=='item'||!state.mem||state.mem.phase!=='show')return;
+    pos++;
+    if(pos>=seq.length){box.innerHTML='';memTimer=setTimeout(()=>{if(state.mem){state.mem.phase='input';render()}},400);return}
+    box.textContent=seq[pos];
+    memTimer=setTimeout(()=>{box.textContent='';memTimer=setTimeout(step,250)},900);
+  };
+  memTimer=setTimeout(step,900);
+}
+
+function rResults(){
+  const R=computeResults();
+  const dur=state.finishedAt&&state.startedAt?Math.round((state.finishedAt-state.startedAt)/60000):null;
+  const flags=[];
+  const toCount=Object.keys(state.timeouts).length;
+  if(toCount){const names=Object.keys(state.timeouts).map(id=>SECTIONS.find(s=>s.id===id).short).join(', ');flags.push({t:`Tempo scaduto in ${toCount===1?'una sezione':toCount+' sezioni'} (${names}): gli item non raggiunti contano come errati e il punteggio può sottostimare la tua capacità.`})}
+  const unanswered=TOTAL_ITEMS-R.per.reduce((n,p)=>n+p.answered,0);
+  if(unanswered>=6)flags.push({t:`${unanswered} item senza risposta: con molte omissioni la stima è meno precisa.`});
+  if(state.hidden>=2)flags.push({t:`La pagina è stata lasciata ${state.hidden} volte durante il test: le interruzioni riducono l'attendibilità.`});
+  if(R.raw>=38)flags.push({t:'Punteggio vicino al massimo: il test non riesce a distinguere livelli oltre questo valore (effetto tetto).'});
+  if(!flags.length)flags.push({ok:true,t:'Nessuna anomalia nella somministrazione: tutte le sezioni completate nei tempi.'});
+  const review=SECTIONS.map(sec=>{
+    const rows=sec.items.map((it,i)=>{
+      const a=state.answers[sec.id][i];const ok=isCorrect(sec,i,a);const skipped=a===null||(sec.kind==='memory'&&a.given==='');
+      let d='';
+      if(sec.kind==='matrix')d=`Regola: ${esc(it.rule)} · risposta corretta ${LETTERS[it.answer]}${a!==null?`, data ${LETTERS[a]}`:''}`;
+      else if(sec.id==='num')d=`${it.seq.join(', ')}, <b>${it.options[it.answer]}</b> (${esc(it.rule)})${a!==null&&!ok?` · data ${it.options[a]}`:''}`;
+      else if(sec.id==='verb')d=`${esc(it.a)} : ${esc(it.b)} = ${esc(it.c)} : <b>${esc(it.options[it.answer])}</b> (${esc(it.rule)})${a!==null&&!ok?` · data ${esc(it.options[a])}`:''}`;
+      else if(sec.kind==='memory')d=a?`${a.seq.join(' ')} → atteso <b class="mono">${memAnswer(it,a.seq)}</b>${a.given?`, scritto <span class="mono">${esc(a.given)}</span>`:''}`:'non presentato';
+      else d=`Corretta: ${LETTERS[it.answer]}${a!==null&&!ok?` · data ${LETTERS[a]} (${it.options[a].kind==='mirror'?'figura riflessa':'figura diversa'})`:''}`;
+      return`<div class="revrow"><span class="n">${i+1}</span><span class="d">${d}</span><span class="pill ${ok?'ok':skipped?'skip':'bad'}">${ok?'corretta':skipped?'omessa':'errata'}</span></div>`;
+    }).join('');
+    return`<h3>${esc(sec.name)}</h3><div class="rev">${rows}</div>`;
+  }).join('');
+  return`
+  <div class="stack">
+    <div class="eyebrow">Risultato${dur!==null?` · ${dur} min`:''}</div>
+    <h1>Il tuo punteggio</h1>
+  </div>
+  <div class="score">
+    <span class="eyebrow">QI stimato (media 100, DS 15)</span>
+    <span class="big">${R.iq}</span>
+    <span class="ci">Intervallo di confidenza al 95%: <b class="mono">${R.lo}–${R.hi}</b> · circa il <b>${R.pct}°</b> percentile</span>
+    <span class="label">${iqLabel(R.iq)}</span>
+  </div>
+  <div class="card stack">
+    <h2>Profilo per dominio</h2>
+    <div class="bars">${R.per.map(p=>`<div class="barrow"><span class="name">${esc(p.sec.name)}</span><span class="track"><i style="width:${p.correct/p.n*100}%"></i></span><span class="val">${p.correct}/${p.n}</span></div>`).join('')}</div>
+    <p class="hint">Punteggio grezzo totale: <b class="mono">${R.raw}/${TOTAL_ITEMS}</b>. Con 8 item per dominio, le differenze tra domini sono indicative: uno scarto di 1–2 punti rientra nel margine di errore.</p>
+  </div>
+  <div class="card stack">
+    <h2>Attendibilità di questa somministrazione</h2>
+    <div class="flags">${flags.map(f=>`<div class="flag ${f.ok?'ok':''}">${f.ok?'✓':'!'} <span>${f.t}</span></div>`).join('')}</div>
+  </div>
+  <div class="note"><strong>Non è un test clinico.</strong> Questo punteggio è una stima a scopo indicativo. La conversione usa parametri provvisori (media grezza ${NORM.mean}, DS ${NORM.sd}, attendibilità ipotizzata ${NORM.rel}) scelti a priori e non ricavati da un campione normativo: il valore va letto come posizione relativa in questo test, non come QI clinico. Una diagnosi o una misura ufficiale richiede una valutazione con strumenti standardizzati somministrati da uno psicologo.</div>
+  <div class="card stack"><h3>Taratura</h3><div id="sendStatus" class="hint">${sendStatusHtml()}</div></div>
+  <details><summary>Tabella di conversione: punteggio grezzo, QI, percentile</summary><div class="body">${conversionTableHtml(R.raw)}</div></details>
+  <details><summary>Rivedi le risposte</summary><div class="body"><p class="hint">Attenzione: dopo aver visto le soluzioni, una nuova prova non sarà più attendibile.</p>${review}</div></details>
+  <div class="actions"><button class="btn" data-act="restart">Torna all'inizio</button></div>`;
+}
+
+// ========================= avvio =========================
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&state.screen==='item')state.hidden++});
+function boot(data){
+  if(data&&data.state&&data.state.answers){state=data.state;if(state.screen==='item'){startTimer();if(state.mem&&state.mem.phase==='show')state.mem=null}}
+  render();
+}
+if(window.claude&&window.claude.hot){
+  try{window.claude.hot.snapshot(()=>({state}))}catch(e){}
+  if(window.claude.hot.ready)window.claude.hot.ready(boot);else boot(window.claude.hot.data||{});
+}else boot({});
+})();
+</script>
 </body>
 </html>
