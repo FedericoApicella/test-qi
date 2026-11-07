@@ -32,7 +32,9 @@
 .hidden-word .cell.on{background:#fff;color:var(--brand)}
 .hidden-word small{opacity:.9}
 /* cruciverba classico */
-.grid-wrap{display:grid;gap:10px}
+.grid-wrap{display:grid;gap:10px;min-width:0;max-width:100%}
+.wrap>*{min-width:0}
+.keymap{max-width:100%}
 .cw{display:grid;gap:2px;width:100%;max-width:520px;margin:0 auto;background:var(--fg);padding:2px;border-radius:8px;touch-action:manipulation}
 .cw .c{aspect-ratio:1;background:var(--surface);display:grid;place-items:center;position:relative;font-family:var(--font-mono);font-weight:600;font-size:clamp(.7rem,3.2vw,1.2rem);text-transform:uppercase;user-select:none;cursor:pointer;border-radius:2px}
 .cw .c.b{background:var(--fg);cursor:default}
@@ -72,4 +74,13 @@ body.playing main.wrap{padding-bottom:190px}
 .lvpick button{appearance:none;border:2px solid var(--border);background:var(--surface);border-radius:8px;min-width:40px;height:36px;font:inherit;font-weight:700;cursor:pointer}
 .lvpick button.done{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
 .lvpick button.next{border-color:var(--brand);color:var(--brand)}
-@media (min-width:900px){.kb{position:static;background:transparent;border:0;backdrop-filter:none;margin-top:4px}body.playing main.wrap{padding-bottom:64px}}
+@media (min-width:900px){.kb{position:static;width:100%;background:transparent;border:0;backdrop-filter:none;margin-top:4px}body.playing main.wrap{padding-bottom:64px}}
+/* crittografato */
+.cw .c.cr .n{font-size:clamp(.42rem,1.9vw,.68rem);color:var(--brand);font-weight:700}
+.cw .c.same{box-shadow:inset 0 0 0 2px var(--brand-300)}
+.keymap{display:flex;flex-wrap:wrap;gap:4px;justify-content:center}
+.keymap .kn{appearance:none;border:2px solid var(--border);background:var(--surface);border-radius:8px;width:38px;height:44px;display:grid;place-items:center;gap:0;font:inherit;cursor:pointer;padding:2px}
+.keymap .kn .n{font-size:.65rem;color:var(--muted);font-family:var(--font-mono);line-height:1}
+.keymap .kn b{font-family:var(--font-mono);font-size:1rem;line-height:1}
+.keymap .kn.ok{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.keymap .kn.on{border-color:var(--brand);background:var(--brand-100)}

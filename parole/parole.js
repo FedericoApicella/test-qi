@@ -23,7 +23,7 @@ const pick=(arr,r)=>arr[Math.floor(r()*arr.length)];
 const diffOf=(L)=>1-Math.exp(-(L-1)/40);
 
 // ---------- progressi ----------
-function loadP(){return Object.assign({cody:{max:1,done:{}},cruci:{max:1,done:{}},giorno:{},punti:0,parole:0,best:0},FX.load(KEY,{}))}
+function loadP(){return Object.assign({cody:{max:1,done:{}},cruci:{max:1,done:{}},critto:{max:1,done:{}},giorno:{},punti:0,parole:0,best:0},FX.load(KEY,{}))}
 let P=loadP();const saveP=()=>FX.save(KEY,P);
 window.addEventListener('testqi:account',()=>{P=loadP();if(!S)render()});
 
@@ -130,6 +130,69 @@ function startCruci(L){
   const first=z.slots[0];
   S={mode:'cruci',L,z,inp,fixed,bad,cy:first.y,cx:first.x,dir:first.dir,hints:0,pts:0,wrong:0,start:Date.now(),done:false,okSlots:{}};
   document.body.classList.add('playing');FX.beep('start');render();
+}
+function startCritto(L){
+  const z=buildCruci(hash('critto-'+L),L);const r=rng(hash('critto-num-'+L));
+  const N=z.N;const letters=[...new Set(z.cells.flat().filter(Boolean).map(c=>c.ch))];
+  const order=shuffle(letters,r);const num={};order.forEach((ch,i)=>num[ch]=i+1);
+  // lettere date all'inizio: più ce ne sono, più è facile; si preferiscono le più frequenti
+  const freq={};z.cells.flat().filter(Boolean).forEach(c=>freq[c.ch]=(freq[c.ch]||0)+1);
+  const nGiven=L<5?5:L<15?4:3;const given=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).slice(0,nGiven);
+  const map={};given.forEach(ch=>map[num[ch]]=ch);
+  const first=z.slots[0];
+  S={mode:'critto',L,z,num,letters:order,map,given:new Set(given.map(ch=>num[ch])),cy:first.y,cx:first.x,dir:first.dir,hints:0,pts:0,wrong:0,start:Date.now(),done:false,okSlots:{},okNums:new Set(given.map(ch=>num[ch]))};
+  document.body.classList.add('playing');FX.beep('start');render();
+}
+const crittoNumAt=(y,x)=>S.num[S.z.cells[y][x].ch];
+function crittoAdvance(s,step){const dy=s.dir?1:0,dx=s.dir?0:1;let i=(s.dir?S.cy-s.y:S.cx-s.x)+step;while(i>=0&&i<s.w.length&&S.okNums.has(crittoNumAt(s.y+dy*i,s.x+dx*i)))i+=step;
+  if(i>=0&&i<s.w.length){S.cy=s.y+dy*i;S.cx=s.x+dx*i;return}
+  if(step<0)return;
+  const k=S.z.slots.indexOf(s);for(let q=1;q<=S.z.slots.length;q++){const t=S.z.slots[(k+q)%S.z.slots.length];if(S.okSlots[slotKey(t)])continue;const ty=t.dir?1:0,tx=t.dir?0:1;for(let j=0;j<t.w.length;j++){const y=t.y+ty*j,x=t.x+tx*j;if(!S.okNums.has(crittoNumAt(y,x))){S.dir=t.dir;S.cy=y;S.cx=x;return}}}}
+const crittoLetter=(y,x)=>S.map[crittoNumAt(y,x)]||'';
+function crittoSlotWord(s){const dy=s.dir?1:0,dx=s.dir?0:1;let w='';for(let i=0;i<s.w.length;i++)w+=crittoLetter(s.y+dy*i,s.x+dx*i)||'.';return w}
+function crittoCheckAll(){
+  // parole complete e giuste → bloccate; i numeri che vi compaiono diventano certi
+  let newOk=0;
+  for(const s of S.z.slots){const k=slotKey(s);if(S.okSlots[k])continue;const w=crittoSlotWord(s);if(w.includes('.'))continue;
+    if(w===s.w){S.okSlots[k]=true;newOk++;const dy=s.dir?1:0,dx=s.dir?0:1;for(let i=0;i<s.w.length;i++)S.okNums.add(crittoNumAt(s.y+dy*i,s.x+dx*i));const pts=5+s.w.length;S.pts+=pts;FX.floatText($('#clueNow'),'+'+pts)}
+    else if(!S.badSlots)S.badSlots={}}
+  if(newOk)FX.beep(newOk>1?'streak':'ok');
+  if(Object.keys(S.okSlots).length===S.z.slots.length)finish();
+}
+function crittoAssign(n,ch){
+  if(S.okNums.has(n))return;
+  // una lettera sta su un numero solo: se era altrove, la togli da lì
+  for(const k in S.map){if(S.map[k]===ch&&+k!==n&&!S.okNums.has(+k))delete S.map[k]}
+  S.map[n]=ch;crittoCheckAll();
+}
+function crittoType(ch){
+  if(S.done)return;const s=curSlot();if(!s)return;
+  const n=crittoNumAt(S.cy,S.cx);
+  if(S.okNums.has(n)){crittoAdvance(s,1);render();return}
+  crittoAssign(n,ch);if(!S.done){crittoAdvance(s,1)}render();
+}
+function crittoBack(){if(S.done)return;const s=curSlot();if(!s)return;const n=crittoNumAt(S.cy,S.cx);if(S.map[n]&&!S.okNums.has(n)){delete S.map[n]}else{crittoAdvance(s,-1);const m=crittoNumAt(S.cy,S.cx);if(!S.okNums.has(m))delete S.map[m]}render()}
+function crittoHint(){
+  if(S.done)return;let n=crittoNumAt(S.cy,S.cx);
+  if(S.okNums.has(n)){const s=curSlot();const dy=s.dir?1:0,dx=s.dir?0:1;let f=null;for(let i=0;i<s.w.length;i++){const m=crittoNumAt(s.y+dy*i,s.x+dx*i);if(!S.okNums.has(m)){f=m;S.cy=s.y+dy*i;S.cx=s.x+dx*i;break}}if(f==null){const rest=S.letters.filter(ch=>!S.okNums.has(S.num[ch]));if(!rest.length)return;f=S.num[rest[0]]}n=f}
+  if(S.hints>=FREE_HINTS){if(S.pts<HINT_COST&&P.punti<HINT_COST){FX.beep('bad');return}S.pts-=HINT_COST}
+  S.hints++;const ch=S.letters[n-1];for(const k in S.map){if(S.map[k]===ch&&+k!==n)delete S.map[k]}S.map[n]=ch;S.okNums.add(n);S.given.add(n);FX.beep('tick');crittoCheckAll();render();
+}
+function crittoWrongCells(){
+  // una lettera assegnata è "sbagliata" se una parola completa che la contiene non torna
+  const bad={};for(const s of S.z.slots){if(S.okSlots[slotKey(s)])continue;const w=crittoSlotWord(s);if(w.includes('.'))continue;const dy=s.dir?1:0,dx=s.dir?0:1;for(let i=0;i<s.w.length;i++)if(w[i]!==s.w[i])bad[(s.y+dy*i)+','+(s.x+dx*i)]=true}
+  return bad;
+}
+function renderCritto(){
+  const z=S.z,N=z.N;const s=curSlot();const curN=crittoNumAt(S.cy,S.cx);const bad=crittoWrongCells();
+  const inWord=(y,x)=>s&&(s.dir?(x===s.x&&y>=s.y&&y<s.y+s.w.length):(y===s.y&&x>=s.x&&x<s.x+s.w.length));
+  let cells='';for(let y=0;y<N;y++)for(let x=0;x<N;x++){const c=z.cells[y][x];if(!c){cells+=`<div class="c b"></div>`;continue}
+    const n=S.num[c.ch];const cls=['c','cr'];if(inWord(y,x))cls.push('word');if(n===curN)cls.push('same');if(S.cy===y&&S.cx===x)cls.push('cur');if(S.okNums.has(n))cls.push(S.given.has(n)?'hint':'lock');if(bad[y+','+x])cls.push('bad');
+    cells+=`<div class="${cls.join(' ')}" data-y="${y}" data-x="${x}"><span class="n">${n}</span>${S.map[n]||''}</div>`}
+  const key=S.letters.map((ch,i)=>{const n=i+1;const cls=['kn'];if(S.okNums.has(n))cls.push('ok');if(n===curN)cls.push('on');return`<button class="${cls.join(' ')}" data-num="${n}"><span class="n">${n}</span><b>${S.map[n]||'·'}</b></button>`}).join('');
+  const nOk=Object.keys(S.okSlots).length;
+  return`${lvNavHtml('critto')}<div class="grid-wrap"><div class="clue-now" id="clueNow"><span class="dir">${curN}</span><span>${S.okNums.has(curN)?`= <b>${S.map[curN]}</b> (certa)`:S.map[curN]?`= <b>${S.map[curN]}</b> · scrivi un'altra lettera per cambiarla`:'scrivi la lettera che pensi corrisponda a questo numero'}</span><span class="arrows"><button class="btn icon" data-act="prevSlot" aria-label="precedente">‹</button><button class="btn icon" data-act="nextSlot" aria-label="successiva">›</button></span></div>
+  <div class="cw" style="grid-template-columns:repeat(${N},minmax(0,1fr))">${cells}</div><p class="hint" style="text-align:center">${nOk}/${z.slots.length} parole · ${S.okNums.size}/${S.letters.length} lettere certe · ogni numero è sempre la stessa lettera</p><div class="keymap">${key}</div><p class="hint">Niente definizioni: parti dalle lettere date, prova le parole che riconosci e il resto si sblocca a catena. Una parola completa e giusta diventa verde e fissa le sue lettere.</p></div>${kbHtml()}`;
 }
 function quit(){S=null;document.body.classList.remove('playing');render()}
 
@@ -241,19 +304,20 @@ function cruciHint(){
 function finish(){
   if(S.done)return;S.done=true;document.body.classList.remove('playing');
   const secs=Math.round((Date.now()-S.start)/1000);
-  const bonus=S.mode==='cody'?20+Math.min(60,S.L*2):30+Math.min(80,S.L*3);
+  const bonus=S.mode==='cody'?20+Math.min(60,S.L*2):S.mode==='critto'?40+Math.min(100,S.L*4):30+Math.min(80,S.L*3);
   const perfect=S.wrong===0&&S.hints===0;const pb=perfect?25:0;
   const stars=S.wrong===0&&S.hints<=1?3:(S.wrong<=2&&S.hints<=3?2:1);
   let tot=Math.max(10,S.pts+bonus+pb);if(S.daily)tot*=2;
   S.total=tot;S.stars=stars;S.secs=secs;S.perfect=perfect;
   // progressi
-  const m=S.mode==='cody'?P.cody:P.cruci;
+  const m=P[S.mode];
   if(S.daily){P.giorno[S.daily]={pts:tot,stars}}else{const prev=m.done[S.L]||0;m.done[S.L]=Math.max(prev,stars);if(S.L>=m.max)m.max=S.L+1}
   P.punti+=tot;P.parole+=(S.mode==='cody'?S.z.rows.length:S.z.slots.length);P.best=Math.max(P.best,tot);saveP();
   // abilità di gioco
   const nW=S.mode==='cody'?S.z.rows.length:S.z.slots.length;
   const u=Math.round(tot/4)+nW*2;
   if(S.mode==='cody')AB.registra('parole',{parole:Math.round(u*.55),creativita:Math.round(u*.3)+(S.hiddenEarly?S.hiddenEarly*4:0),logica:Math.round(u*.15)});
+  else if(S.mode==='critto')AB.registra('parole',{logica:Math.round(u*.5),parole:Math.round(u*.3),creativita:Math.round(u*.2)});
   else AB.registra('parole',{parole:Math.round(u*.5),logica:Math.round(u*.35),memoria:Math.round(u*.15)});
   FX.beep('win');FX.confetti(stars===3?140:80);render();
 }
@@ -287,25 +351,26 @@ function renderCruci(){
     cells+=`<div class="${cls.join(' ')}" data-y="${y}" data-x="${x}">${c.n?`<span class="n">${c.n}</span>`:''}${S.inp[y][x]||''}</div>`}
   const list=(dir)=>`<div><h3>${dir?'Verticali ↓':'Orizzontali →'}</h3><ol>${z.slots.filter(t=>t.dir===dir).map(t=>`<li class="${s===t?'on':''} ${S.okSlots[slotKey(t)]?'ok':''}" data-slot="${t.n}${t.dir?'v':'o'}"><span class="n">${t.n}</span><span>${esc(t.def)} <span class="hint">(${t.w.length})</span></span></li>`).join('')}</ol></div>`;
   return`${lvNavHtml('cruci')}<div class="grid-wrap"><div class="clue-now" id="clueNow"><span class="dir">${s?s.n+(s.dir?' ↓':' →'):''}</span><span>${s?esc(s.def):''} ${s?`<span class="hint">(${s.w.length})</span>`:''}</span><span class="arrows"><button class="btn icon" data-act="prevSlot" aria-label="precedente">‹</button><button class="btn icon" data-act="nextSlot" aria-label="successiva">›</button></span></div>
-  <div class="cw" style="grid-template-columns:repeat(${N},1fr)">${cells}</div><p class="hint" style="text-align:center">${Object.keys(S.okSlots).length}/${z.slots.length} parole · tocca due volte una casella per cambiare direzione</p><div class="clues">${list(0)}${list(1)}</div></div>${kbHtml()}`;
+  <div class="cw" style="grid-template-columns:repeat(${N},minmax(0,1fr))">${cells}</div><p class="hint" style="text-align:center">${Object.keys(S.okSlots).length}/${z.slots.length} parole · tocca due volte una casella per cambiare direzione</p><div class="clues">${list(0)}${list(1)}</div></div>${kbHtml()}`;
 }
 function renderWin(){
-  const m=S.mode==='cody'?'cody':'cruci';const next=S.L+1;
-  const abil=S.mode==='cody'?'Parole, Creatività e Logica':'Parole, Logica e Memoria';
+  const next=S.L+1;
+  const abil=S.mode==='cody'?'Parole, Creatività e Logica':S.mode==='critto'?'Logica, Parole e Creatività':'Parole, Logica e Memoria';
   return`<div class="win"><div class="big">${S.stars===3?'🏆':S.stars===2?'🎉':'👏'}</div><h2>${S.daily?'Sfida del giorno completata!':`Livello ${S.L} completato!`}</h2><div style="font-size:1.8rem;color:var(--warn)">${starsHtml(S.stars)}</div><div class="statsrow"><div class="stat"><div class="v">+${S.total}</div><div class="l">punti</div></div><div class="stat"><div class="v">${Math.floor(S.secs/60)}:${String(S.secs%60).padStart(2,'0')}</div><div class="l">tempo</div></div><div class="stat"><div class="v">${S.wrong}</div><div class="l">errori</div></div><div class="stat"><div class="v">${S.hints}</div><div class="l">aiuti</div></div></div>${S.gifts?`<p class="hint">🎁 ${S.gifts} lettere regalo ricevute.</p>`:''}${S.perfect?'<p><b>Perfetto!</b> Nessun errore e nessun aiuto: +25 punti.</p>':''}${S.hiddenEarly?`<p>Hai indovinato la parola nascosta con ${S.hiddenEarly} righe ancora aperte: bonus creatività!</p>`:''}<p class="hint">Abilità di gioco aggiornate: ${abil}. <a href="../abilita/">Vedi il grafico</a></p><div class="actions">${S.daily?`<button class="btn primary" data-act="home">Torna alle parole</button>`:`<button class="btn primary" data-act="next">Livello ${next} →</button><button class="btn" data-act="home">Menu</button>`}</div></div>`;
 }
 function renderHome(){
   const today=AB.dayKey();const dailyDone=P.giorno[today];
   const nDone=(m)=>Object.keys(m.done).length;
-  const stars=(m)=>Object.values(m.done).reduce((a,b)=>a+b,0);
+  const stars=(m)=>Object.values(m.done).reduce((a,b)=>a+b,0)+0;
   const pickLv=(mode)=>{const m=P[mode];const from=Math.max(1,m.max-11);const btns=[];for(let L=from;L<=m.max;L++)btns.push(`<button class="${m.done[L]?'done':(L===m.max?'next':'')}" data-play="${mode}" data-l="${L}" title="Livello ${L}">${L}</button>`);return`<div class="lvpick">${from>1?`<button data-play="${mode}" data-l="${from-1}">‹</button>`:''}${btns.join('')}</div>`};
-  return`<section class="hero"><div class="eyebrow">Livelli infiniti · in italiano · senza registrazione</div><h1>Parole crociate</h1><p>Due giochi: la <b>parola nascosta</b> (risolvi le definizioni a tema, le lettere evidenziate formano la parola verticale) e il <b>cruciverba classico</b>. Ogni livello è generato dal nostro dizionario e sale di difficoltà: non finiscono mai.</p><div class="kpis"><div class="kpi"><b>${P.punti}</b><span>punti totali</span></div><div class="kpi"><b>${P.parole}</b><span>parole risolte</span></div><div class="kpi"><b>${stars(P.cody)+stars(P.cruci)}</b><span>stelle</span></div><div class="kpi"><b>${P.best}</b><span>record livello</span></div></div></section>
+  return`<section class="hero"><div class="eyebrow">Livelli infiniti · in italiano · senza registrazione</div><h1>Parole crociate</h1><p>Tre giochi: la <b>parola nascosta</b> (risolvi le definizioni a tema, le lettere evidenziate formano la parola verticale) il <b>cruciverba classico</b> e il <b>crittografato</b>, dove ogni lettera è un numero. Ogni livello è generato dal nostro dizionario e sale di difficoltà: non finiscono mai.</p><div class="kpis"><div class="kpi"><b>${P.punti}</b><span>punti totali</span></div><div class="kpi"><b>${P.parole}</b><span>parole risolte</span></div><div class="kpi"><b>${stars(P.cody)+stars(P.cruci)+stars(P.critto)}</b><span>stelle</span></div><div class="kpi"><b>${P.best}</b><span>record livello</span></div></div></section>
   <a class="daily" href="#" data-play="daily"><b>📅 Sfida del giorno${dailyDone?' · fatta ✓ '+starsHtml(dailyDone.stars):''}</b><span>Una parola nascosta uguale per tutti, punti doppi. ${dailyDone?'Hai fatto '+dailyDone.pts+' punti: domani ce n\'è una nuova.':'Nuova ogni giorno a mezzanotte.'}</span></a>
   <div class="modes">
     <div class="tile"><span class="pill">${nDone(P.cody)} livelli</span><span class="ic">🔤</span><b>Parola nascosta</b><span>Ogni riga una definizione, la colonna evidenziata nasconde una parola. Indovinala in anticipo per il bonus.</span>${pickLv('cody')}<span class="cta"><button class="btn primary" data-play="cody" data-l="${P.cody.max}">Livello ${P.cody.max} →</button></span></div>
     <div class="tile"><span class="pill">${nDone(P.cruci)} livelli</span><span class="ic">▦</span><b>Cruciverba</b><span>Classico, con orizzontali e verticali. La griglia cresce con i livelli: da 7×7 a 13×13.</span>${pickLv('cruci')}<span class="cta"><button class="btn primary" data-play="cruci" data-l="${P.cruci.max}">Livello ${P.cruci.max} →</button></span></div>
+    <div class="tile"><span class="pill">${nDone(P.critto)} livelli</span><span class="ic">🔢</span><b>Crittografato</b><span>Niente definizioni: ogni lettera è un numero. Parti da quelle date e decifra tutta la griglia.</span>${pickLv('critto')}<span class="cta"><button class="btn primary" data-play="critto" data-l="${P.critto.max}">Livello ${P.critto.max} →</button></span></div>
   </div>
-  <section class="card stack"><h2>Come funziona</h2><ul style="margin:0;padding-left:18px;display:grid;gap:6px"><li>Tocca una riga o una casella e scrivi con la tastiera. Quando una parola è completa viene controllata subito: verde se è giusta, le lettere sbagliate si colorano di rosso.</li><li>Nella parola nascosta ogni parola indovinata ti <b>regala una o due lettere</b> 🎁 nelle righe ancora aperte.</li><li>Hai <b>${FREE_HINTS} aiuti gratis</b> per livello (rivelano una lettera); poi costano ${HINT_COST} punti. Nessuno resta mai bloccato.</li><li>Tre stelle se finisci senza errori e con al massimo un aiuto. I livelli già fatti si possono rigiocare.</li><li>Ogni livello fa crescere le tue <a href="../abilita/">abilità di gioco</a>: Parole, Creatività, Logica e Memoria.</li></ul></section>
+  <section class="card stack"><h2>Come funziona</h2><ul style="margin:0;padding-left:18px;display:grid;gap:6px"><li>Tocca una riga o una casella e scrivi con la tastiera. Quando una parola è completa viene controllata subito: verde se è giusta, le lettere sbagliate si colorano di rosso.</li><li>Nella parola nascosta ogni parola indovinata ti <b>regala una o due lettere</b> 🎁 nelle righe ancora aperte.</li><li>Nel crittografato ogni numero è sempre la stessa lettera: parti dalle lettere date, le parole giuste diventano verdi e fissano le loro lettere.</li><li>Hai <b>${FREE_HINTS} aiuti gratis</b> per livello (rivelano una lettera); poi costano ${HINT_COST} punti. Nessuno resta mai bloccato.</li><li>Tre stelle se finisci senza errori e con al massimo un aiuto. I livelli già fatti si possono rigiocare.</li><li>Ogni livello fa crescere le tue <a href="../abilita/">abilità di gioco</a>: Parole, Creatività, Logica e Memoria.</li></ul></section>
   <section class="card">${AB.widgetHtml('../')}</section>
   <p class="foot"><a href="../" style="color:var(--muted)">← Torna alla home</a> · dizionario di ${ALL.length} parole scritto per questo sito</p>`;
 }
@@ -313,41 +378,42 @@ function render(){
   const app=$('#app');
   if(!S)app.innerHTML=renderHome();
   else if(S.done)app.innerHTML=renderWin();
-  else app.innerHTML=S.mode==='cody'?renderCody():renderCruci();
-  const title=$('#barTitle');if(title)title.innerHTML=S?`<a href="./" data-act="quit" style="color:inherit;text-decoration:none">Parole</a> · ${S.daily?'Sfida del giorno':(S.mode==='cody'?'Parola nascosta':'Cruciverba')+' '+S.L}`:`<a href="../" style="color:inherit;text-decoration:none">🧠 Mente Allenata</a> · Parole`;
-  if(S&&!S.done&&S.mode==='cruci'){const c=$('.cw .c.cur');if(c&&c.scrollIntoView&&window.innerWidth<=640){const r=c.getBoundingClientRect();if(r.bottom>window.innerHeight-200||r.top<100)c.scrollIntoView({block:'center',behavior:'smooth'})}}
+  else app.innerHTML=S.mode==='cody'?renderCody():S.mode==='critto'?renderCritto():renderCruci();
+  const title=$('#barTitle');if(title)title.innerHTML=S?`<a href="./" data-act="quit" style="color:inherit;text-decoration:none">Parole</a> · ${S.daily?'Sfida del giorno':(S.mode==='cody'?'Parola nascosta':S.mode==='critto'?'Crittografato':'Cruciverba')+' '+S.L}`:`<a href="../" style="color:inherit;text-decoration:none">🧠 Mente Allenata</a> · Parole`;
+  if(S&&!S.done&&S.mode!=='cody'){const c=$('.cw .c.cur');if(c&&c.scrollIntoView&&window.innerWidth<=640){const r=c.getBoundingClientRect();if(r.bottom>window.innerHeight-200||r.top<100)c.scrollIntoView({block:'center',behavior:'smooth'})}}
 }
 
 // ---------- eventi ----------
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-play],[data-act],[data-k],[data-row],[data-y],[data-slot]');if(!t)return;
-  if(t.dataset.play){e.preventDefault();const m=t.dataset.play;if(m==='daily')startCody(1,AB.dayKey());else if(m==='cody')startCody(+t.dataset.l||1);else startCruci(+t.dataset.l||1);return}
+  const t=e.target.closest('[data-play],[data-act],[data-k],[data-row],[data-y],[data-slot],[data-num]');if(!t)return;
+  if(t.dataset.play){e.preventDefault();const m=t.dataset.play;if(m==='daily')startCody(1,AB.dayKey());else if(m==='cody')startCody(+t.dataset.l||1);else if(m==='critto')startCritto(+t.dataset.l||1);else startCruci(+t.dataset.l||1);return}
   const act=t.dataset.act;
   if(act==='quit'){e.preventDefault();quit();return}
   if(act==='home'){quit();return}
-  if(act==='next'){const m=S.mode,L=S.L+1;if(m==='cody')startCody(L);else startCruci(L);return}
+  if(act==='next'){const m=S.mode,L=S.L+1;if(m==='cody')startCody(L);else if(m==='critto')startCritto(L);else startCruci(L);return}
   if(!S||S.done)return;
-  if(act==='hint'){S.mode==='cody'?codyHint():cruciHint();return}
-  if(act==='back'){S.mode==='cody'?codyBack():cruciBack();return}
+  if(act==='hint'){S.mode==='cody'?codyHint():S.mode==='critto'?crittoHint():cruciHint();return}
+  if(act==='back'){S.mode==='cody'?codyBack():S.mode==='critto'?crittoBack():cruciBack();return}
   if(act==='guess'){if(S.solvedHidden)return;S.guessHidden=!S.guessHidden;S.hg='';render();return}
   if(act==='prevSlot'||act==='nextSlot'){const s=curSlot();const k=S.z.slots.indexOf(s);const n=S.z.slots[(k+(act==='nextSlot'?1:S.z.slots.length-1))%S.z.slots.length];cruciGoSlot(n);return}
-  if(t.dataset.k&&t.closest('.kb')){S.mode==='cody'?codyType(t.dataset.k):cruciType(t.dataset.k);return}
+  if(t.dataset.k&&t.closest('.kb')){S.mode==='cody'?codyType(t.dataset.k):S.mode==='critto'?crittoType(t.dataset.k):cruciType(t.dataset.k);return}
   if(S.mode==='cody'&&t.dataset.row!==undefined){const ri=+t.dataset.row;if(S.rows[ri].ok)return;S.guessHidden=false;S.cur=ri;const k=t.dataset.k!==undefined?+t.dataset.k:-1;S.pos=(k>=0&&!S.rows[ri].fixed[k])?k:codyFirstEmpty(S.rows[ri]);render();return}
-  if(S.mode==='cruci'&&t.dataset.y!==undefined){cruciSelect(+t.dataset.y,+t.dataset.x);return}
+  if(S.mode!=='cody'&&t.dataset.y!==undefined){cruciSelect(+t.dataset.y,+t.dataset.x);return}
+  if(S.mode==='critto'&&t.dataset.num){const n=+t.dataset.num;outer:for(let y=0;y<S.z.N;y++)for(let x=0;x<S.z.N;x++){if(S.z.cells[y][x]&&S.num[S.z.cells[y][x].ch]===n){S.cy=y;S.cx=x;if(!slotAt(y,x,S.dir))S.dir=1-S.dir;break outer}}render();return}
   if(S.mode==='cruci'&&t.dataset.slot){const s=S.z.slots.find(x=>slotKey(x)===t.dataset.slot);if(s)cruciGoSlot(s);return}
 });
 document.addEventListener('keydown',e=>{
   if(!S||S.done)return;if(e.ctrlKey||e.metaKey||e.altKey)return;
   const k=e.key;
-  if(/^[a-zA-Z]$/.test(k)){e.preventDefault();S.mode==='cody'?codyType(k.toUpperCase()):cruciType(k.toUpperCase())}
-  else if(k==='Backspace'){e.preventDefault();S.mode==='cody'?codyBack():cruciBack()}
-  else if(S.mode==='cruci'&&/^Arrow/.test(k)){e.preventDefault();const d={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]}[k];let y=S.cy+d[0],x=S.cx+d[1];while(y>=0&&y<S.z.N&&x>=0&&x<S.z.N&&!S.z.cells[y][x]){y+=d[0];x+=d[1]}if(y>=0&&y<S.z.N&&x>=0&&x<S.z.N){S.cy=y;S.cx=x;S.dir=d[0]?1:0;if(!slotAt(y,x,S.dir))S.dir=1-S.dir;render()}}
+  if(/^[a-zA-Z]$/.test(k)){e.preventDefault();S.mode==='cody'?codyType(k.toUpperCase()):S.mode==='critto'?crittoType(k.toUpperCase()):cruciType(k.toUpperCase())}
+  else if(k==='Backspace'){e.preventDefault();S.mode==='cody'?codyBack():S.mode==='critto'?crittoBack():cruciBack()}
+  else if(S.mode!=='cody'&&/^Arrow/.test(k)){e.preventDefault();const d={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]}[k];let y=S.cy+d[0],x=S.cx+d[1];while(y>=0&&y<S.z.N&&x>=0&&x<S.z.N&&!S.z.cells[y][x]){y+=d[0];x+=d[1]}if(y>=0&&y<S.z.N&&x>=0&&x<S.z.N){S.cy=y;S.cx=x;S.dir=d[0]?1:0;if(!slotAt(y,x,S.dir))S.dir=1-S.dir;render()}}
   else if(k==='Tab'){e.preventDefault();if(S.mode==='cody'){let n=S.cur;for(let q=1;q<=S.rows.length;q++){const j=(S.cur+(e.shiftKey?-q+S.rows.length:q))%S.rows.length;if(!S.rows[j].ok){n=j;break}}S.cur=n;S.pos=codyFirstEmpty(S.rows[n]);render()}else{const s=curSlot();const kk=S.z.slots.indexOf(s);cruciGoSlot(S.z.slots[(kk+(e.shiftKey?S.z.slots.length-1:1))%S.z.slots.length])}}
   else if(k==='Enter'&&S.mode==='cody'&&S.guessHidden){if(S.hg.length===S.z.hidden.length)codyCheckHidden();render()}
 });
 window.addEventListener('resize',()=>{if(S&&!S.done&&S.mode==='cody')render()});
 // link diretto: ?gioco=cody|cruci|giorno&l=N
 const q=new URLSearchParams(location.search);
-if(q.get('gioco')==='giorno')startCody(1,AB.dayKey());else if(q.get('gioco')==='cody')startCody(+q.get('l')||P.cody.max);else if(q.get('gioco')==='cruci')startCruci(+q.get('l')||P.cruci.max);else render();
-window.Parole={get S(){return S},get P(){return P},buildCody,buildCruci,startCody,startCruci,WORDS};
+if(q.get('gioco')==='giorno')startCody(1,AB.dayKey());else if(q.get('gioco')==='cody')startCody(+q.get('l')||P.cody.max);else if(q.get('gioco')==='critto')startCritto(+q.get('l')||P.critto.max);else if(q.get('gioco')==='cruci')startCruci(+q.get('l')||P.cruci.max);else render();
+window.Parole={get S(){return S},get P(){return P},buildCody,buildCruci,startCody,startCruci,startCritto,WORDS};
 })();
