@@ -3,6 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#6d28d9">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/app/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/app/favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="/app/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mente Allenata">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Gioca e allenati · Mente Allenata</title>
 <meta name="description" content="Allenati area per area: matrici, serie numeriche, analogie, memoria e rotazioni. La difficoltà sale con i tuoi successi, ogni risposta viene spiegata e i progressi restano salvati sul tuo dispositivo.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap">
@@ -25,5 +34,7 @@
 <script src="effetti.js"></script>
 <script src="giochi.js"></script>
 <script src="allenamento.js"></script>
+<!-- App installabile (PWA): service worker, banner "Installa l'app", avviso aggiornamenti. -->
+<script src="../js/pwa.js"></script>
 </body>
 </html>
