@@ -20,16 +20,23 @@ function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i)
 function rng(seed){let a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function shuffle(arr,r){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 const pick=(arr,r)=>arr[Math.floor(r()*arr.length)];
-const diffOf=(L)=>1-Math.exp(-(L-1)/40);
+const DIFF_DEF=4;
+// difficoltà fissa scelta dal giocatore (1-10): il livello 1 vale D, il livello 1000 circa D+0,99. d01 = 0..1 per i generatori.
+const diffEff=(D,L)=>(D-1)+0.99*(1-Math.exp(-(L-1)/300));
+const d01Of=(D,L)=>Math.min(1,diffEff(D,L)/10);
+const NOMI_DIFF=['','Facilissimo','Facile','Tranquillo','Normale','Medio','Impegnativo','Difficile','Molto difficile','Esperto','Estremo'];
 
 // ---------- progressi ----------
-function loadP(){return Object.assign({cody:{max:1,done:{}},cruci:{max:1,done:{}},critto:{max:1,done:{}},giorno:{},punti:0,parole:0,best:0},FX.load(KEY,{}))}
+function loadP(){const p=Object.assign({cody:{},cruci:{},critto:{},giorno:{},punti:0,parole:0,best:0},FX.load(KEY,{}));
+  for(const m of ['cody','cruci','critto']){const g=p[m];if(!g.liv){g.liv={};if(g.max){g.liv[DIFF_DEF]={max:g.max,done:g.done||{}}}delete g.max;delete g.done}if(!g.d)g.d=DIFF_DEF}
+  return p}
+const livDi=(mode,D)=>{const g=P[mode];if(!g.liv[D])g.liv[D]={max:1,done:{}};return g.liv[D]};
 let P=loadP();const saveP=()=>FX.save(KEY,P);
 window.addEventListener('testqi:account',()=>{P=loadP();if(!S)render()});
 
 // ---------- generatore "parola nascosta" ----------
-function buildCody(seed,L){
-  const r=rng(seed),d=diffOf(L);
+function buildCody(seed,d){
+  const r=rng(seed);
   const hidLen=Math.min(9,4+Math.floor(d*6));
   const maxDiff=d<.3?1:d<.7?2:3;
   const okDiff=(x)=>x.diff<=maxDiff;
@@ -56,13 +63,13 @@ function buildCody(seed,L){
 }
 
 // ---------- generatore cruciverba classico ----------
-function buildCruci(seed,L){
+function buildCruci(seed,d){
   // più tentativi con semi diversi: si tiene la griglia con più parole
-  const n=L<13?6:L<30?4:2;let best=null;for(let i=0;i<n;i++){const z=buildCruciOnce(seed+i*7919,L);if(!best||z.slots.length>best.slots.length)best=z}return best;
+  const n=d<.4?6:d<.7?4:2;let best=null;for(let i=0;i<n;i++){const z=buildCruciOnce(seed+i*7919,d);if(!best||z.slots.length>best.slots.length)best=z}return best;
 }
-function buildCruciOnce(seed,L){
-  const r=rng(seed),d=diffOf(L);
-  const N=L<4?7:L<8?8:L<13?9:L<20?10:L<30?11:L<45?12:13;
+function buildCruciOnce(seed,d){
+  const r=rng(seed);
+  const N=7+Math.round(d*6);
   const maxDiff=d<.3?1:d<.7?2:3;
   const g=Array.from({length:N},()=>Array(N).fill(null));
   const placed=[];const usedW=new Set();
@@ -118,29 +125,29 @@ function buildCruciOnce(seed,L){
 
 // ---------- stato di gioco ----------
 let S=null;
-function startCody(L,daily){
-  const seed=daily?hash('giorno-'+daily):hash('cody-'+L);
-  const z=buildCody(seed,daily?8:L);
-  S={mode:'cody',L,daily,z,rows:z.rows.map(x=>({letters:Array(x.w.length).fill(''),fixed:Array(x.w.length).fill(false),bad:Array(x.w.length).fill(false),ok:false,wrong:0})),cur:0,pos:0,hints:0,pts:0,wrong:0,start:Date.now(),solvedHidden:false,done:false,guessHidden:false};
+function startCody(L,daily,D){
+  D=D||P.cody.d;const seed=daily?hash('giorno-'+daily):hash('cody-'+D+'-'+L);
+  const z=buildCody(seed,daily?0.45:d01Of(D,L));
+  S={mode:'cody',L,D,daily,z,rows:z.rows.map(x=>({letters:Array(x.w.length).fill(''),fixed:Array(x.w.length).fill(false),bad:Array(x.w.length).fill(false),ok:false,wrong:0})),cur:0,pos:0,hints:0,pts:0,wrong:0,start:Date.now(),solvedHidden:false,done:false,guessHidden:false};
   document.body.classList.add('playing');FX.beep('start');render();
 }
-function startCruci(L){
-  const z=buildCruci(hash('cruci-'+L),L);
+function startCruci(L,D){
+  D=D||P.cruci.d;const z=buildCruci(hash('cruci-'+D+'-'+L),d01Of(D,L));
   const N=z.N;const inp=Array.from({length:N},()=>Array(N).fill(''));const fixed=Array.from({length:N},()=>Array(N).fill(false));const bad=Array.from({length:N},()=>Array(N).fill(false));
   const first=z.slots[0];
-  S={mode:'cruci',L,z,inp,fixed,bad,cy:first.y,cx:first.x,dir:first.dir,hints:0,pts:0,wrong:0,start:Date.now(),done:false,okSlots:{}};
+  S={mode:'cruci',L,D,z,inp,fixed,bad,cy:first.y,cx:first.x,dir:first.dir,hints:0,pts:0,wrong:0,start:Date.now(),done:false,okSlots:{}};
   document.body.classList.add('playing');FX.beep('start');render();
 }
-function startCritto(L){
-  const z=buildCruci(hash('critto-'+L),L);const r=rng(hash('critto-num-'+L));
+function startCritto(L,D){
+  D=D||P.critto.d;const d=d01Of(D,L);const z=buildCruci(hash('critto-'+D+'-'+L),d);const r=rng(hash('critto-num-'+D+'-'+L));
   const N=z.N;const letters=[...new Set(z.cells.flat().filter(Boolean).map(c=>c.ch))];
   const order=shuffle(letters,r);const num={};order.forEach((ch,i)=>num[ch]=i+1);
   // lettere date all'inizio: più ce ne sono, più è facile; si preferiscono le più frequenti
   const freq={};z.cells.flat().filter(Boolean).forEach(c=>freq[c.ch]=(freq[c.ch]||0)+1);
-  const nGiven=L<5?5:L<15?4:3;const given=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).slice(0,nGiven);
+  const nGiven=d<.3?5:d<.65?4:3;const given=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).slice(0,nGiven);
   const map={};given.forEach(ch=>map[num[ch]]=ch);
   const first=z.slots[0];
-  S={mode:'critto',L,z,num,letters:order,map,given:new Set(given.map(ch=>num[ch])),cy:first.y,cx:first.x,dir:first.dir,hints:0,pts:0,wrong:0,start:Date.now(),done:false,okSlots:{},okNums:new Set(given.map(ch=>num[ch])),solvedNums:new Set(),hyp:{},hypMode:false};
+  S={mode:'critto',L,D,z,num,letters:order,map,given:new Set(given.map(ch=>num[ch])),cy:first.y,cx:first.x,dir:first.dir,hints:0,pts:0,wrong:0,start:Date.now(),done:false,okSlots:{},okNums:new Set(given.map(ch=>num[ch])),solvedNums:new Set(),hyp:{},hypMode:false};
   document.body.classList.add('playing');FX.beep('start');render();
 }
 const crittoNumAt=(y,x)=>S.num[S.z.cells[y][x].ch];
@@ -237,7 +244,7 @@ function codyCheck(ri){
 }
 // premio: ogni parola indovinata regala qualche lettera nelle righe ancora aperte
 function codyGift(from){
-  const n=S.daily?2:(diffOf(S.L)<.5?2:1);
+  const n=S.daily?2:(S.D<=5?2:1);
   const open=[];S.rows.forEach((r,i)=>{if(r.ok||i===from)return;r.letters.forEach((l,k)=>{if(!r.fixed[k]&&k!==S.z.rows[i].k)open.push([i,k])})});
   for(let g=0;g<n&&open.length;g++){
     const [i,k]=open.splice(Math.floor(Math.random()*open.length),1)[0];const r=S.rows[i],z=S.z.rows[i];
@@ -314,13 +321,13 @@ function cruciHint(){
 function finish(){
   if(S.done)return;S.done=true;document.body.classList.remove('playing');
   const secs=Math.round((Date.now()-S.start)/1000);
-  const bonus=S.mode==='cody'?20+Math.min(60,S.L*2):S.mode==='critto'?40+Math.min(100,S.L*4):30+Math.min(80,S.L*3);
+  const D=S.D||DIFF_DEF;const bonus=(S.mode==='cody'?10:S.mode==='critto'?25:15)+D*(S.mode==='critto'?10:6)+Math.min(30,S.L);
   const perfect=S.wrong===0&&S.hints===0;const pb=perfect?25:0;
   const stars=S.wrong===0&&S.hints<=1?3:(S.wrong<=2&&S.hints<=3?2:1);
   let tot=Math.max(10,S.pts+bonus+pb);if(S.daily)tot*=2;
   S.total=tot;S.stars=stars;S.secs=secs;S.perfect=perfect;
   // progressi
-  const m=P[S.mode];
+  const m=livDi(S.mode,S.D||DIFF_DEF);
   if(S.daily){P.giorno[S.daily]={pts:tot,stars}}else{const prev=m.done[S.L]||0;m.done[S.L]=Math.max(prev,stars);if(S.L>=m.max)m.max=S.L+1}
   P.punti+=tot;P.parole+=(S.mode==='cody'?S.z.rows.length:S.z.slots.length);P.best=Math.max(P.best,tot);saveP();
   // abilità di gioco
@@ -341,7 +348,7 @@ function kbHtml(){
 }
 function lvNavHtml(mode){
   const m=P[mode];const L=S.L;
-  return`<div class="lvnav"><span class="lv">Livello ${L}</span>${S.daily?'<span class="theme">📅 Sfida del giorno</span>':''}<span class="pts">${S.pts} pt</span><span class="hint">· aiuti ${Math.max(0,FREE_HINTS-S.hints)} gratis${S.hints>=FREE_HINTS?` (poi −${HINT_COST} pt)`:''}</span><button class="btn" style="margin-left:auto;padding:6px 12px;font-size:.85rem" data-act="quit">Esci</button></div>`;
+  return`<div class="lvnav"><span class="lv">Livello ${L}</span>${S.daily?'':`<span class="theme" title="${NOMI_DIFF[S.D]}">⚙️ Difficoltà ${S.D}</span>`}${S.daily?'<span class="theme">📅 Sfida del giorno</span>':''}<span class="pts">${S.pts} pt</span><span class="hint">· aiuti ${Math.max(0,FREE_HINTS-S.hints)} gratis${S.hints>=FREE_HINTS?` (poi −${HINT_COST} pt)`:''}</span><button class="btn" style="margin-left:auto;padding:6px 12px;font-size:.85rem" data-act="quit">Esci</button></div>`;
 }
 function renderCody(){
   const z=S.z;const avail=($('#app')?$('#app').clientWidth:window.innerWidth)-32-44-20-6;const cs=Math.max(20,Math.min(34,Math.floor((avail-3*(z.width-1))/z.width)));
@@ -371,17 +378,18 @@ function renderWin(){
 }
 function renderHome(){
   const today=AB.dayKey();const dailyDone=P.giorno[today];
-  const nDone=(m)=>Object.keys(m.done).length;
-  const stars=(m)=>Object.values(m.done).reduce((a,b)=>a+b,0)+0;
-  const pickLv=(mode)=>{const m=P[mode];const from=Math.max(1,m.max-11);const btns=[];for(let L=from;L<=m.max;L++)btns.push(`<button class="${m.done[L]?'done':(L===m.max?'next':'')}" data-play="${mode}" data-l="${L}" title="Livello ${L}">${L}</button>`);return`<div class="lvpick">${from>1?`<button data-play="${mode}" data-l="${from-1}">‹</button>`:''}${btns.join('')}</div>`};
+  const nDone=(g)=>Object.values(g.liv).reduce((n,l)=>n+Object.keys(l.done).length,0);
+  const stars=(g)=>Object.values(g.liv).reduce((n,l)=>n+Object.values(l.done).reduce((a,b)=>a+b,0),0);
+  const diffPick=(mode)=>{const g=P[mode];return`<div class="diffpick"><span class="hint">Difficoltà <b>${g.d}</b> · ${NOMI_DIFF[g.d]}</span><div class="diffrow">${[1,2,3,4,5,6,7,8,9,10].map(D=>`<button class="${D===g.d?'on':''} ${D<=3?'d-easy':D<=6?'d-mid':D<=8?'d-hard':'d-max'}" data-diff="${mode}" data-d="${D}" title="${NOMI_DIFF[D]}">${D}</button>`).join('')}</div></div>`};
+  const pickLv=(mode)=>{const m=livDi(mode,P[mode].d);const from=Math.max(1,m.max-11);const btns=[];for(let L=from;L<=m.max;L++)btns.push(`<button class="${m.done[L]?'done':(L===m.max?'next':'')}" data-play="${mode}" data-l="${L}" title="Livello ${L}">${L}</button>`);return`<div class="lvpick">${from>1?`<button data-play="${mode}" data-l="${from-1}">‹</button>`:''}${btns.join('')}</div>`};
   return`<section class="hero"><div class="eyebrow">Livelli infiniti · in italiano · senza registrazione</div><h1>Parole crociate</h1><p>Tre giochi: la <b>parola nascosta</b> (risolvi le definizioni a tema, le lettere evidenziate formano la parola verticale) il <b>cruciverba classico</b> e il <b>crittografato</b>, dove ogni lettera è un numero. Ogni livello è generato dal nostro dizionario e sale di difficoltà: non finiscono mai.</p><div class="kpis"><div class="kpi"><b>${P.punti}</b><span>punti totali</span></div><div class="kpi"><b>${P.parole}</b><span>parole risolte</span></div><div class="kpi"><b>${stars(P.cody)+stars(P.cruci)+stars(P.critto)}</b><span>stelle</span></div><div class="kpi"><b>${P.best}</b><span>record livello</span></div></div></section>
   <a class="daily" href="#" data-play="daily"><b>📅 Sfida del giorno${dailyDone?' · fatta ✓ '+starsHtml(dailyDone.stars):''}</b><span>Una parola nascosta uguale per tutti, punti doppi. ${dailyDone?'Hai fatto '+dailyDone.pts+' punti: domani ce n\'è una nuova.':'Nuova ogni giorno a mezzanotte.'}</span></a>
   <div class="modes">
-    <div class="tile"><span class="pill">${nDone(P.cody)} livelli</span><span class="ic">🔤</span><b>Parola nascosta</b><span>Ogni riga una definizione, la colonna evidenziata nasconde una parola. Indovinala in anticipo per il bonus.</span>${pickLv('cody')}<span class="cta"><button class="btn primary" data-play="cody" data-l="${P.cody.max}">Livello ${P.cody.max} →</button></span></div>
-    <div class="tile"><span class="pill">${nDone(P.cruci)} livelli</span><span class="ic">▦</span><b>Cruciverba</b><span>Classico, con orizzontali e verticali. La griglia cresce con i livelli: da 7×7 a 13×13.</span>${pickLv('cruci')}<span class="cta"><button class="btn primary" data-play="cruci" data-l="${P.cruci.max}">Livello ${P.cruci.max} →</button></span></div>
-    <div class="tile"><span class="pill">${nDone(P.critto)} livelli</span><span class="ic">🔢</span><b>Crittografato</b><span>Niente definizioni: ogni lettera è un numero. Parti da quelle date e decifra tutta la griglia.</span>${pickLv('critto')}<span class="cta"><button class="btn primary" data-play="critto" data-l="${P.critto.max}">Livello ${P.critto.max} →</button></span></div>
+    <div class="tile"><span class="pill">${nDone(P.cody)} livelli</span><span class="ic">🔤</span><b>Parola nascosta</b><span>Ogni riga una definizione, la colonna evidenziata nasconde una parola. Indovinala in anticipo per il bonus.</span>${diffPick('cody')}${pickLv('cody')}<span class="cta"><button class="btn primary" data-play="cody" data-l="${livDi('cody',P.cody.d).max}">Livello ${livDi('cody',P.cody.d).max} →</button></span></div>
+    <div class="tile"><span class="pill">${nDone(P.cruci)} livelli</span><span class="ic">▦</span><b>Cruciverba</b><span>Classico, con orizzontali e verticali. La griglia dipende dalla difficoltà: da 7×7 a 13×13.</span>${diffPick('cruci')}${pickLv('cruci')}<span class="cta"><button class="btn primary" data-play="cruci" data-l="${livDi('cruci',P.cruci.d).max}">Livello ${livDi('cruci',P.cruci.d).max} →</button></span></div>
+    <div class="tile"><span class="pill">${nDone(P.critto)} livelli</span><span class="ic">🔢</span><b>Crittografato</b><span>Niente definizioni: ogni lettera è un numero. Parti da quelle date e decifra tutta la griglia.</span>${diffPick('critto')}${pickLv('critto')}<span class="cta"><button class="btn primary" data-play="critto" data-l="${livDi('critto',P.critto.d).max}">Livello ${livDi('critto',P.critto.d).max} →</button></span></div>
   </div>
-  <section class="card stack"><h2>Come funziona</h2><ul style="margin:0;padding-left:18px;display:grid;gap:6px"><li>Tocca una riga o una casella e scrivi con la tastiera. Quando una parola è completa viene controllata subito: verde se è giusta, le lettere sbagliate si colorano di rosso.</li><li>Nella parola nascosta ogni parola indovinata ti <b>regala una o due lettere</b> 🎁 nelle righe ancora aperte.</li><li>Nel crittografato ogni numero è sempre la stessa lettera: parti dalle lettere date, le parole giuste diventano verdi e fissano le loro lettere.</li><li>Hai <b>${FREE_HINTS} aiuti gratis</b> per livello (rivelano una lettera); poi costano ${HINT_COST} punti. Nessuno resta mai bloccato.</li><li>Tre stelle se finisci senza errori e con al massimo un aiuto. I livelli già fatti si possono rigiocare.</li><li>Ogni livello fa crescere le tue <a href="../abilita/">abilità di gioco</a>: Parole, Creatività, Logica e Memoria.</li></ul></section>
+  <section class="card stack"><h2>Come funziona</h2><ul style="margin:0;padding-left:18px;display:grid;gap:6px"><li>Tocca una riga o una casella e scrivi con la tastiera. Quando una parola è completa viene controllata subito: verde se è giusta, le lettere sbagliate si colorano di rosso.</li><li>Nella parola nascosta ogni parola indovinata ti <b>regala una o due lettere</b> 🎁 nelle righe ancora aperte.</li><li>Nel crittografato ogni numero è sempre la stessa lettera: parti dalle lettere date, le parole giuste diventano verdi e fissano le loro lettere.</li><li><b>Difficoltà da 1 a 10</b> a tua scelta in ogni gioco: ci giochi finché vuoi. Dentro la fascia scelta i livelli salgono pianissimo (livello 1 = la difficoltà scelta, livello 1000 ≈ un gradino sotto la successiva). Ogni difficoltà ha i suoi livelli e le sue stelle.</li><li>Hai <b>${FREE_HINTS} aiuti gratis</b> per livello (rivelano una lettera); poi costano ${HINT_COST} punti. Nessuno resta mai bloccato.</li><li>Tre stelle se finisci senza errori e con al massimo un aiuto. I livelli già fatti si possono rigiocare.</li><li>Ogni livello fa crescere le tue <a href="../abilita/">abilità di gioco</a>: Parole, Creatività, Logica e Memoria.</li></ul></section>
   <section class="card">${AB.widgetHtml('../')}</section>
   <p class="foot"><a href="../" style="color:var(--muted)">← Torna alla home</a> · dizionario di ${ALL.length} parole scritto per questo sito</p>`;
 }
@@ -396,12 +404,13 @@ function render(){
 
 // ---------- eventi ----------
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-play],[data-act],[data-k],[data-row],[data-y],[data-slot],[data-num]');if(!t)return;
+  const t=e.target.closest('[data-play],[data-act],[data-k],[data-row],[data-y],[data-slot],[data-num],[data-diff]');if(!t)return;
+  if(t.dataset.diff){P[t.dataset.diff].d=+t.dataset.d;saveP();FX.beep('tick');render();return}
   if(t.dataset.play){e.preventDefault();const m=t.dataset.play;if(m==='daily')startCody(1,AB.dayKey());else if(m==='cody')startCody(+t.dataset.l||1);else if(m==='critto')startCritto(+t.dataset.l||1);else startCruci(+t.dataset.l||1);return}
   const act=t.dataset.act;
   if(act==='quit'){e.preventDefault();quit();return}
   if(act==='home'){quit();return}
-  if(act==='next'){const m=S.mode,L=S.L+1;if(m==='cody')startCody(L);else if(m==='critto')startCritto(L);else startCruci(L);return}
+  if(act==='next'){const m=S.mode,L=S.L+1,D=S.D;if(m==='cody')startCody(L,null,D);else if(m==='critto')startCritto(L,D);else startCruci(L,D);return}
   if(!S||S.done)return;
   if(act==='hint'){S.mode==='cody'?codyHint():S.mode==='critto'?crittoHint():cruciHint();return}
   if(act==='back'){S.mode==='cody'?codyBack():S.mode==='critto'?crittoBack():cruciBack();return}
@@ -428,6 +437,6 @@ document.addEventListener('keydown',e=>{
 window.addEventListener('resize',()=>{if(S&&!S.done&&S.mode==='cody')render()});
 // link diretto: ?gioco=cody|cruci|giorno&l=N
 const q=new URLSearchParams(location.search);
-if(q.get('gioco')==='giorno')startCody(1,AB.dayKey());else if(q.get('gioco')==='cody')startCody(+q.get('l')||P.cody.max);else if(q.get('gioco')==='critto')startCritto(+q.get('l')||P.critto.max);else if(q.get('gioco')==='cruci')startCruci(+q.get('l')||P.cruci.max);else render();
-window.Parole={get S(){return S},get P(){return P},buildCody,buildCruci,startCody,startCruci,startCritto,WORDS};
+if(q.get('gioco')==='giorno')startCody(1,AB.dayKey());else{const g=q.get('gioco');if(g&&P[g]&&q.get('d'))P[g].d=Math.max(1,Math.min(10,+q.get('d')));if(g==='cody')startCody(+q.get('l')||livDi('cody',P.cody.d).max);else if(g==='critto')startCritto(+q.get('l')||livDi('critto',P.critto.d).max);else if(g==='cruci')startCruci(+q.get('l')||livDi('cruci',P.cruci.d).max);else render()}
+window.Parole={get S(){return S},get P(){return P},buildCody,buildCruci,startCody,startCruci,startCritto,d01Of,WORDS};
 })();
