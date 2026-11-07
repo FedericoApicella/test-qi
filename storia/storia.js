@@ -227,7 +227,7 @@ function rMap(){
       <li>I primi mondi sono giochi semplici e leggeri; più sali, più compaiono i quesiti del test vero (matrici, serie, analogie, memoria, rotazioni) e meno tempo hai.</li>
       <li>I livelli non finiscono mai: dopo i dieci mondi della mappa se ne generano altri, sempre più duri. I progressi restano salvati su questo dispositivo${window.Account?' (e nel tuo account, se hai fatto l\'accesso)':''}.</li>
     </ul>
-    <p class="hint">La storia serve ad allenarsi e divertirsi: non misura il QI. Per quello c'è il <a href="../">test</a>.</p>
+    <p class="hint">La storia serve ad allenarsi e divertirsi: non misura il QI. Per quello c'è il <a href="../test.html">test</a>.</p>
     <details><summary>Altro</summary><div class="body"><p class="hint">Risposte giuste: ${P.correct} su ${P.played}. Serie migliore: ${P.best}.</p><div class="actions"><a class="btn" href="../sfide/allenamento.html">Allenamento per area</a><a class="btn" href="../sfide/">Sfida un amico</a><button class="btn" data-act="reset">Azzera i progressi</button></div></div></details>
   </section>
   <p class="foot">Pagina gratuita, senza pubblicità. Le prove sono generate al momento: nessun livello è uguale a un altro.</p>`;
