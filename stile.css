@@ -227,3 +227,16 @@ details .body{padding:0 16px 16px;display:grid;gap:12px}
 .bar #cardAccedi{display:inline-flex;margin-left:6px}
 .bar #cardAccedi .acc-btn{position:static!important;padding:5px 10px!important;font-size:.85rem!important;box-shadow:none!important;margin:0!important}
 .bar.ingame #cardAccedi{display:none}
+
+/* menu ⚙️ in alto a destra: accesso, suoni, installa l'app */
+.bar-in{position:relative}
+#barMenu{margin-left:auto;position:relative;flex:none}
+.bar .timer:not(.hidden-timer)~#barMenu{margin-left:0}
+#barMenu #menuBtn{position:relative}
+#barMenu .dot{position:absolute;top:2px;right:2px;width:9px;height:9px;border-radius:50%;background:var(--ok);border:2px solid #fff}
+.menu-pop{position:absolute;top:calc(100% + 8px);right:0;width:min(280px,calc(100vw - 24px));background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:6px;display:grid;gap:2px;z-index:20;text-align:left}
+.menu-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:10px;min-height:44px;font:inherit;background:none;border:0;color:inherit;width:100%;text-decoration:none;text-align:left}
+.menu-row .menu-lab{font-weight:700;white-space:nowrap}
+.menu-act{cursor:pointer}.menu-act:hover{background:var(--brand-50)}
+.menu-pop #cardAccedi{display:inline-flex}
+.menu-pop #cardAccedi .acc-btn{position:static!important;padding:5px 12px!important;font-size:.85rem!important;box-shadow:none!important;margin:0!important}

@@ -53,15 +53,34 @@
   }
 
   /* ---------- banner "Installa l'app" (solo in home) ---------- */
+  function segnala() { try { window.dispatchEvent(new CustomEvent('testqi:pwa')); } catch (e) {} }
   window.addEventListener('beforeinstallprompt', function (e) {
     e.preventDefault();
     promptEvt = e;
     mostraBanner();
+    segnala();
   });
   window.addEventListener('appinstalled', function () {
     var b = document.getElementById('pwaBanner'); if (b) b.remove();
     save(KEY_BANNER, Date.now());
+    promptEvt = null; standalone = true; segnala();
   });
+
+  // API per il menu ⚙️ (js/menu.js): PWA.possibile() dice se ha senso proporre l'installazione,
+  // PWA.installa() apre la finestra di Chrome/Android oppure i passi per iPhone.
+  var PASSI_IOS = '<b>Su iPhone e iPad</b> (solo Safari):<br>1. Tocca <b>Condividi</b> in basso (il quadrato con la freccia in su).<br>2. Scorri e tocca <b>Aggiungi alla schermata Home</b>.<br>3. Tocca <b>Aggiungi</b>. Fatto: l\'icona è sul telefono.';
+  window.PWA = {
+    possibile: function () { return !standalone && (!!promptEvt || isIOS); },
+    installa: function () {
+      if (promptEvt) { promptEvt.prompt(); promptEvt.userChoice.then(function (r) { if (r && r.outcome === 'accepted') { promptEvt = null; segnala(); } }); return; }
+      if (document.getElementById('pwaIosDlg')) return;
+      var d = el('<dialog id="pwaIosDlg" style="border:1px solid var(--border);border-radius:16px;padding:20px 22px;max-width:360px;width:calc(100vw - 32px);font:inherit;color:var(--fg);background:var(--surface);box-shadow:var(--shadow)"><div class="stack"><h2 style="font-size:1.2rem">📲 Installa l\'app</h2><p class="hint" style="line-height:1.6">' + PASSI_IOS + '</p><div class="actions"><button class="btn primary" type="button">Ok</button></div></div></dialog>');
+      document.body.appendChild(d);
+      d.querySelector('button').addEventListener('click', function () { d.close(); d.remove(); });
+      d.addEventListener('click', function (e) { if (e.target === d) { d.close(); d.remove(); } });
+      try { d.showModal(); } catch (e) { d.setAttribute('open', ''); }
+    }
+  };
 
   function inHome() {
     var p = location.pathname;

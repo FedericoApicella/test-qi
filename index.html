@@ -41,7 +41,6 @@
   <div class="bar-in">
     <div class="title">🧠 Mente Allenata</div>
     <div class="scores"></div>
-    <span id="barSound" style="margin-left:auto"></span>
   </div>
 </div>
 <main class="wrap home" id="app">
@@ -64,7 +63,6 @@
     <a class="tile" href="sfide/allenamento.html#gioca"><span class="pill">6 giochi</span><span class="ic">🎮</span><b>Gioca</b><span>Partite da un minuto: sequenza luminosa, vero o falso, trova la coppia, sprint e altri.</span><span class="cta">Gioca →</span></a>
     <a class="tile" href="sfide/allenamento.html#allenati"><span class="pill">5 aree</span><span class="ic">🏋️</span><b>Allenati sul serio</b><span>N-back, rotazione mentale e percorsi adattivi per area: progressi misurati nel tempo, livelli e medaglie.</span><span class="cta">Allenati →</span></a>
     <a class="tile" href="storia/" id="cardStoria"><span class="ic">🗺️</span><b>Modalità storia</b><span>Livelli infiniti, mondi da sbloccare, boss e stelle da conquistare.</span><span class="cta">Scopri →</span></a>
-    <div class="tile" id="cardAccedi"><span class="ic">👤</span><b>Il tuo account</b><span>Facoltativo: con nome utente e password ritrovi risultati e progressi su ogni dispositivo.</span></div>
   </div>
 </section>
 
@@ -80,6 +78,8 @@
 <!-- Mini accesso facoltativo (nome utente e password): salva risultati e progressi tra dispositivi. -->
 <script src="js/account.js"></script>
 <script src="sfide/effetti.js"></script>
+<!-- Menu ⚙️ in alto a destra: accesso, suoni, installa l'app. -->
+<script src="js/menu.js"></script>
 <script>
 (function(){
 'use strict';
@@ -122,7 +122,6 @@ if(!testVals&&!trainVals){
   $('#profiloNota').textContent='Salvato su questo dispositivo';
   $('#shareBtn').addEventListener('click',()=>{const ta=$('#shareTxt');const b=$('#shareBtn');const done=()=>{b.textContent='Copiato!'};if(navigator.share){navigator.share({text:ta.value}).catch(()=>{})}else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(done).catch(()=>{ta.focus();ta.select()})}else{ta.focus();ta.select()}});
 }
-$('#barSound').innerHTML=FX.soundButtonHtml();FX.bindSoundButton();
 })();
 </script>
 <!-- App installabile (PWA): service worker, banner "Installa l'app", avviso aggiornamenti. -->
