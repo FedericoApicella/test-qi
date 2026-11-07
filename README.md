@@ -23,6 +23,7 @@ In locale basta aprire `index.html` con un browser.
 - `analisi/`: script di analisi (alfa, test-retest, statistiche per item) ed endpoint di esempio.
 - `data/mars-ib/`: parametri pubblici di difficoltà delle matrici MaRs-IB (licenza MIT).
 - `docs/calibrazione.md`: soglie di affidabilità, fonti aperte verificate e piano di taratura.
+- `docs/app.md`: app installabile (PWA): come si installa su telefono, icone, service worker e cache offline.
 
 ## Come proporre modifiche
 
