@@ -1,13 +1,13 @@
-# Dominio personalizzato: qi.stafftech.com
+# Dominio personalizzato: qi.stafftech.it
 
-Il sito è pubblicato con GitHub Pages sull'indirizzo **https://qi.stafftech.com**.
+Il sito è pubblicato con GitHub Pages sull'indirizzo **https://qi.stafftech.it**.
 
 ## Come è collegato
 
-1. Il DNS di stafftech.com è su Cloudflare. In *DNS → Records* c'è un record
+1. Il DNS di stafftech.it è su Cloudflare. In *DNS → Records* c'è un record
    **CNAME** con nome `qi` che punta a `federicoapicella.github.io`, con il proxy
    Cloudflare (nuvoletta arancione) **disattivato** ("DNS only").
-2. Su GitHub, in *Settings → Pages → Custom domain*, è impostato `qi.stafftech.com`
+2. Su GitHub, in *Settings → Pages → Custom domain*, è impostato `qi.stafftech.it`
    con *Enforce HTTPS* attivo.
 3. Il file `CNAME` nella radice del repo contiene lo stesso dominio (GitHub lo usa
    quando si pubblica da un branch; con la pubblicazione via Actions conta
