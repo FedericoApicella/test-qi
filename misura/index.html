@@ -23,7 +23,6 @@
   <div class="bar-in">
     <div class="title"><a href="../" style="color:inherit;text-decoration:none">🧠 Mente Allenata</a> · Misurati</div>
     <div class="scores"></div>
-    <span id="barSound" style="margin-left:auto"></span>
   </div>
 </div>
 <main class="wrap mis">
@@ -46,6 +45,8 @@
 <div class="actions"><a class="btn primary" href="../test.html">🧪 Fai il test del QI completo</a><a class="btn" href="../sfide/allenamento.html">🏋️ Allenati</a><a class="btn" href="../">Torna alla home</a></div>
 </main>
 <script src="../sfide/effetti.js"></script>
+<script src="../js/account.js"></script>
+<script src="../js/menu.js"></script>
 <script>
 (function(){
 const $=(s)=>document.querySelector(s);
@@ -67,7 +68,6 @@ $('#tiles').innerHTML=AREE.map(([id,dom,nome,ic,min,desc])=>{
   return`<a class="tile" href="../test.html?area=${id}"><span class="pill">≈ ${min} min</span><span class="ic">${ic}</span><b>${esc(nome)}</b><span>${esc(desc)}</span>${res}<span class="cta">${r?'Rifai il mini-test →':'Inizia (24 quesiti) →'}</span></a>`;
 }).join('');
 $('#nota').textContent=fatti?`${fatti} su 5 fatti su questo dispositivo`:'I punteggi restano su questo dispositivo';
-if(window.Effetti){$('#barSound').innerHTML=Effetti.soundButtonHtml();Effetti.bindSoundButton()}
 })();
 </script>
 <script src="../js/pwa.js"></script>
