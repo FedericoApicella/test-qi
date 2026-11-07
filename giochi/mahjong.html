@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="../stile.css">
 <link rel="stylesheet" href="giochi.css">
+<style>.wrap{max-width:980px}</style>
 </head>
 <body>
 <div class="bar ingame">
@@ -22,7 +23,7 @@
 </div>
 <main class="wrap" id="app">
   <div class="g-top"><h1>🀄 Mahjong</h1><div class="g-meta" id="gMeta"></div><div class="g-btns" id="gBtns"></div></div>
-  <div class="g-board mj-wrap" id="boardWrap"><div class="mj" id="board" aria-label="Tessere del mahjong"></div></div>
+  <div class="g-board mj-wrap" id="boardWrap"><div class="mj-slots" id="slots" aria-label="Parcheggio tessere"></div><div class="mj" id="board" aria-label="Tessere del mahjong"></div></div>
   <div class="g-tools">
     <span class="btn" style="cursor:default">🀄 Restano <span class="n" id="restN">0</span></span>
     <button class="btn" id="bUndo">↩️ Annulla</button>
@@ -34,6 +35,7 @@
 </main>
 <script src="../sfide/effetti.js"></script>
 <script src="comune.js"></script>
+<script src="tessere.js"></script>
 <script src="mahjong.js"></script>
 <script>window.RACCOLTA_ENDPOINT="https://script.google.com/macros/s/AKfycbzgsmL26nxf3wzvzADgJ4ulpLXbfru19l_NfYDS-NGeXM5lYN4QLITrEe-sNHm23iBi/exec";</script>
 <script src="../js/account.js"></script>
