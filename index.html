@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<!-- Per la taratura: definire window.QI_SUBMIT_URL (endpoint POST JSON) oppure caricare js/raccolta.js prima di questo file. -->
+<!-- Taratura: le risposte anonime (solo con consenso) vanno al foglio Google tramite js/raccolta.js. -->
+<script>window.RACCOLTA_ENDPOINT="https://script.google.com/macros/s/AKfycbzgsmL26nxf3wzvzADgJ4ulpLXbfru19l_NfYDS-NGeXM5lYN4QLITrEe-sNHm23iBi/exec";</script>
+<script src="js/raccolta.js"></script>
 <title>Test QI Multidominio</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap">
 <style>
@@ -431,7 +433,7 @@ function submitViaRaccolta(rec){
       const g=s.given[i];const risposta=g===null?null:(sec.kind==='memory'?g:LETTERS[g]);
       Rc.registra({id:itemId(sec,i),dominio:sec.short.toLowerCase(),corretto:s.correct[i],risposta,rt_ms:s.rt[i]});
     })});
-    if(typeof Rc.chiudi==='function')Rc.chiudi({punteggio_grezzo:rec.raw,qi_stimato:rec.iq,demo:{lingua:rec.lang}});
+    if(typeof Rc.chiudi==='function')Rc.chiudi({punteggio_grezzo:rec.raw,qi_stimato:rec.iq,consenso:!!state.consent,demo:{lingua:rec.lang}});
     return true;
   }catch(e){return false}
 }
