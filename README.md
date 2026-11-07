@@ -13,6 +13,10 @@ In locale basta aprire `index.html` con un browser.
 ## Struttura
 
 - `index.html`: l'intero test (domande, timer, calcolo del punteggio).
+- `js/raccolta.js`: raccolta anonima e facoltativa dei risultati, per misurare l'affidabilità.
+- `analisi/`: script di analisi (alfa, test-retest, statistiche per item) ed endpoint di esempio.
+- `data/mars-ib/`: parametri pubblici di difficoltà delle matrici MaRs-IB (licenza MIT).
+- `docs/calibrazione.md`: soglie di affidabilità, fonti aperte verificate e piano di taratura.
 
 ## Come proporre modifiche
 
