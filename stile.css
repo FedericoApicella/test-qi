@@ -240,3 +240,6 @@ details .body{padding:0 16px 16px;display:grid;gap:12px}
 .menu-act{cursor:pointer}.menu-act:hover{background:var(--brand-50)}
 #barMenu #cardAccedi{display:inline-flex}
 #barMenu #cardAccedi .acc-btn{position:static!important;padding:6px 12px!important;font-size:.85rem!important;box-shadow:none!important;margin:0!important;max-width:34vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* diagnostica del collegamento (sfide) */
+.diag pre{margin:0;max-height:220px;overflow:auto;font-size:.78rem;line-height:1.45;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;white-space:pre-wrap;word-break:break-word}
