@@ -90,4 +90,5 @@ body.playing main.wrap{padding-bottom:190px}
 .keymap .kn .n{font-size:.65rem;color:var(--muted);font-family:var(--font-mono);line-height:1}
 .keymap .kn b{font-family:var(--font-mono);font-size:1rem;line-height:1}
 .keymap .kn.ok{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.keymap .kn.given{background:var(--brand-100);border-color:var(--brand-300);color:var(--brand)}
 .keymap .kn.on{border-color:var(--brand);background:var(--brand-100)}

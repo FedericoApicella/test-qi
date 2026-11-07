@@ -140,7 +140,7 @@ function startCritto(L){
   const nGiven=L<5?5:L<15?4:3;const given=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).slice(0,nGiven);
   const map={};given.forEach(ch=>map[num[ch]]=ch);
   const first=z.slots[0];
-  S={mode:'critto',L,z,num,letters:order,map,given:new Set(given.map(ch=>num[ch])),cy:first.y,cx:first.x,dir:first.dir,hints:0,pts:0,wrong:0,start:Date.now(),done:false,okSlots:{},okNums:new Set(given.map(ch=>num[ch])),hyp:{},hypMode:false};
+  S={mode:'critto',L,z,num,letters:order,map,given:new Set(given.map(ch=>num[ch])),cy:first.y,cx:first.x,dir:first.dir,hints:0,pts:0,wrong:0,start:Date.now(),done:false,okSlots:{},okNums:new Set(given.map(ch=>num[ch])),solvedNums:new Set(),hyp:{},hypMode:false};
   document.body.classList.add('playing');FX.beep('start');render();
 }
 const crittoNumAt=(y,x)=>S.num[S.z.cells[y][x].ch];
@@ -154,7 +154,7 @@ function crittoCheckAll(){
   // parole complete e giuste → bloccate; i numeri che vi compaiono diventano certi
   let newOk=0;
   for(const s of S.z.slots){const k=slotKey(s);if(S.okSlots[k])continue;const w=crittoSlotWord(s);if(w.includes('.'))continue;
-    if(w===s.w){S.okSlots[k]=true;newOk++;const dy=s.dir?1:0,dx=s.dir?0:1;for(let i=0;i<s.w.length;i++)S.okNums.add(crittoNumAt(s.y+dy*i,s.x+dx*i));const pts=5+s.w.length;S.pts+=pts;FX.floatText($('#clueNow'),'+'+pts)}
+    if(w===s.w){S.okSlots[k]=true;newOk++;const dy=s.dir?1:0,dx=s.dir?0:1;for(let i=0;i<s.w.length;i++){const m=crittoNumAt(s.y+dy*i,s.x+dx*i);S.okNums.add(m);S.solvedNums.add(m)}const pts=5+s.w.length;S.pts+=pts;FX.floatText($('#clueNow'),'+'+pts)}
     else if(!S.badSlots)S.badSlots={}}
   if(newOk)FX.beep(newOk>1?'streak':'ok');
   if(Object.keys(S.okSlots).length===S.z.slots.length)finish();
@@ -193,11 +193,11 @@ function renderCritto(){
   const z=S.z,N=z.N;const s=curSlot();const curN=crittoNumAt(S.cy,S.cx);const bad=crittoWrongCells();
   const inWord=(y,x)=>s&&(s.dir?(x===s.x&&y>=s.y&&y<s.y+s.w.length):(y===s.y&&x>=s.x&&x<s.x+s.w.length));
   let cells='';for(let y=0;y<N;y++)for(let x=0;x<N;x++){const c=z.cells[y][x];if(!c){cells+=`<div class="c b"></div>`;continue}
-    const n=S.num[c.ch];const cls=['c','cr'];if(inWord(y,x))cls.push('word');if(n===curN)cls.push('same');if(S.cy===y&&S.cx===x)cls.push('cur');if(S.okNums.has(n))cls.push(S.given.has(n)?'hint':'lock');if(bad[y+','+x])cls.push('bad');
+    const n=S.num[c.ch];const cls=['c','cr'];if(inWord(y,x))cls.push('word');if(n===curN)cls.push('same');if(S.cy===y&&S.cx===x)cls.push('cur');if(S.okNums.has(n))cls.push(S.given.has(n)&&!S.solvedNums.has(n)?'hint':'lock');if(bad[y+','+x])cls.push('bad');
     if(!S.map[n]&&S.hyp[n])cls.push('hyp');
     if(!S.map[n]&&S.hyp[n]&&S.hyp[n].length>1)cls.push('hyp2');
     cells+=`<div class="${cls.join(' ')}" data-y="${y}" data-x="${x}"><span class="n">${n}</span>${S.map[n]||S.hyp[n]||''}</div>`}
-  const key=S.letters.map((ch,i)=>{const n=i+1;const cls=['kn'];if(S.okNums.has(n))cls.push('ok');if(n===curN)cls.push('on');if(!S.map[n]&&S.hyp[n])cls.push('hyp');return`<button class="${cls.join(' ')}" data-num="${n}"><span class="n">${n}</span><b>${S.map[n]||S.hyp[n]||'·'}</b></button>`}).join('');
+  const key=S.letters.map((ch,i)=>{const n=i+1;const cls=['kn'];if(S.okNums.has(n))cls.push(S.given.has(n)&&!S.solvedNums.has(n)?'given':'ok');if(n===curN)cls.push('on');if(!S.map[n]&&S.hyp[n])cls.push('hyp');return`<button class="${cls.join(' ')}" data-num="${n}"><span class="n">${n}</span><b>${S.map[n]||S.hyp[n]||'·'}</b></button>`}).join('');
   const nHyp=Object.keys(S.hyp).length,nHyp1=Object.values(S.hyp).filter(h=>h.length===1).length;
   const hypBar=`<div class="tools hypbar ${S.hypMode?'on':''}"><button class="btn ${S.hypMode?'primary':''}" data-act="hyp">✏️ Ipotesi ${S.hypMode?'attive':''}</button>${nHyp?`<button class="btn" data-act="hypConfirm" ${nHyp1?'':'disabled'}>✓ Conferma ${nHyp1}</button><button class="btn" data-act="hypClear">✕ Cancella</button>`:''}<span class="hint">${S.hypMode?'A matita: fino a 3 lettere per numero, non contano come errori. Ripeti una lettera per toglierla. Si confermano i numeri con una sola lettera.':'Come le note del Sudoku: prova fino a 3 lettere per numero senza rischiare.'}</span></div>`;
   const nOk=Object.keys(S.okSlots).length;
