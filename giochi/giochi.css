@@ -113,15 +113,30 @@ body[data-skin=galassia] .bar{background:rgba(18,8,38,.85)}
 .g-lv.lock{opacity:.45;cursor:not-allowed}
 .g-set input[type=range]{width:100%;accent-color:var(--accent)}
 .g-skins{display:flex;flex-wrap:wrap;gap:8px}
-.g-diff{display:grid;grid-template-columns:repeat(10,1fr);gap:5px}
-.g-diff-b{appearance:none;border:2px solid var(--border);background:var(--surface);color:var(--fg);border-radius:10px;padding:8px 0;font-weight:800;font-family:var(--font-mono);cursor:pointer;min-width:0}
+.g-diffpick{display:grid;gap:4px}
+.g-diff{display:flex;gap:4px}
+.g-diff-b{appearance:none;flex:1;min-width:0;height:32px;border-radius:8px;border:2px solid var(--border);background:var(--surface);font:inherit;font-weight:800;font-size:.85rem;cursor:pointer;padding:0;color:var(--muted)}
 .g-diff-b:hover{border-color:var(--accent)}
-.g-diff-b.on{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 6px 14px -6px rgba(0,0,0,.4)}
+.g-diff-b.on{color:#fff;border-color:transparent}
+.g-diff-b.d-easy.on{background:#16a34a}.g-diff-b.d-mid.on{background:var(--brand)}.g-diff-b.d-hard.on{background:#ea580c}.g-diff-b.d-max.on{background:#be123c}
 .g-skin{appearance:none;border:2px solid var(--border);background:var(--surface);color:var(--fg);border-radius:999px;padding:6px 12px;font-weight:700;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
 .g-skin.on{border-color:var(--accent);background:var(--accent-soft)}
 .g-help ul{margin:0;padding-left:20px;display:grid;gap:6px}
 
 /* ---- hub (giochi/index.html) ---- */
+.hub .hero{padding:20px 22px;gap:8px}
+.hub .hero h1{font-size:clamp(1.5rem,5vw,2.1rem)}
+.hub .hero .kpis{display:flex;flex-wrap:wrap;gap:8px}
+.hub .hero .kpi{padding:6px 12px;display:flex;align-items:baseline;gap:6px}
+.hub .hero .kpi b{font-size:1.1rem}
+.hub .wrap{gap:14px}
+.g-card{padding:14px 16px;gap:8px}
+.g-card .head{display:flex;align-items:center;gap:10px}
+.g-card .head .ic{font-size:1.8rem}
+.g-card .head b{font-size:1.1rem}
+.g-card .head .lv{margin-left:auto;font-size:.85rem}
+.g-card .hint{font-size:.88rem;line-height:1.35}
+.g-card .btn.primary{justify-content:center}
 .g-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
 .g-card{display:grid;gap:10px;padding:20px;border-radius:20px;background:var(--surface);border:2px solid var(--border);box-shadow:var(--shadow);text-decoration:none;color:inherit;transition:transform .15s,border-color .15s;align-content:start}
 .g-card:hover{transform:translateY(-3px);border-color:var(--brand-300)}

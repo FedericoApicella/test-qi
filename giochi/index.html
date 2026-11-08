@@ -12,27 +12,26 @@
 <body>
 <div class="bar">
   <div class="bar-in">
-    <a class="back" href="../" aria-label="Home">←</a>
     <div class="title">🎮 Giochi a livelli</div>
     <div class="scores" id="barScores"></div>
     <span id="barSound" style="margin-left:auto"></span>
     <span id="cardAccedi"></span>
   </div>
 </div>
-<main class="wrap" id="app">
+<main class="wrap hub" id="app">
   <section class="hero">
-    <div class="eyebrow">Tre classici · livelli infiniti · difficoltà a scelta</div>
+    <div class="eyebrow">Tre classici · livelli infiniti · difficoltà a scelta per gioco</div>
     <h1>Sudoku, Mahjong e Queens</h1>
-    <p>Scegli la difficoltà da 1 a 10 per ogni gioco e giocaci finché vuoi: i livelli sono infiniti e salgono pianissimo dentro la fascia che hai scelto.</p>
     <div class="kpis" id="kpis"></div>
   </section>
   <section class="stack">
-    <div class="sec-head"><h2>Scegli il gioco</h2><button class="btn" id="bSet">⚙️ Impostazioni</button></div>
+    <div class="sec-head"><h2>Scegli il gioco</h2><button class="btn" id="bSet">⚙️ Grafica e opzioni</button></div>
     <div class="g-cards" id="cards"></div>
   </section>
-  <p class="foot"><a href="../" style="color:var(--muted)">Mente Allenata</a> · test, sfide, allenamento e giochi</p>
+  <p class="foot hint">Il livello 1 parte alla difficoltà scelta; i livelli salgono pianissimo dentro la fascia e ogni difficoltà tiene i suoi livelli.</p>
 </main>
 <script src="../sfide/effetti.js"></script>
+<script src="../js/menu.js"></script>
 <script src="comune.js"></script>
 <script>
 (function(){
@@ -44,15 +43,14 @@ function disegna(){
   P=G.load();G.applySkin(P);const tot=G.totale(P),st=G.stelleTot(P);
   $('#kpis').innerHTML=`<div class="kpi"><b>${tot}</b><span>livelli completati</span></div><div class="kpi"><b>${st}</b><span>stelle</span></div>`;
   $('#cards').innerHTML=Object.keys(G.GIOCHI).map(k=>{const g=G.GIOCHI[k],p=P[k];const n=Object.keys(p.stelle).length;const d=G.diffOf(p.next,p.diff);const stars=Object.values(p.stelle).reduce((a,b)=>a+b,0);
-    return`<a class="g-card" href="${g.file}"><span class="ic">${g.ic}</span><b>${g.nome}</b><span class="hint">${DESC[k]}</span>
-      <div class="lv"><span>Livello <span class="mono">${p.next}</span></span><span>Difficoltà <span class="mono">${p.diff}</span>/10 · ${esc(G.nomeBase(p.diff))}</span></div>
-      <div class="track"><i style="width:${Math.min(100,(p.next-1)%25/25*100)}%"></i></div>
-      <div class="lv"><span>${n} completat${n===1?'o':'i'}</span><span>★ ${stars}</span></div>
-      <span class="cta">${n?(p.corso?'Riprendi il livello '+p.corso.level:'Gioca il livello '+p.next):'Inizia'} →</span></a>`}).join('');
+    return`<div class="g-card"><div class="head"><span class="ic">${g.ic}</span><b>${g.nome}</b><span class="lv"><span>${n} livell${n===1?'o':'i'} · ★ ${stars}</span></span></div><span class="hint">${DESC[k]}</span>
+      ${G.diffPickerHtml('d_'+k,p.diff)}
+      <a class="btn primary" href="${g.file}">${p.corso?'Riprendi il livello '+p.corso.level:'Livello '+p.next} →</a></div>`}).join('');
+  $('#cards').querySelectorAll('.g-diff').forEach(box=>box.addEventListener('click',e=>{const b=e.target.closest('.g-diff-b');if(!b)return;const k=box.id.slice(2);G.cambiaDiff(P,k,+b.dataset.v);G.save(P);FX.beep('tick');disegna()}));
 }
-$('#bSet').addEventListener('click',()=>G.impostazioni(P,disegna));
+$('#bSet').addEventListener('click',()=>G.impostazioni(P,disegna,null,true));
 G.onSync=disegna;
-$('#barSound').innerHTML=FX.soundButtonHtml();FX.bindSoundButton();
+if($('#barSound')){$('#barSound').innerHTML=FX.soundButtonHtml();FX.bindSoundButton()}
 disegna();
 })();
 </script>
