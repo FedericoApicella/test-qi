@@ -168,6 +168,7 @@ function updateBar(){
 }
 function bind(){
   document.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click',()=>act(b.dataset.act,b)));
+  document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
   document.querySelectorAll('.opt[data-i]').forEach(b=>b.addEventListener('click',()=>answer(+b.dataset.i,b)));
   const mi=$('#memInput');if(mi)mi.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();answer(mi.value.trim().toUpperCase()||null,mi)}});
   document.onkeydown=(e)=>{if(e.target&&e.target.tagName==='INPUT')return;if(S&&!S.sprint&&S.fb&&(e.key==='Enter'||e.key===' ')){e.preventDefault();next()}};
@@ -207,6 +208,10 @@ function chart(area){
 function gameCard(g){const r=P.giochi[g.id];const a=AREAS.find(x=>x.id===g.area);
   return`<button class="area ${g.kind}" data-act="game" data-game="${g.id}"><span class="ic">${g.ic}</span><b>${esc(g.name)}</b><span class="hint">${esc(g.desc)}</span>
     <span class="lv"><span>${a?a.ic+' '+a.name:''}</span><span style="text-align:right">${r&&r.n?(g.kind==='serio'?`livello ${r.level} · record ${r.best}`:`record ${r.best}`)+' · '+r.n+(r.n===1?' partita':' partite'):'mai provato'}</span></span>${r&&r.hist?spark(r.hist.map(h=>({lvl:1+9*Math.min(1,(h.score||0)/100)}))):''}</button>`}
+const TABS=[['gioca','🎮 Gioca'],['allenati','🏋️ Allenati'],['misurati','📏 Misurati'],['medaglie','🏅 Medaglie']];
+let TAB=(()=>{const h=location.hash.slice(1);if(TABS.some(t=>t[0]===h))return h;try{const v=localStorage.getItem('testqi.allen.tab');if(TABS.some(t=>t[0]===v))return v}catch(e){}return'gioca'})();
+function setTab(t){TAB=t;try{localStorage.setItem('testqi.allen.tab',t)}catch(e){}history.replaceState(null,'','#'+t);render()}
+window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(TABS.some(t=>t[0]===h)&&h!==TAB){TAB=h;if(!S)render()}});
 function rHome(){
   const cards=AREAS.map(a=>{const p=P.aree[a.id];const lv=lvNum(p.level);const acc=p.done?Math.round(p.correct/p.done*100):null;
     return`<button class="area" data-act="area" data-area="${a.id}"><span class="ic">${a.ic}</span><b>${a.name}</b><span class="hint">${esc(a.desc)}</span>
@@ -220,18 +225,19 @@ function rHome(){
   const badges=BADGES.map(b=>`<span class="badge ${P.badges[b.id]?'':'off'}" title="${esc(b.d)}"><span class="e">${b.e}</span>${b.n}</span>`).join('');
   const nB=Object.keys(P.badges).length;
   return`<div class="stack"><div class="eyebrow">Gioca · Allenati · Misurati</div><h1>Divertiti e <span class="grad">migliora davvero</span></h1>
-    <p class="lede">Giochi veloci per scaldarti, allenamenti seri con progressione misurabile, e il test per sapere a che punto sei. Tutto salvato su questo dispositivo.</p></div>
-    <div class="stats card" style="grid-template-columns:repeat(auto-fit,minmax(110px,1fr))">
+    </div>
+    <div class="stats card" style="grid-template-columns:repeat(4,minmax(0,1fr));padding:12px 8px">
       <div class="stat"><span class="v">${P.totalDone}</span><span class="l">quesiti</span></div>
       <div class="stat"><span class="v">${P.totalPts}</span><span class="l">punti</span></div>
       <div class="stat"><span class="v">🔥 ${P.bestStreak}</span><span class="l">serie record</span></div>
       <div class="stat"><span class="v">${nB}/${BADGES.length}</span><span class="l">medaglie</span></div>
     </div>
-    <div class="stack" id="gioca"><h2>🎮 Gioca</h2><p class="hint">Partite da un minuto, sempre diverse. Per divertirsi e scaldare la mente.</p><div class="areas">${daily}${sprint}${giochi}</div></div>
-    <div class="stack" id="allenati"><h2>🏋️ Allenati</h2><p class="hint">Allenamenti veri: la difficoltà si adatta a te e i progressi vengono registrati nel tempo. Dieci quesiti per sessione, ogni risposta spiegata.</p><div class="areas">${cards}${seri}</div></div>
-    <div class="stack" id="misurati"><h2>📏 Misurati</h2><p class="hint">Quando vuoi un numero attendibile, non un gioco: il test con scala QI, intervallo di confidenza e profilo per area.</p>
-      <div class="tiles"><a class="tile" href="../misura/"><span class="pill">6–14 min</span><span class="ic">🎯</span><b>Mini-test per area</b><span>24 quesiti nuovi su una sola area, punteggio con margine ±11.</span><span class="cta">Scegli l'area →</span></a><a class="tile" href="../test.html#breve"><span class="pill">≈ 20 min</span><span class="ic">⚡</span><b>Stima rapida</b><span>40 quesiti, una prima idea del punteggio.</span><span class="cta">Inizia →</span></a><a class="tile" href="../test.html"><span class="pill">≈ 50 min</span><span class="ic">🧪</span><b>Test completo</b><span>100 quesiti, la misura più precisa disponibile qui.</span><span class="cta">Inizia →</span></a></div></div>
-    <div class="card"><h3>Medaglie</h3><div class="badges">${badges}</div></div>
+    <div class="tabs" role="tablist">${TABS.map(([id,l])=>`<button type="button" role="tab" class="tab ${TAB===id?'on':''}" data-tab="${id}" aria-selected="${TAB===id}">${l}</button>`).join('')}</div>
+    ${TAB==='gioca'?`<div class="stack" id="gioca"><p class="hint">Partite da un minuto, sempre diverse. Per divertirsi e scaldare la mente.</p><div class="areas compact">${daily}${sprint}${giochi}</div></div>`:''}
+    ${TAB==='allenati'?`<div class="stack" id="allenati"><p class="hint">Allenamenti veri: la difficoltà si adatta a te (o la scegli tu) e i progressi restano nel tempo. Dieci quesiti, ogni risposta spiegata.</p><div class="areas compact">${cards}${seri}</div></div>`:''}
+    ${TAB==='misurati'?`<div class="stack" id="misurati"><p class="hint">Quando vuoi un numero attendibile: scala QI, intervallo di confidenza e profilo per area.</p>
+      <div class="tiles"><a class="tile" href="../misura/"><span class="pill">6–14 min</span><span class="ic">🎯</span><b>Mini-test per area</b><span>24 quesiti nuovi su una sola area, punteggio con margine ±11.</span><span class="cta">Scegli l'area →</span></a><a class="tile" href="../test.html#breve"><span class="pill">≈ 20 min</span><span class="ic">⚡</span><b>Stima rapida</b><span>40 quesiti, una prima idea del punteggio.</span><span class="cta">Inizia →</span></a><a class="tile" href="../test.html"><span class="pill">≈ 50 min</span><span class="ic">🧪</span><b>Test completo</b><span>100 quesiti, la misura più precisa disponibile qui.</span><span class="cta">Inizia →</span></a></div></div>`:''}
+    ${TAB==='medaglie'?`<div class="card"><h3>Medaglie · ${nB} di ${BADGES.length}</h3><div class="badges">${badges}</div></div>`:''}
     <div class="actions"><a class="btn" href="./">⚔️ Sfida un amico</a><a class="btn" href="../">🏠 Home</a><button class="btn" data-act="reset" style="margin-left:auto">Azzera i progressi</button></div>`;
 }
 function preInfo(){const {kind,id}=S.pre;if(kind==='area'){const a=AREAS.find(x=>x.id===id);return{ic:a.ic,name:a.name,desc:a.desc,sub:'Dieci quesiti, ogni risposta spiegata.'}}if(kind==='sprint')return{ic:'⚡',name:'Sprint 60 secondi',desc:'Quesiti a raffica: quanti ne fai in un minuto? Ogni risposta giusta di fila vale di più.',sub:`Record ${P.sprintBest} punti`};const g=GAMES.find(x=>x.id===id);const r=P.giochi[id];return{ic:g.ic,name:g.name,desc:g.desc,sub:r&&r.n?`Record ${r.best} · ${r.n} partit${r.n===1?'a':'e'}`:'Mai provato'}}
@@ -275,7 +281,7 @@ function rQ(){
   else if(S.fb){
     const f=S.fb;
     fb=`<div class="fb ${f.ok?'ok':'bad'}"><b>${f.ok?(S.streak>=5?`Giusto! 🔥 ${S.streak} di fila, +${f.pts} punti`:`Giusto! +${f.pts} punti`):(f.choice===null?'Tempo scaduto.':'Sbagliato.')+' La risposta giusta era '+(it.kind==='mem'?it.answer:LETTERS[it.answer])+'.'}</b>
-      ${it.rule?`<span>Spiegazione: ${esc(it.rule)}.</span>`:''}${f.levelUp?`<span>🎉 Sei salito al livello ${f.lvAfter}!</span>`:''}
+      ${it.rule?`<span>💡 ${esc(window.Quesiti.spiegazione?window.Quesiti.spiegazione(it):'Spiegazione: '+it.rule+'.')}</span>`:''}${f.levelUp?`<span>🎉 Sei salito al livello ${f.lvAfter}!</span>`:''}
       <div class="actions"><button class="btn primary" id="nextBtn" data-act="next">${S.i+1<SESSION_N?'Avanti':'Vedi il risultato'}</button><span class="hint">Invio per continuare</span></div></div>`;
   }
   return`${head}<div id="qbox" class="stack">${body}</div>${fb}${S.fb?'':'<div class="actions"><button class="btn" data-act="quit">Interrompi</button></div>'}`;

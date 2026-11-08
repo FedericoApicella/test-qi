@@ -144,17 +144,17 @@ function matrixItem(rng,level){
 // ========================= serie numeriche =========================
 // Ogni generatore restituisce {seq,next,rule}; sono ordinati per difficoltà crescente.
 const NUM_GENS=[
-  rng=>{const a=rint(rng,1,12),d=rint(rng,2,6);const s=[];for(let i=0;i<5;i++)s.push(a+i*d);return{seq:s,next:a+5*d,rule:`+${d}`}},
-  rng=>{const d=rint(rng,2,7),a=rint(rng,30,60);const s=[];for(let i=0;i<4;i++)s.push(a-i*d);return{seq:s,next:a-4*d,rule:`−${d}`}},
-  rng=>{const a=rint(rng,1,4),m=pick([2,3],rng);const s=[];for(let i=0;i<5;i++)s.push(a*Math.pow(m,i));return{seq:s,next:a*Math.pow(m,5),rule:`×${m}`}},
-  rng=>{const c=rint(rng,0,3),k0=rint(rng,1,3);const s=[];for(let i=0;i<5;i++)s.push((k0+i)*(k0+i)+c);return{seq:s,next:(k0+5)*(k0+5)+c,rule:c?`quadrati +${c}`:'quadrati'}},
-  rng=>{const a=rint(rng,1,9),d0=rint(rng,1,3);const s=[a];let v=a;for(let i=0;i<4;i++){v+=d0+i;s.push(v)}return{seq:s,next:v+d0+4,rule:`differenze crescenti: +${d0}, +${d0+1}, +${d0+2}…`}},
-  rng=>{const a=rint(rng,1,5),b=rint(rng,a+1,a+5);const s=[a,b];for(let i=0;i<4;i++)s.push(s[s.length-1]+s[s.length-2]);const next=s[5]+s[4];return{seq:s,next,rule:'somma dei due precedenti'}},
-  rng=>{const a=rint(rng,5,15),p=rint(rng,2,4),m=rint(rng,1,3);const s=[a];let v=a;for(let i=0;i<5;i++){v+=(i%2===0?p:-m);s.push(v)}return{seq:s,next:v+(5%2===0?p:-m),rule:`alternanza +${p} e −${m}`}},
-  rng=>{const a=rint(rng,2,6),k=rint(rng,1,3);const s=[a];let v=a;for(let i=0;i<4;i++){v=2*v+k;s.push(v)}return{seq:s,next:2*v+k,rule:`×2 +${k}`}},
-  rng=>{const a=rint(rng,3,7),k=rint(rng,1,2);const s=[a];let v=a;for(let i=0;i<4;i++){v=2*v-k;s.push(v)}return{seq:s,next:2*v-k,rule:`×2 −${k}`}},
-  rng=>{const a=rint(rng,1,4);const s=[];for(let i=1;i<=5;i++)s.push((a+i)*(a+i+1));return{seq:s,next:(a+6)*(a+7),rule:'n × (n+1)'}},
-  rng=>{const a=rint(rng,1,3),b=rint(rng,10,20),d=rint(rng,2,4);const s=[];for(let i=0;i<3;i++){s.push(a*Math.pow(2,i),b+i*d)}s.push(a*8);return{seq:s,next:b+3*d,rule:`due serie alternate: una ×2, l'altra +${d}`}},
+  rng=>{const a=rint(rng,1,25),d=rint(rng,2,9);const s=[];for(let i=0;i<5;i++)s.push(a+i*d);return{seq:s,next:a+5*d,rule:`+${d}`}},
+  rng=>{const d=rint(rng,2,9),a=rint(rng,40,99);const s=[];for(let i=0;i<4;i++)s.push(a-i*d);return{seq:s,next:a-4*d,rule:`−${d}`}},
+  rng=>{const a=rint(rng,1,9),m=pick([2,3],rng);const s=[];for(let i=0;i<5;i++)s.push(a*Math.pow(m,i));return{seq:s,next:a*Math.pow(m,5),rule:`×${m}`}},
+  rng=>{const c=rint(rng,0,9),k0=rint(rng,1,6);const s=[];for(let i=0;i<5;i++)s.push((k0+i)*(k0+i)+c);return{seq:s,next:(k0+5)*(k0+5)+c,rule:c?`quadrati +${c}`:'quadrati'}},
+  rng=>{const a=rint(rng,1,30),d0=rint(rng,1,6);const s=[a];let v=a;for(let i=0;i<4;i++){v+=d0+i;s.push(v)}return{seq:s,next:v+d0+4,rule:`differenze crescenti: +${d0}, +${d0+1}, +${d0+2}…`}},
+  rng=>{const a=rint(rng,1,9),b=rint(rng,a+1,a+9);const s=[a,b];for(let i=0;i<4;i++)s.push(s[s.length-1]+s[s.length-2]);const next=s[5]+s[4];return{seq:s,next,rule:'somma dei due precedenti'}},
+  rng=>{const a=rint(rng,5,40),p=rint(rng,2,7),m=rint(rng,1,5);const s=[a];let v=a;for(let i=0;i<5;i++){v+=(i%2===0?p:-m);s.push(v)}return{seq:s,next:v+(5%2===0?p:-m),rule:`alternanza +${p} e −${m}`}},
+  rng=>{const a=rint(rng,2,12),k=rint(rng,1,5);const s=[a];let v=a;for(let i=0;i<4;i++){v=2*v+k;s.push(v)}return{seq:s,next:2*v+k,rule:`×2 +${k}`}},
+  rng=>{const a=rint(rng,3,12),k=rint(rng,1,2);const s=[a];let v=a;for(let i=0;i<4;i++){v=2*v-k;s.push(v)}return{seq:s,next:2*v-k,rule:`×2 −${k}`}},
+  rng=>{const a=rint(rng,0,9);const s=[];for(let i=1;i<=5;i++)s.push((a+i)*(a+i+1));return{seq:s,next:(a+6)*(a+7),rule:'n × (n+1)'}},
+  rng=>{const a=rint(rng,1,5),b=rint(rng,10,40),d=rint(rng,2,7);const s=[];for(let i=0;i<3;i++){s.push(a*Math.pow(2,i),b+i*d)}s.push(a*8);return{seq:s,next:b+3*d,rule:`due serie alternate: una ×2, l'altra +${d}`}},
   rng=>{const a=rint(rng,3,7),m=rint(rng,2,3),k=rint(rng,1,a-1);const s=[a];let v=a;for(let i=0;i<4;i++){v=i%2===0?v*m:v-k;s.push(v)}return{seq:s,next:4%2===0?v*m:v-k,rule:`alternanza ×${m} e −${k}`}},
   rng=>{const k0=rint(rng,1,2);const s=[];for(let i=0;i<4;i++)s.push(Math.pow(k0+i,3));return{seq:s,next:Math.pow(k0+4,3),rule:'cubi: n³'}},
   rng=>{const P=[2,3,5,7,11,13,17,19,23,29,31];const st=rint(rng,0,3);const s=P.slice(st,st+5);return{seq:s,next:P[st+5],rule:'numeri primi'}},
@@ -163,9 +163,40 @@ const NUM_GENS=[
   rng=>{const s=[];for(let i=1;i<=5;i++)s.push(i*i*(i+1));return{seq:s,next:36*7,rule:'n² × (n+1)'}},
   rng=>{const a=rint(rng,1,3),d=rint(rng,1,2);const s=[a];let v=a,st=d;for(let i=0;i<4;i++){v+=st;st*=2;s.push(v)}return{seq:s,next:v+st,rule:`differenze che raddoppiano: +${d}, +${2*d}, +${4*d}…`}},
 ];
+// altri generatori con la loro difficoltà (0..1): si mescolano ai precedenti, che valgono i/N
+const NUM_MORE=[
+  [0.05,rng=>{const a=rint(rng,2,30),d=rint(rng,3,15);const s=[];for(let i=0;i<5;i++)s.push(a+i*d);return{seq:s,next:a+5*d,rule:`+${d} ogni volta`}}],
+  [0.1,rng=>{const d=rint(rng,3,12),a=rint(rng,6*d+2,6*d+60);const s=[];for(let i=0;i<5;i++)s.push(a-i*d);return{seq:s,next:a-5*d,rule:`−${d} ogni volta`}}],
+  [0.15,rng=>{const a=rint(rng,1,6),b=rint(rng,20,40),d=rint(rng,2,5),e=rint(rng,1,4);const s=[];for(let i=0;i<3;i++){s.push(a+i*d,b-i*e)}return{seq:s,next:a+3*d,rule:`due serie alternate: +${d} nei posti dispari, −${e} nei pari`}}],
+  [0.2,rng=>{const k=rint(rng,2,5),a=k*rint(rng,8,20);const s=[a];let v=a;for(let i=0;i<3;i++){v=v/k*k-k;s.push(v)}return{seq:s,next:v-k,rule:`−${k}`}}],
+  [0.25,rng=>{const e=rint(rng,1,4);const p=Math.pow(2,e+4)*rint(rng,1,3);const s=[];let v=p;for(let i=0;i<5;i++){s.push(v);v/=2}return{seq:s,next:v,rule:'÷2 ogni volta'}}],
+  [0.3,rng=>{const c=rint(rng,0,5),k0=rint(rng,1,4);const s=[];for(let i=0;i<5;i++)s.push((k0+i)*(k0+i+1)/2+c);return{seq:s,next:(k0+5)*(k0+6)/2+c,rule:`differenze +${k0+1}, +${k0+2}, +${k0+3}… (numeri triangolari${c?` +${c}`:''})`}}],
+  [0.3,rng=>{const a=rint(rng,1,4),m=rint(rng,2,4),k=rint(rng,1,3);const s=[a];let v=a;for(let i=0;i<4;i++){v=v*m+k;s.push(v)}return{seq:s,next:v*m+k,rule:`×${m} +${k}`}}],
+  [0.35,rng=>{const a=rint(rng,70,120),d0=rint(rng,8,12);const s=[a];let v=a,d=d0;for(let i=0;i<4;i++){v-=d;s.push(v);d--}return{seq:s,next:v-d,rule:`differenze che calano di 1: −${d0}, −${d0-1}, −${d0-2}…`}}],
+  [0.35,rng=>{const p=[rint(rng,2,4),rint(rng,5,8)];const a=rint(rng,1,10);const s=[a];let v=a;for(let i=0;i<5;i++){v+=p[i%2];s.push(v)}return{seq:s,next:v+p[1],rule:`si alternano +${p[0]} e +${p[1]}`}}],
+  [0.4,rng=>{const k=rint(rng,1,4),c=rint(rng,0,6);const s=[];for(let i=k;i<k+5;i++)s.push(i*i*2+c);return{seq:s,next:(k+5)*(k+5)*2+c,rule:`2 × n²${c?` + ${c}`:''}`}}],
+  [0.4,rng=>{const a=rint(rng,1,5);const sq=[1,4,9,16,25,36];const s=[a];let v=a;for(let i=0;i<4;i++){v+=sq[i];s.push(v)}return{seq:s,next:v+sq[4],rule:'si aggiungono i quadrati: +1, +4, +9, +16…'}}],
+  [0.45,rng=>{const a=rint(rng,1,9);const P=[2,3,5,7,11,13];const s=[a];let v=a;for(let i=0;i<4;i++){v+=P[i];s.push(v)}return{seq:s,next:v+P[4],rule:'si aggiungono i numeri primi: +2, +3, +5, +7…'}}],
+  [0.45,rng=>{const o=rint(rng,0,2)*2+1;const s=[];for(let i=0;i<4;i++)s.push((o+2*i)*(o+2*i));return{seq:s,next:(o+8)*(o+8),rule:'quadrati dei numeri dispari'}}],
+  [0.5,rng=>{const a=rint(rng,1,3),b=rint(rng,1,3),c=rint(rng,2,4);const s=[a,b,c];for(let i=0;i<3;i++)s.push(s[s.length-1]+s[s.length-2]+s[s.length-3]);return{seq:s,next:s[5]+s[4]+s[3],rule:'ogni numero è la somma dei tre precedenti'}}],
+  [0.5,rng=>{const m=rint(rng,2,3);const s=[];for(let i=1;i<=5;i++)s.push(Math.pow(m,i)-1);return{seq:s,next:Math.pow(m,6)-1,rule:`potenze di ${m} meno 1`}}],
+  [0.55,rng=>{const a=rint(rng,1,4),b=rint(rng,2,5);const s=[a,b];for(let i=0;i<4;i++)s.push(2*s[s.length-1]+s[s.length-2]);return{seq:s,next:2*s[5]+s[4],rule:'il doppio del precedente più quello prima ancora'}}],
+  [0.55,rng=>{const k=rint(rng,1,3);const s=[];for(let i=k+1;i<=k+5;i++)s.push(i*i*i-i);return{seq:s,next:(k+6)*(k+6)*(k+6)-(k+6),rule:'n³ − n'}}],
+  [0.6,rng=>{const a=rint(rng,2,5);const s=[a];let v=a;for(let i=1;i<=4;i++){v=v*2+(i%2?1:-1);s.push(v)}return{seq:s,next:v*2+1,rule:'×2 +1, poi ×2 −1, alternati'}}],
+  [0.6,rng=>{const a=rint(rng,2,6),b=rint(rng,2,6);const s=[a,b];for(let i=0;i<3;i++)s.push(s[s.length-1]*s[s.length-2]>2000?s[s.length-1]+s[s.length-2]:s[s.length-1]+s[s.length-2]);return{seq:s,next:s[4]+s[3],rule:'ogni numero è la somma dei due precedenti'}}],
+  [0.65,rng=>{const a=rint(rng,1,4);const s=[a];let v=a;for(let i=1;i<=4;i++){v=v*i+i;s.push(v)}return{seq:s,next:v*5+5,rule:'×1 +1, ×2 +2, ×3 +3, ×4 +4…'}}],
+  [0.7,rng=>{const k=rint(rng,1,4);const s=[];for(let i=k;i<k+5;i++)s.push(i*i+(i+1)*(i+1));return{seq:s,next:(k+5)*(k+5)+(k+6)*(k+6),rule:'somma di due quadrati consecutivi: n² + (n+1)²'}}],
+  [0.7,rng=>{const a=rint(rng,1,3),d=rint(rng,2,3);const s=[a];let v=a,st=d;for(let i=0;i<4;i++){v+=st;st*=3;s.push(v)}return{seq:s,next:v+st,rule:`differenze che triplicano: +${d}, +${3*d}, +${9*d}…`}}],
+  [0.75,rng=>{const a=rint(rng,2,4);const s=[a];let v=a;for(let i=0;i<4;i++){v=v*v-v;if(v>5000)break;s.push(v)}if(s.length<4)return{seq:[2,2,2,2],next:2,rule:'costante'};const nx=s[s.length-1]*s[s.length-1]-s[s.length-1];return nx>99999?{seq:s.slice(0,-1),next:s[s.length-1],rule:'n² − n applicato al precedente'}:{seq:s,next:nx,rule:'n² − n applicato al precedente'}}],
+  [0.8,rng=>{const P=[2,3,5,7,11,13,17,19,23,29,31,37];const st=rint(rng,0,4);const s=P.slice(st,st+5).map(p=>p*p);return{seq:s,next:P[st+5]*P[st+5],rule:'quadrati dei numeri primi'}}],
+  [0.85,rng=>{const a=rint(rng,1,3);const s=[];let v=a;for(let i=1;i<=5;i++){s.push(v);v=v*i+1}return{seq:s,next:v,rule:'×1 +1, ×2 +1, ×3 +1, ×4 +1…'}}],
+  [0.9,rng=>{const k=rint(rng,2,4);const s=[];for(let i=1;i<=5;i++)s.push(Math.pow(i,k)+i);return{seq:s,next:Math.pow(6,k)+6,rule:`n${k===2?'²':k===3?'³':'⁴'} + n`}}],
+];
+const NUM_ALL=NUM_GENS.map((g,i)=>[i/NUM_GENS.length,g]).concat(NUM_MORE);
 function numItem(rng,level){
-  const idx=Math.min(NUM_GENS.length-1,Math.floor(level*NUM_GENS.length));
-  const g=NUM_GENS[idx](rng);const {seq,next,rule}=g;
+  let pool=[];for(let win=0.08;pool.length<4;win+=0.06)pool=NUM_ALL.filter(x=>Math.abs(x[0]-level)<=win);
+  let g=pick(pool,rng)[1](rng);if(!g||g.next<2||!Number.isInteger(g.next)||g.seq.some(x=>!Number.isInteger(x)||x<0)||new Set(g.seq).size<2)g=NUM_GENS[0](rng);
+  const {seq,next,rule}=g;
   const last=seq[seq.length-1],d=last-seq[seq.length-2];
   const cands=[next+1,next-1,next+2,next-2,last+d,next+d,2*last,next+3,next-3,last+2*d,Math.round(next*1.1)+1,next+5,next-4];
   const opts=[next];for(const c of shuffled(cands,rng)){if(c!==next&&c>0&&!opts.includes(c))opts.push(c);if(opts.length===5)break}
@@ -218,7 +249,66 @@ const VERB_RAW=[
   ['Erudito','Ignorante','Loquace',['Taciturno','Chiacchierone','Eloquente','Sincero','Timido'],'contrari'],
   ['Apice','Vertice','Nadir',['Fondo','Cima','Centro','Orizzonte','Margine'],'sinonimi'],
 ];
+// Relazioni per generare analogie A : B = C : ? (migliaia di combinazioni, tutte di ragionamento, niente nozionismo).
+// d = difficoltà 0..1; sym = relazione simmetrica (contrari, sinonimi); coppie "a>b" separate da "|".
+const VERB_REL=[
+ {id:'verso',label:'animale e suo verso',d:0.05,p:'gatto>miagolare|cane>abbaiare|cavallo>nitrire|mucca>muggire|pecora>belare|asino>ragliare|leone>ruggire|lupo>ululare|maiale>grugnire|serpente>sibilare|ape>ronzare|rana>gracidare|corvo>gracchiare|colomba>tubare|elefante>barrire|cicala>frinire|gufo>bubolare|passero>cinguettare|oca>starnazzare|tacchino>gloglottare|cervo>bramire|gallina>chiocciare'},
+ {id:'organo',label:'organo e sua funzione',d:0.12,p:'occhio>vedere|orecchio>sentire|naso>annusare|lingua>gustare|polmoni>respirare|denti>masticare|gambe>camminare|stomaco>digerire|cervello>pensare|mani>afferrare|branchie>filtrare|ali>volare|pinne>nuotare|cuore>pompare|palpebre>proteggere'},
+ {id:'contr_agg',label:'contrari',d:0.1,sym:1,p:'caldo>freddo|alto>basso|pieno>vuoto|veloce>lento|aperto>chiuso|dolce>amaro|ricco>povero|felice>triste|forte>debole|vicino>lontano|leggero>pesante|nuovo>vecchio|largo>stretto|lungo>corto|duro>morbido|bagnato>asciutto|pulito>sporco|primo>ultimo|vero>falso|chiaro>scuro|giovane>anziano|facile>difficile|grasso>magro|rumoroso>silenzioso|liscio>ruvido|attivo>passivo|ordinato>disordinato|generoso>avaro|coraggioso>vigliacco|onesto>disonesto'},
+ {id:'contr_verbi',label:'azioni contrarie',d:0.15,sym:1,p:'entrare>uscire|salire>scendere|comprare>vendere|vincere>perdere|accendere>spegnere|ricordare>dimenticare|nascere>morire|aprire>chiudere|partire>arrivare|ridere>piangere|dare>ricevere|aumentare>diminuire|riempire>svuotare|accelerare>frenare|includere>escludere|importare>esportare|attrarre>respingere|costruire>demolire|lodare>criticare|unire>separare|nascondere>mostrare|iniziare>terminare|avvicinare>allontanare|accettare>rifiutare'},
+ {id:'contr_nomi',label:'contrari',d:0.2,sym:1,p:'giorno>notte|inizio>fine|luce>buio|pace>guerra|coraggio>paura|amico>nemico|ordine>caos|alba>tramonto|vittoria>sconfitta|domanda>risposta|entrata>uscita|gioia>tristezza|ricchezza>povertà|verità>menzogna|salita>discesa|premio>punizione|difesa>attacco|nord>sud|est>ovest|vantaggio>svantaggio|causa>effetto|teoria>pratica'},
+ {id:'parte',label:'parte e intero',d:0.2,p:'ruota>bicicletta|pagina>libro|petalo>fiore|foglia>albero|dito>mano|tasto>tastiera|mattone>muro|capitolo>romanzo|verso>poesia|vagone>treno|lettera>parola|parola>frase|spicchio>arancia|gradino>scala|remo>barca|lama>coltello|setola>spazzola|maglia>catena|acino>grappolo|scena>film|nota>accordo|piastrella>pavimento|chiodo>zoccolo|ala>uccello|corda>chitarra|lente>occhiali|pixel>immagine|fotogramma>pellicola|tessera>mosaico'},
+ {id:'strumento',label:'oggetto e sua funzione',d:0.2,p:'forbici>tagliare|penna>scrivere|chiave>aprire|scopa>spazzare|ago>cucire|pennello>dipingere|forno>cuocere|lavatrice>lavare|bilancia>pesare|sega>segare|colla>incollare|gomma>cancellare|lampada>illuminare|sveglia>svegliare|freno>rallentare|frigorifero>conservare|ombrello>riparare|telescopio>osservare|martello>battere|trapano>forare|spugna>assorbire|microfono>amplificare|filtro>depurare|bussola>orientare|timbro>imprimere'},
+ {id:'piccolo',label:'animale e suo piccolo',d:0.25,p:'cavallo>puledro|mucca>vitello|pecora>agnello|gallina>pulcino|rana>girino|capra>capretto|leone>leoncino|cervo>cerbiatto|anatra>anatroccolo|lepre>leprotto|aquila>aquilotto|volpe>volpacchiotto|farfalla>bruco|orso>orsacchiotto|cane>cucciolo|zanzara>larva|gatto>gattino|oca>papero'},
+ {id:'mestiere',label:'professionista e suo strumento',d:0.3,p:'chirurgo>bisturi|pittore>pennello|parrucchiere>forbici|muratore>cazzuola|medico>stetoscopio|sarto>ago|scultore>scalpello|cuoco>mestolo|arbitro>fischietto|direttore>bacchetta|pescatore>rete|contadino>aratro|biologo>microscopio|astronomo>telescopio|giardiniere>cesoie|idraulico>chiave|fotografo>obiettivo|scrittore>penna|falegname>pialla|chimico>provetta|geometra>livella|boscaiolo>ascia|minatore>piccone|pilota>cloche|cartografo>mappa'},
+ {id:'luogo',label:'professionista e suo luogo di lavoro',d:0.3,p:'medico>ospedale|insegnante>scuola|giudice>tribunale|cuoco>cucina|meccanico>officina|farmacista>farmacia|bibliotecario>biblioteca|fornaio>panetteria|muratore>cantiere|scienziato>laboratorio|attore>palcoscenico|contadino>campo|minatore>miniera|astronomo>osservatorio|giornalista>redazione|soldato>caserma|monaco>convento|marinaio>nave|pilota>cabina|pittore>atelier|chirurgo>sala operatoria|vigile del fuoco>caserma|bagnino>spiaggia|cameriere>ristorante'},
+ {id:'contenitore',label:'contenitore e contenuto',d:0.3,p:'portafoglio>soldi|vaso>fiori|acquario>pesci|libreria>libri|fodero>spada|faretra>frecce|astuccio>matite|armadio>vestiti|serbatoio>carburante|garage>automobile|scrigno>gioielli|cartella>fogli|nido>uova|granaio>grano|cantina>vino|busta>lettera|alveare>api|stalla>mucche|hangar>aerei|voliera>uccelli|archivio>documenti|cassaforte>valori|ovile>pecore|pollaio>galline'},
+ {id:'gruppo',label:'individuo e gruppo',d:0.35,p:'pecora>gregge|ape>sciame|lupo>branco|pesce>banco|uccello>stormo|mucca>mandria|nave>flotta|albero>bosco|soldato>esercito|musicista>orchestra|giocatore>squadra|isola>arcipelago|montagna>catena|chiave>mazzo|persona>folla|cantante>coro|studente>classe|stella>costellazione|vocabolo>dizionario|ministro>governo|giurato>giuria|attore>compagnia|canzone>album|carta>mazzo|abete>pineta'},
+ {id:'materia',label:'materia prima e prodotto',d:0.35,p:'uva>vino|latte>formaggio|grano>farina|farina>pane|olive>olio|lana>maglione|sabbia>vetro|argilla>mattone|legno>carta|cacao>cioccolato|ferro>acciaio|petrolio>plastica|luppolo>birra|cotone>tessuto|cuoio>scarpe|bozzolo>seta|mele>sidro|barbabietola>zucchero|panna>burro|pomodoro>passata|caffè>espresso|carbone>diamante|minerale>metallo'},
+ {id:'sequenza',label:'stadio e stadio successivo',d:0.4,p:'lunedì>martedì|gennaio>febbraio|primavera>estate|estate>autunno|autunno>inverno|inverno>primavera|infanzia>adolescenza|bruco>crisalide|crisalide>farfalla|seme>germoglio|girino>rana|mattina>pomeriggio|pomeriggio>sera|sera>notte|decina>centinaio|centinaio>migliaio|bozza>stesura|fiore>frutto|uovo>larva|semina>raccolto|alba>mattino|prologo>capitolo|ottobre>novembre|venerdì>sabato'},
+ {id:'misura',label:'strumento e ciò che misura',d:0.45,p:'termometro>temperatura|bilancia>peso|orologio>tempo|metro>lunghezza|barometro>pressione|tachimetro>velocità|igrometro>umidità|sismografo>scosse|anemometro>vento|goniometro>angoli|bussola>direzione|altimetro>quota|pluviometro>pioggia|contagiri>giri|fonometro>rumore|clessidra>tempo|cardiofrequenzimetro>battito'},
+ {id:'causa',label:'causa ed effetto',d:0.45,p:'pioggia>allagamento|fuoco>cenere|fatica>stanchezza|freddo>brivido|virus>malattia|studio>conoscenza|allenamento>forza|sole>abbronzatura|terremoto>crollo|siccità>carestia|scintilla>incendio|vento>onde|ferita>cicatrice|sforzo>sudore|battuta>risata|miccia>esplosione|bugia>sfiducia|seme>pianta|attrito>calore|inquinamento>smog|vaccino>immunità|lampo>tuono|pratica>abilità|gelo>ghiaccio'},
+ {id:'intensita',label:'grado minore e grado maggiore',d:0.5,p:'tiepido>bollente|brezza>uragano|collina>montagna|ruscello>fiume|pioggerella>diluvio|sorriso>risata|simpatia>amore|fastidio>dolore|mormorare>urlare|camminare>correre|sassolino>masso|stanco>esausto|contento>euforico|fresco>gelido|paura>terrore|rabbia>furia|bello>stupendo|brutto>orribile|grande>enorme|sorseggiare>tracannare|piccolo>minuscolo|antipatia>odio|scossa>terremoto|lago>mare|sobborgo>metropoli|interessato>appassionato|sbocconcellare>divorare'},
+ {id:'creatore',label:'autore e opera',d:0.5,p:'pittore>quadro|scrittore>romanzo|compositore>sinfonia|architetto>progetto|poeta>poesia|scultore>statua|regista>film|ragno>ragnatela|ape>favo|castoro>diga|uccello>nido|coreografo>balletto|drammaturgo>commedia|stilista>abito|sarto>vestito|cuoco>piatto|vasaio>vaso|orafo>gioiello|programmatore>software|fotografo>fotografia'},
+ {id:'unita',label:'unità e grandezza',d:0.55,p:'metro>lunghezza|chilogrammo>massa|secondo>tempo|litro>volume|watt>potenza|volt>tensione|ampere>corrente|joule>energia|newton>forza|ettaro>superficie|byte>memoria|hertz>frequenza|pascal>pressione|grado>angolo|caloria>energia|nodo>velocità|carato>purezza|lumen>luminosità'},
+ {id:'sinonimi',label:'sinonimi',d:0.65,sym:1,p:'arduo>difficile|esiguo>scarso|ingente>enorme|alacre>operoso|effimero>passeggero|loquace>chiacchierone|parsimonioso>risparmiatore|perspicace>acuto|sagace>astuto|solerte>diligente|tenace>perseverante|veemente>impetuoso|mite>docile|fausto>propizio|nefasto>funesto|proficuo>vantaggioso|palese>evidente|recondito>nascosto|insigne>illustre|inerme>indifeso|indolente>pigro|bizzarro>stravagante|cupo>tetro|celere>rapido|celebre>famoso|ilare>allegro|mesto>triste|ostinato>testardo|irato>arrabbiato|eloquente>espressivo|fortuito>casuale|lampante>chiaro|esausto>sfinito|arcano>misterioso|sobrio>moderato|tangibile>concreto|vano>inutile|lieto>felice'},
+ {id:'contr_ricerc',label:'contrari (lessico ricercato)',d:0.75,sym:1,p:'effimero>duraturo|prodigo>avaro|loquace>taciturno|palese>occulto|ottimista>pessimista|concavo>convesso|centripeto>centrifugo|astratto>concreto|oggettivo>soggettivo|induttivo>deduttivo|acerbo>maturo|esordio>epilogo|zenit>nadir|prologo>epilogo|convergere>divergere|altruista>egoista|sinonimo>contrario|ascesa>declino|lecito>illecito|esplicito>implicito|preciso>approssimativo|ortodosso>eterodosso|apatico>appassionato|frugale>sontuoso|benevolo>malevolo|transitorio>permanente|prolisso>conciso|loquacità>mutismo|euforia>sconforto|zelo>negligenza'},
+ {id:'mancanza',label:'condizione e ciò che manca',d:0.8,p:'sordo>udito|cieco>vista|muto>parola|orfano>genitori|anonimo>nome|apolide>cittadinanza|analfabeta>istruzione|insonne>sonno|sterile>fertilità|inodore>odore|incolore>colore|insipido>sapore|immobile>movimento|ateo>fede|disoccupato>lavoro|smemorato>memoria|squattrinato>denaro|inerme>difesa|amorfo>forma|anemico>sangue|sobrio>alcol|vegano>carne|astemio>vino|imberbe>barba|calvo>capelli'},
+];
+// costruzione dell'indice: relazioni con le coppie divise e la mappa parola → partner per relazione
+const VREL=VERB_REL.map(r=>{const pairs=r.p.split('|').map(x=>x.split('>').map(w=>w.trim())).filter(x=>x.length===2&&x[0]&&x[1]);return Object.assign({},r,{pairs})});
+const cap=(w)=>w.charAt(0).toUpperCase()+w.slice(1);
+// parole collegate a w in una relazione (per escludere risposte ambigue)
+const famiglia=(r)=>r.id.indexOf('contr')===0?'contr':r.id;
+function partners(rel,w){const out=new Set();rel.pairs.forEach(([a,b])=>{if(a===w)out.add(b);if(rel.sym&&b===w)out.add(a)});return out}
+function genAnalogy(rng,level,used){
+  // relazione con difficoltà vicina al livello (finestra che si allarga se serve)
+  let pool=[];for(let win=0.12;pool.length<3&&win<1.2;win+=0.1)pool=VREL.filter(r=>Math.abs(r.d-level)<=win);
+  for(let t=0;t<60;t++){
+    const rel=pick(pool,rng);const n=rel.pairs.length;if(n<4)continue;
+    const i=Math.floor(rng()*n);let j=Math.floor(rng()*(n-1));if(j>=i)j++;
+    let [a,b]=rel.pairs[i],[c,d]=rel.pairs[j];
+    if(rel.sym&&rng()<0.5){[a,b]=[b,a];[c,d]=[d,c]}
+    const words=[a,b,c,d];if(new Set(words).size<4)continue;
+    const k=rel.id+':'+a+':'+c;if(used&&used.has(k))continue;
+    const bad=new Set([d,c,a,b]);VREL.forEach(r=>{if(famiglia(r)===famiglia(rel))partners(r,c).forEach(x=>bad.add(x))});
+    // trappole: i partner di C in altre relazioni (es. Cane → cucciolo, branco) e risposte dello stesso tipo
+    const trap=[];VREL.forEach(r=>{if(famiglia(r)===famiglia(rel))return;partners(r,c).forEach(x=>{if(!bad.has(x))trap.push(x)});r.pairs.forEach(([x,y])=>{if(r.sym&&y===c&&!bad.has(x))trap.push(x)})});
+    const same=rel.pairs.map(p=>p[1]).concat(rel.sym?rel.pairs.map(p=>p[0]):[]).filter(x=>!bad.has(x)&&!partners(rel,x).has(c));
+    const opts=[d];const add=(x)=>{if(x&&!bad.has(x)&&!opts.includes(x))opts.push(x)};
+    shuffled(trap,rng).slice(0,2).forEach(add);
+    for(const x of shuffled(same,rng)){if(opts.length>=5)break;add(x)}
+    if(opts.length<5)continue;
+    if(used)used.add(k);
+    const w=withAnswer(opts.slice(0,5).map(cap),rng);
+    return{kind:'verb',a:cap(a),b:cap(b),c:cap(c),options:w.options,answer:w.answer,rule:rel.label};
+  }
+  return null;
+}
+
 function verbItem(rng,level,used){
+  // tre volte su quattro un'analogia generata dalle relazioni (migliaia di combinazioni), altrimenti una della lista scritta a mano
+  if(rng()<0.75){const g=genAnalogy(rng,level,used);if(g)return g}
   // scegli, tra quelli non ancora usati nella partita, uno vicino al livello richiesto
   const n=VERB_RAW.length;const target=Math.min(n-1,Math.floor(level*n));
   let best=-1,bd=1e9;
@@ -283,9 +373,21 @@ const ROT_RAW=[
   {t:[[0,0],[1,0],[1,1],[1,2],[2,2],[3,2],[3,1],[3,3]],m:[3,1]},
   {t:[[0,0],[0,1],[1,1],[2,1],[2,2],[3,2],[3,3],[4,3],[4,2]],m:[2,1]},
 ];
-function rotItem(rng,level){
+// figura casuale connessa di n celle, non simmetrica allo specchio (così la versione riflessa è davvero diversa)
+function randomPoly(rng,n){
+  for(let t=0;t<200;t++){
+    const cells=[[0,0]];const has=(x,y)=>cells.some(c=>c[0]===x&&c[1]===y);
+    while(cells.length<n){const b=pick(cells,rng);const d=pick([[1,0],[-1,0],[0,1],[0,-1]],rng);const x=b[0]+d[0],y=b[1]+d[1];if(!has(x,y))cells.push([x,y])}
+    const f={cells:norm(cells),mark:null};const w=Math.max(...f.cells.map(c=>c[0]))+1,h=Math.max(...f.cells.map(c=>c[1]))+1;if(w>5||h>5)continue;
+    const rots=symsF(f).slice(0,4).map(g=>key(g.cells));if(rots.includes(key(tf(f,'m').cells)))continue;
+    return f.cells;
+  }
+  return ROT_RAW[0].t;
+}
+function rotItem(rng,level,tries){
   const idx=Math.min(ROT_RAW.length-1,Math.floor(level*ROT_RAW.length));
-  const it=ROT_RAW[idx];
+  // due volte su tre una figura nuova generata a caso (da 4 a 8 celle secondo il livello)
+  const it=rng()<0.67?{t:randomPoly(rng,4+Math.min(4,Math.floor(level*5+rng()*1.5)))}:ROT_RAW[idx];
   const mx=Math.min(...it.t.map(c=>c[0])),my=Math.min(...it.t.map(c=>c[1]));
   let f={cells:norm(it.t),mark:it.m?[it.m[0]-mx,it.m[1]-my]:null};
   if(rng()<0.5)f=tf(f,'m'); // la figura di partenza può essere specchiata: più varietà
@@ -296,6 +398,7 @@ function rotItem(rng,level){
   const w=withAnswer(opts,rng);
   const L='ABCD';const mirL=w.options.map((o,k)=>o.kind==='mirror'?L[k]:null).filter(Boolean).join(' e '),dif=w.options.map((o,k)=>o.kind==='diff'?L[k]:null).filter(Boolean).join('');
   const rule=`${L[w.answer]} è la figura ruotata di ${ks[0]*90}°; ${mirL} sono riflesse allo specchio; ${dif} ha una cella spostata`;
+  if(new Set(opts.map(o=>fkey(o.f))).size<4&&(tries||0)<6)return rotItem(rng,level,(tries||0)+1);
   return{kind:'rot',target:f,options:w.options,answer:w.answer,marked:!!it.m,rule};
 }
 
@@ -373,5 +476,15 @@ function oneItem(kind,seed,level,usedVerb){
 const polyShapes=()=>ROT_RAW.map(it=>norm(it.t));
 const verbPairs=()=>VERB_RAW.map(([a,b,c,opts])=>({a,b,c,ok:opts[0],bad:opts.slice(1)}));
 const tfCells=(cells,kind)=>tf({cells,mark:null},kind).cells;
-window.Quesiti={buildGame,oneItem,itemHtml,cellSVG,cellsSVG,KIND_NAME:KIND_NAME_ALL,mulberry32,memAnswer,polyShapes,verbPairs,tfCells,SHAPES:SHAPES5,FILLS:FL};
+// spiegazione in frase intera, per tutte le pagine (allenamento, sfide)
+function spiegazione(it){
+  if(!it)return'';const L='ABCDEF';const ans=it.options?it.options[it.answer]:it.answer;
+  if(it.kind==='num')return`Regola: ${it.rule}. Dopo ${it.seq[it.seq.length-1]} viene quindi ${ans} (risposta ${L[it.answer]}).`;
+  if(it.kind==='verb')return`${it.a} e ${it.b}: ${it.rule}. Allo stesso modo ${it.c} va con ${ans} (risposta ${L[it.answer]}).`;
+  if(it.kind==='mat')return`Regola della matrice: ${it.rule}. La casella mancante è la ${L[it.answer]}.`;
+  if(it.kind==='rot')return`${it.rule.charAt(0).toUpperCase()+it.rule.slice(1)}.`;
+  if(it.kind==='mem')return`${it.rule.charAt(0).toUpperCase()+it.rule.slice(1)}: la risposta era ${it.answer}.`;
+  return it.rule?`Regola: ${it.rule}.`:'';
+}
+window.Quesiti={buildGame,oneItem,spiegazione,itemHtml,cellSVG,cellsSVG,KIND_NAME:KIND_NAME_ALL,mulberry32,memAnswer,polyShapes,verbPairs,tfCells,SHAPES:SHAPES5,FILLS:FL};
 })();

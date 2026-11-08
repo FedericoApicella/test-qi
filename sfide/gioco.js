@@ -7,18 +7,20 @@ const $=(s)=>document.querySelector(s);
 const esc=(s)=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const LETTERS='ABCDEF';
 const CODE_CHARS='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const RESULT_MS=3200;                        // quanto resta visibile l'esito del turno
+const RESULT_MS=15000;                       // tempo massimo sull'esito del turno (si passa prima se entrambi premono «Avanti»)
 const GRACE_MS=2500;                         // attesa della risposta dell'altro dopo lo scadere del tempo
-const {buildGame,cellSVG,cellsSVG,KIND_NAME,itemHtml}=window.Quesiti;
+const {buildGame,cellSVG,cellsSVG,KIND_NAME,itemHtml,spiegazione}=window.Quesiti;
 const FX=window.Effetti;
 const PRESETS=[['lampo','⚡ Lampo',6,20],['classica','🎯 Classica',10,45],['maratona','🏃 Maratona',16,60]];
 const KEY_REC='testqi.sfide';
+const KEY_AMICI='testqi.amici';      // [{nome, aggiunto}] sincronizzato dall'account se c'è
+const accountName=()=>{try{const u=window.Account&&window.Account.utente();return u&&u.nome||''}catch(e){return''}};
 const KINDS=[['mat','Matrici'],['num','Serie numeriche'],['verb','Analogie'],['rot','Rotazioni']];
 
 // ========================= stato =========================
 let S;
 function fresh(){
-  return{screen:'home',role:null,solo:false,code:'',name:localStorage.getItem('testqi.nome')||'',oppName:'',connected:false,
+  return{screen:'home',role:null,solo:false,code:'',name:localStorage.getItem('testqi.nome')||accountName()||'',oppName:'',connected:false,invito:null,invitato:'',
     cfg:{rounds:10,time:45,kinds:['mat','num','verb','rot']},seed:0,items:[],i:-1,
     ans:[],         // per turno: [{choice,ms}|null per host, idem per ospite]
     results:[],     // per turno: {pts:[p0,p1]}
@@ -47,7 +49,7 @@ function onLost(){
 function netError(msg){log('errore: '+msg);S.err=msg;S.busy='';render()}
 function callbacks(){
   return{log,
-    onReady(){S.busy='';S.via=net?net.via:'';if(S.role==='host'){S.screen='lobby';render()}else{S.busy='Cerco la stanza '+S.code+'…';render()}},
+    onReady(){S.busy='';S.via=net?net.via:'';if(S.role==='host'){S.screen='lobby';render();if(S.invitato)mandaInvito()}else{S.busy='Cerco la stanza '+S.code+'…';render()}},
     onPeer(){S.connected=true;S.busy='';S.via=net?net.via:'';lastSeen=Date.now();send({t:'hello',name:S.name||(S.role==='host'?'Giocatore 1':'Giocatore 2')});
       clearInterval(hbT);hbT=setInterval(()=>{send({t:'ping'});if(Date.now()-lastSeen>LOST_MS)onLost()},HB_MS);
       if(S.role==='guest'){S.busy='Collegamento riuscito, attendo…';render()}},
@@ -74,6 +76,7 @@ function onData(m){
     case'ans':if(S.i===m.i&&S.screen==='round'){S.theirs={choice:m.choice,ms:m.ms};if(S.role==='host')S.ans[S.i][1]=S.theirs;render();if(S.role==='host')checkRound()}break;
     case'result':if(S.role==='guest')showResult(m.i,m.a);break;
     case'end':if(S.role==='guest')endGame();break;
+    case'ready':if(m.i===S.i&&S.screen==='result'){S.ready[opp()]=true;render();if(S.role==='host')checkReady()}break;
     case'bye':onLost();break;
   }
 }
@@ -108,6 +111,7 @@ function startRound(i){
   tick=setInterval(()=>{S.timeLeft=Math.max(0,S.cfg.time-Math.round((Date.now()-S.roundAt)/1000));updateBar();if(S.timeLeft<=0){stopTimer();onTimeout()}},250);
 }
 function stopTimer(){if(tick){clearInterval(tick);tick=null}}
+setInterval(()=>{if(S&&S.screen==='result'){const el=document.getElementById('resLeft');if(el)el.textContent=Math.max(0,Math.ceil(((S.resultEnd||0)-Date.now())/1000))}},500);
 function answer(choice){
   if(S.screen!=='round'||S.mine)return;
   const ms=Math.min(Date.now()-S.roundAt,S.cfg.time*1000);
@@ -127,8 +131,10 @@ function finalize(){
   const a=S.ans[S.i].map(x=>x||{choice:null,ms:S.cfg.time*1000});
   send({t:'result',i:S.i,a});
   showResult(S.i,a);
-  nextT=setTimeout(hostNext,RESULT_MS);
+  nextT=setTimeout(hostNext,RESULT_MS);S.resultEnd=Date.now()+RESULT_MS;
 }
+function readyNow(){if(S.screen!=='result'||S.ready[me()])return;S.ready[me()]=true;send({t:'ready',i:S.i});render();if(S.role==='host')checkReady()}
+function checkReady(){if(S.screen==='result'&&(S.solo||(S.ready[0]&&S.ready[1]))){clearTimeout(nextT);hostNext()}}
 function points(it,a){
   if(!a||a.choice!==it.answer)return 0;
   const frac=Math.max(0,1-a.ms/(S.cfg.time*1000));
@@ -138,8 +144,11 @@ function showResult(i,a){
   stopTimer();
   const it=S.items[i];S.ans[i]=a;
   const pts=[points(it,a[0]),points(it,a[1])];
+  // chi risponde giusto per primo prende sempre almeno un punto in più dell'altro
+  if(!S.solo&&pts[0]>0&&pts[1]>0&&a[0].ms!==a[1].ms){const f=a[0].ms<a[1].ms?0:1;if(pts[f]<=pts[1-f])pts[f]=pts[1-f]+1}
   S.streak=S.streak.map((st,k)=>pts[k]>0?st+1:0);
   S.results[i]={pts,streak:S.streak.slice()};S.score=[S.score[0]+pts[0],S.score[1]+pts[1]];
+  S.ready=[false,false];if(!S.resultEnd||S.role!=='host')S.resultEnd=Date.now()+RESULT_MS;
   S.screen='result';render();
   const m=me();FX.beep(pts[m]>0?(S.streak[m]>=3?'streak':'ok'):'bad');
   const mySc=document.querySelector('.bar .sc.me');if(pts[m]>0){FX.floatText(mySc,'+'+pts[m],S.streak[m]>=3?'gold':'');if(mySc){mySc.classList.remove('pop');void mySc.offsetWidth;mySc.classList.add('pop')}}else FX.shake(document.querySelector('.verdict'));
@@ -154,6 +163,32 @@ function recordHtml(){if(S.solo||!S.oppName)return'';const r=FX.load(KEY_REC,{})
 function startSolo(){S.role='host';S.solo=true;S.oppName='';S.connected=false;hostStart()}
 function goHome(){if(S.connected)send({t:'bye'});destroyNet();stopTimer();clearTimeout(nextT);clearTimeout(graceT);const name=S.name,lg=S.log;S=fresh();S.name=name;S.log=lg;history.replaceState(null,'',location.pathname);render()}
 
+// ========================= amici e inviti =========================
+const amici=()=>FX.load(KEY_AMICI,[]);
+const amicoKey=(n)=>window.Rete.normNome(n);
+function addAmico(nome){nome=String(nome||'').trim().slice(0,20);if(!nome)return false;const l=amici();if(l.some(a=>amicoKey(a.nome)===amicoKey(nome))||amicoKey(nome)===amicoKey(S.name))return false;l.push({nome,aggiunto:Date.now()});FX.save(KEY_AMICI,l);return true}
+function delAmico(nome){FX.save(KEY_AMICI,amici().filter(a=>amicoKey(a.nome)!==amicoKey(nome)))}
+// sfidare un amico: crea la stanza e, appena pronta, lascia l'invito nella sua cassetta sul ponte
+function sfidaAmico(nome){S.invitato=nome;if(S.screen==='lobby'&&S.role==='host'){mandaInvito();return}if(!S.name.trim())S.name='Giocatore 1';createRoom()}
+function mandaInvito(){const n=S.invitato;if(!n||!S.code)return;S.invitoStato='…';render();log('mando l\'invito a '+n);
+  window.Rete.invita(n,S.name,S.code,log).then(ok=>{S.invitoStato=ok?'ok':'no';log(ok?'invito lasciato nella cassetta di '+n:'invito non consegnato');render()})}
+let inbox=null,inboxName='';
+function ascolta(){const nm=S.name.trim();if(!nm||S.screen!=='home'){if(inbox&&(S.screen!=='home'||!nm)){inbox.close();inbox=null;inboxName=''}return}
+  if(inbox&&inboxName===amicoKey(nm))return;if(inbox)inbox.close();inboxName=amicoKey(nm);
+  inbox=window.Rete.ascoltaInviti(nm,(m)=>{if(S.screen!=='home')return;if(S.invito&&S.invito.stanza===m.stanza)return;S.invito=m;log('invito da '+m.da+' per la stanza '+m.stanza);FX.beep('start');render()},log)}
+function accettaInvito(){const m=S.invito;if(!m)return;if(inbox)inbox.pulisci();S.invito=null;if(!S.name.trim())S.name='Giocatore 2';localStorage.setItem('testqi.nome',S.name);joinRoom(m.stanza)}
+function amiciHtml(inLobby){
+  const l=amici();const rec=FX.load(KEY_REC,{});
+  const recenti=Object.values(rec).filter(r=>r.nome&&!l.some(a=>amicoKey(a.nome)===amicoKey(r.nome))&&amicoKey(r.nome)!==amicoKey(S.name)).sort((a,b)=>(b.ultimo||0)-(a.ultimo||0)).slice(0,5);
+  const row=(a)=>`<div class="pl"><span class="dot on"></span><span class="nm">${esc(a.nome)}</span><span class="st">${inLobby?`<button class="btn" data-act="invita" data-nome="${esc(a.nome)}">${S.invitato&&amicoKey(S.invitato)===amicoKey(a.nome)?(S.invitoStato==='ok'?'Invitato ✓':S.invitoStato==='…'?'Invio…':'Riprova'):'Invita'}</button>`:`<button class="btn primary" data-act="sfida" data-nome="${esc(a.nome)}">⚔️ Sfida</button><button class="btn icon" data-act="delAmico" data-nome="${esc(a.nome)}" aria-label="Rimuovi ${esc(a.nome)}" title="Rimuovi">✕</button>`}</span></div>`;
+  return`<div class="card" id="amici"><h3>👥 Amici</h3>
+    ${l.length?l.map(row).join(''):'<p class="hint">Aggiungi il nome che usa il tuo amico qui: lo sfidi con un tocco e gli arriva l\'invito.</p>'}
+    ${recenti.length?`<p class="hint">Hai giocato di recente con: ${recenti.map(r=>`<button class="btn" style="padding:4px 10px;font-size:.85rem" data-act="addAmico" data-nome="${esc(r.nome)}">+ ${esc(r.nome)}</button>`).join(' ')}</p>`:''}
+    <div class="actions"><input id="amicoInput" type="text" maxlength="20" placeholder="Nome dell'amico" autocomplete="off" style="flex:1;min-width:140px"><button class="btn" data-act="addAmico">Aggiungi</button></div>
+    ${l.length?'<p class="hint">Se l\'amico ha aperta la pagina delle sfide, l\'invito gli compare subito.</p>':''}</div>`;
+}
+function invitoHtml(){if(!S.invito)return'';return`<div class="card invito"><h3>🎯 ${esc(S.invito.da)} ti sfida!</h3><p class="hint">Stanza <b class="mono">${esc(S.invito.stanza)}</b>. ${S.name.trim()?'':'Scrivi prima il tuo nome, poi entra.'}</p><div class="actions"><button class="btn primary big" data-act="accetta">Entra nella sfida</button><button class="btn" data-act="ignora">Ignora</button></div></div>`}
+
 // ========================= interfaccia =========================
 const fmtMs=(ms)=>(ms/1000).toFixed(1).replace('.',',')+' s';
 function roomLink(){return location.origin+location.pathname+'?stanza='+S.code}
@@ -161,7 +196,7 @@ function render(){
   const app=$('#app');
   const r={home:rHome,lobby:rLobby,countdown:rCountdown,round:rRound,result:rResult,end:rEnd}[S.screen];
   app.innerHTML=r();
-  updateBar();bind();
+  updateBar();bind();ascolta();
 }
 function updateBar(){
   const inGame=['countdown','round','result','end'].includes(S.screen);
@@ -181,7 +216,8 @@ function bind(){
   document.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click',()=>act(b.dataset.act,b)));
   document.querySelectorAll('.opt[data-i]').forEach(b=>b.addEventListener('click',()=>answer(+b.dataset.i)));
   const jc=$('#joinCode');if(jc){jc.addEventListener('keydown',e=>{if(e.key==='Enter')act('join')});jc.addEventListener('input',()=>{S.joinCode=jc.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4)})}
-  const nm=$('#nameInput');if(nm)nm.addEventListener('input',()=>{S.name=nm.value.slice(0,20);localStorage.setItem('testqi.nome',S.name)});
+  const nm=$('#nameInput');if(nm)nm.addEventListener('input',()=>{S.name=nm.value.slice(0,20);localStorage.setItem('testqi.nome',S.name);clearTimeout(nm._t);nm._t=setTimeout(ascolta,800)});
+  const ai=$('#amicoInput');if(ai)ai.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();act('addAmico',ai)}});
   document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>{const pr=PRESETS.find(x=>x[0]===b.dataset.preset);S.preset=pr[0];S.cfg.rounds=pr[2];S.cfg.time=pr[3];render()}));
   document.querySelectorAll('[data-cfg]').forEach(el=>el.addEventListener('change',()=>{
     if(el.dataset.cfg==='kinds'){const ks=[...document.querySelectorAll('[data-cfg="kinds"]:checked')].map(x=>x.value);if(ks.length)S.cfg.kinds=ks;else el.checked=true}
@@ -198,6 +234,13 @@ function act(a,btn){
   if(a==='again'){if(S.role==='host')hostStart();return}
   if(a==='home'){goHome();return}
   if(a==='copy'){copyText(roomLink(),btn);return}
+  if(a==='ready'){readyNow();return}
+  if(a==='sfida'){sfidaAmico(btn.dataset.nome);return}
+  if(a==='invita'){S.invitato=btn.dataset.nome;mandaInvito();return}
+  if(a==='addAmico'){const inp=$('#amicoInput');const nome=btn.dataset.nome||(inp&&inp.value);if(addAmico(nome))FX.beep('ok');else if(inp){FX.shake(inp)}render();if(!btn.dataset.nome){const i2=$('#amicoInput');if(i2)i2.focus()}return}
+  if(a==='delAmico'){delAmico(btn.dataset.nome);render();return}
+  if(a==='accetta'){accettaInvito();return}
+  if(a==='ignora'){if(inbox)inbox.pulisci();S.invito=null;render();return}
   if(a==='share'){const txt='Ti sfido a quesiti di logica! Apri questo link ed entra nella mia stanza '+S.code+': '+roomLink();if(navigator.share){navigator.share({title:'Sfida di logica',text:txt}).catch(()=>{})}else copyText(txt,btn);return}
 }
 function copyText(txt,btn){
@@ -218,26 +261,28 @@ function rHome(){
   const kindsHtml=KINDS.map(([k,n])=>`<label><input type="checkbox" data-cfg="kinds" value="${k}" ${S.cfg.kinds.includes(k)?'checked':''}> ${n}</label>`).join('');
   const presets=`<div class="presets">${PRESETS.map(p=>`<button class="preset ${S.preset===p[0]?'on':''}" data-preset="${p[0]}" type="button">${p[1]} · ${p[2]} × ${p[3]} s</button>`).join('')}</div>`;
   return`<div class="stack"><div class="eyebrow">Due giocatori · stessi quesiti · stesso tempo</div><h1><span class="grad">Sfide di logica</span></h1>
-    <p class="lede">Matrici, serie numeriche, analogie e rotazioni. Ogni turno un quesito uguale per entrambi: chi risponde giusto fa 10 punti, più un bonus fino a 5 se è veloce. Le risposte giuste di fila accendono la serie 🔥. Alla fine vince chi ha più punti.</p></div>
+    <p class="lede">Stesso quesito per entrambi: giusto vale 10 punti più un bonus velocità, e chi risponde giusto per primo prende sempre almeno un punto in più. Vince chi ha più punti.</p></div>
+    ${invitoHtml()}
     ${S.err?`<div class="err">${esc(S.err)}${S.role?'<div class="actions" style="margin-top:8px"><button class="btn primary" data-act="retry">Riprova</button></div>':''}</div>`:''}
-    <div class="card"><div class="field"><label for="nameInput">Il tuo nome</label><input id="nameInput" type="text" maxlength="20" value="${esc(S.name)}" placeholder="Come ti chiami?" autocomplete="nickname" style="max-width:300px"></div></div>
+    <div class="card"><div class="field"><label for="nameInput">Il tuo nome</label><input id="nameInput" type="text" maxlength="20" value="${esc(S.name)}" placeholder="Come ti chiami?" autocomplete="nickname" style="max-width:300px"></div>${accountName()?`<p class="hint">Hai fatto l'accesso come <b>${esc(accountName())}</b>: gli amici ti trovano con questo nome.</p>`:'<p class="hint">Con l\'accesso (in alto) il nome e la lista amici restano uguali su tutti i tuoi dispositivi.</p>'}</div>
+    ${amiciHtml(false)}
     <div class="two">
-      <div class="card"><h2>Crea una stanza</h2><p class="hint">Scegli le regole, poi manda il codice o il link all'altra persona.</p>${presets}
+      <div class="card"><h2>Crea una stanza</h2>${presets}
+        <details class="mini"><summary>Regole personalizzate</summary><div class="body">
         <div class="two">
           <div class="field"><label for="cfgRounds">Quesiti</label><select id="cfgRounds" data-cfg="rounds">${[6,10,16].map(n=>`<option value="${n}" ${S.cfg.rounds===n?'selected':''}>${n} quesiti</option>`).join('')}</select></div>
           <div class="field"><label for="cfgTime">Tempo per quesito</label><select id="cfgTime" data-cfg="time">${[30,45,60,90].map(n=>`<option value="${n}" ${S.cfg.time===n?'selected':''}>${n} secondi</option>`).join('')}</select></div>
         </div>
-        <div class="field"><label>Tipi di quesito</label><div class="checks">${kindsHtml}</div></div>
+        <div class="field"><label>Tipi di quesito</label><div class="checks">${kindsHtml}</div></div></div></details>
         <div class="actions"><button class="btn primary big" data-act="create" ${S.busy?'disabled':''}>${S.busy&&S.role==='host'?`<span class="spin"></span> ${esc(S.busy)}`:'Crea la stanza'}</button></div>
       </div>
-      <div class="card"><h2>Entra in una stanza</h2><p class="hint">Scrivi il codice di 4 caratteri che ti ha mandato l'altra persona.</p>
+      <div class="card"><h2>Entra con un codice</h2>
         <div class="field"><label for="joinCode">Codice stanza</label><input id="joinCode" class="code" type="text" maxlength="4" value="${esc(S.joinCode)}" placeholder="····" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
         <div class="actions"><button class="btn primary big" data-act="join" ${S.busy?'disabled':''}>${S.busy&&S.role==='guest'?`<span class="spin"></span> ${esc(S.busy)}`:'Entra'}</button></div>
-        <p class="hint">Se ti hanno mandato il link, basta aprirlo: entri senza scrivere il codice.</p>
       </div>
     </div>
-    <div class="card"><h3>Nessuno con cui giocare adesso?</h3><p class="hint">Gioca da solo contro il tempo con le stesse regole, oppure allenati area per area con livelli e medaglie.</p><div class="actions"><button class="btn" data-act="solo" ${S.busy?'disabled':''}>Da solo contro il tempo</button><a class="btn" href="allenamento.html">🏋️ Allenamento per area</a><a class="btn" href="../">🏠 Home</a></div></div>
-    <p class="hint">I due telefoni si parlano attraverso un server di passaggio gratuito (funziona da qualunque rete, anche con i dati del telefono); se non risponde si prova il collegamento diretto. Non viene salvato nulla. Entrambi devono tenere la pagina aperta per tutta la partita.</p>${diagHtml()}`;
+    <div class="actions"><button class="btn" data-act="solo" ${S.busy?'disabled':''}>⏱️ Da solo contro il tempo</button><a class="btn" href="allenamento.html">🏋️ Allenati</a></div>
+    ${diagHtml()}`;
 }
 function rLobby(){
   const host=S.role==='host';
@@ -248,7 +293,9 @@ function rLobby(){
       <div class="pl"><span class="dot ${S.connected?'on':''}"></span><span class="nm">${esc(host?(S.connected?S.oppName:'In attesa…'):S.name)}</span><span class="st">${host?(S.connected?'collegato':'<span class="spin"></span> non ancora entrato'):'tu · collegato'}</span></div></div>`;
   if(host){
     return`<div class="stack"><div class="eyebrow">Stanza creata</div><h1>Invita un amico</h1><p class="lede">${S.connected?`${esc(S.oppName)} è dentro: premi «Inizia la sfida».`:'Mandagli il link (WhatsApp, Telegram, SMS…): aprendolo entra subito. Quando entra, premi «Inizia la sfida».'}</p></div>
-      ${S.connected?'':`<div class="actions"><button class="btn primary big wide" data-act="share">📲 ${navigator.share?'Invita un amico':'Copia il link da mandare'}</button></div>`}
+      ${S.connected?'':`<div class="actions"><button class="btn primary big wide" data-act="share">📲 ${navigator.share?'Manda il link a un amico':'Copia il link da mandare'}</button></div>`}
+      ${S.connected?'':(S.invitato&&S.invitoStato==='ok'?`<p class="hint">✅ Invito mandato a <b>${esc(S.invitato)}</b>: se ha la pagina delle sfide aperta, gli compare adesso. Se non entra, mandagli il link qui sopra.</p>`:S.invitato&&S.invitoStato==='no'?`<p class="hint">Non sono riuscito a lasciare l'invito a ${esc(S.invitato)}: mandagli il link.</p>`:'')}
+      ${S.connected||!amici().length?'':amiciHtml(true)}
       <div class="codebox"><span class="hint">oppure digli il codice</span><span class="code">${esc(S.code)}</span><span class="lnk">${esc(roomLink())}</span><div class="actions"><button class="btn" data-act="copy">Copia il link</button></div></div>
       ${S.err?`<div class="err">${esc(S.err)}</div>`:''}${players}${recordHtml()}${rules}
       <div class="actions"><button class="btn primary big wide" data-act="start" ${S.connected?'':'disabled'}>${S.connected?'Inizia la sfida':'In attesa dell\'amico…'}</button><button class="btn" data-act="home">Annulla</button></div>${diagHtml()}`;
@@ -280,11 +327,15 @@ function rResult(){
   const body=itemHtml(it,{cls,dis:true,tag,showAnswer:true});
   const st=S.results[S.i].streak||[0,0];
   const row=(who,cl)=>{const x=a[who];const ok=x&&x.choice===it.answer;return`<div class="vrow ${cl}"><span class="nm">${esc(n[who]||(cl==='me'?'Tu':'Avversario'))}${st[who]>=2?` <span class="streak">🔥${st[who]}</span>`:''}</span><span class="t">${x&&x.choice!==null?optLabel(it,x.choice)+' · '+fmtMs(x.ms):'nessuna risposta'}</span><span class="pt ${ok?'ok':'bad'}">${ok?'+'+pts[who]:'0'}</span></div>`};
-  const rule=it.rule?`<p class="hint">Regola: ${esc(it.rule)}.</p>`:'';
+  const sp=spiegazione?spiegazione(it):(it.rule?'Regola: '+it.rule+'.':'');
+  const rule=sp?`<div class="card spiega"><b>💡 Spiegazione</b><p>${esc(sp)}</p></div>`:'';
+  const left=Math.max(0,Math.ceil(((S.resultEnd||Date.now())-Date.now())/1000));
+  const iReady=S.ready&&S.ready[m],oReady=S.ready&&S.ready[o];
+  const nextTxt=S.i+1<S.items.length?'Prossimo quesito':'Risultato finale';
+  const readyBox=`<div class="actions"><button class="btn primary big wide" data-act="ready" ${iReady?'disabled':''}>${iReady?(S.solo?'…':`<span class="spin"></span> Aspetto ${esc(n[o]||'l\'avversario')}…`):'Avanti ▶'}</button></div><p class="hint" style="text-align:center">${nextTxt} tra <span class="mono" id="resLeft">${left}</span> s${!S.solo&&oReady&&!iReady?` · ${esc(n[o]||'L\'avversario')} è pronto`:''}</p>`;
   return`<div class="eyebrow">${esc(KIND_NAME[it.kind])} · quesito ${S.i+1} di ${S.items.length} · esito</div>
     <div class="verdict">${row(m,'me')}${S.solo?'':row(o,'opp')}</div>
-    <p class="q">La risposta giusta era ${LETTERS[it.answer]}.</p>${body}${rule}
-    <div class="wait"><span class="spin"></span> ${S.i+1<S.items.length?'Prossimo quesito tra pochi secondi…':'Calcolo del risultato finale…'}</div>`;
+    <p class="q">La risposta giusta era ${LETTERS[it.answer]}.</p>${rule}${readyBox}${body}`;
 }
 function rEnd(){
   const n=names(),m=me(),o=opp();const sm=S.score[m],so=S.score[o];
@@ -299,6 +350,7 @@ function rEnd(){
   return`<div class="final"><div class="eyebrow">${S.solo?'Allenamento finito':'Sfida finita'}</div><div class="big">${esc(title)}</div><div class="sub">${esc(sub)}</div>
       <div class="scoreline"><div class="p me"><span class="n">${esc(n[m]||'Tu')}</span><span class="v">${sm}</span></div>${S.solo?'':`<div class="vs">contro</div><div class="p opp"><span class="n">${esc(n[o]||'Avversario')}</span><span class="v">${so}</span></div>`}</div></div>
     ${recordHtml()}${S.err?`<div class="err">${esc(S.err)}</div>`:''}
+    ${!S.solo&&S.oppName&&!amici().some(a=>amicoKey(a.nome)===amicoKey(S.oppName))?`<div class="actions"><button class="btn" data-act="addAmico" data-nome="${esc(S.oppName)}">👥 Aggiungi ${esc(S.oppName)} agli amici</button></div>`:''}
     <div class="actions">${again}<button class="btn" data-act="home">Torna all'inizio</button><a class="btn" href="allenamento.html">🏋️ Allenati</a></div>
     <details open><summary>Quesito per quesito</summary><div class="body"><table><thead><tr><th>#</th><th>Tipo</th><th style="text-align:right">${esc(n[m]||'Tu')}</th>${S.solo?'':`<th style="text-align:right">${esc(n[o]||'Avversario')}</th>`}</tr></thead><tbody>${rows}</tbody></table></div></details>`;
 }
@@ -309,5 +361,6 @@ const q=new URLSearchParams(location.search).get('stanza');
 if(q){S.joinCode=q.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);S.invited=S.joinCode.length===4}
 render();
 if(S.invited){if(S.name.trim())joinRoom(S.joinCode);else setTimeout(()=>$('#nameInput')&&$('#nameInput').focus(),0)}
-window.__sfide={get S(){return S},answer,hostStart};
+window.addEventListener('testqi:account',()=>{if(S.screen==='home'){if(!S.name.trim())S.name=accountName()||'';render()}});
+window.__sfide={get S(){return S},answer,hostStart,showResult};
 })();
