@@ -1,5 +1,6 @@
 // Giochi veloci e allenamenti seri per area. Ogni voce: {id, area, kind:'gioco'|'serio', name, ic, desc, start(root, ctx)}.
-// ctx: {beep(name), floatText(el,txt,cls), shake(el), timer(sec|null), end(result), level(opzionale: livello salvato)}.
+// ctx: {beep(name), floatText(el,txt,cls), shake(el), timer(sec|null), end(result), level(opzionale: livello salvato),
+//       diff(opzionale: difficoltà fissa 1–10,99 scelta dal giocatore; assente = Auto, regole normali)}.
 // result: {pts, nOk, n, metric, metricLabel, level}
 (function(){
 'use strict';
@@ -9,6 +10,9 @@ const rnd=(n)=>Math.floor(Math.random()*n);
 const pick=(a)=>a[rnd(a.length)];
 const shuffle=(a)=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a};
 const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+// con difficoltà fissa: valore in [lo,hi] proporzionale a diff 1–11; senza: def
+const byDiff=(ctx,def,lo,hi)=>ctx.diff==null?def:lo+(hi-lo)*Math.min(1,Math.max(0,(ctx.diff-1)/10));
+const d01=(ctx,def)=>ctx.diff==null?def:Math.min(1,Math.max(0,(ctx.diff-1)/10));
 const SHAPES=Q.SHAPES,FILLS=Q.FILLS;
 // cronometro a scadenza con aggiornamento della barra
 function countdown(ctx,sec,onEnd){const end=Date.now()+sec*1000;let t=setInterval(()=>{const left=Math.max(0,Math.ceil((end-Date.now())/1000));ctx.timer(left);if(left<=5&&left>0)ctx.beep('tick');if(left<=0){clearInterval(t);onEnd()}},250);ctx.timer(sec);return()=>clearInterval(t)}
@@ -18,11 +22,12 @@ const choiceBtns=(opts)=>`<div class="opts text">${opts.map((o,k)=>`<button clas
 // ========================= 1. Sequenza luminosa (memoria, gioco) =========================
 const simon={id:'simon',area:'mem',kind:'gioco',name:'Sequenza luminosa',ic:'💡',desc:'Guarda le caselle che si accendono e ripeti la sequenza. Ogni turno si allunga di una.',
   start(root,ctx){
-    let seq=[],pos=0,busy=true,stopped=false,best=0;
+    let seq=[],pos=0,busy=true,stopped=false,best=0;const startLen=Math.round(byDiff(ctx,1,1,5)),speed=byDiff(ctx,1,1,0.55);
+    for(let k=1;k<startLen;k++)seq.push(rnd(9));
     const draw=(msg)=>{root.innerHTML=`${head('💡 Sequenza luminosa · lunghezza '+seq.length,msg)}<div class="simon">${[...Array(9)].map((_,i)=>`<button class="scell" data-c="${i}" aria-label="Casella ${i+1}"></button>`).join('')}</div>`;
       root.querySelectorAll('.scell').forEach(b=>b.addEventListener('click',()=>tap(+b.dataset.c,b)))};
     const light=async(c,ms)=>{const el=root.querySelector(`[data-c="${c}"]`);if(!el)return;el.classList.add('on');ctx.beep('tick');await sleep(ms);el.classList.remove('on');await sleep(120)};
-    const play=async()=>{busy=true;seq.push(rnd(9));draw('Guarda…');await sleep(500);for(const c of seq){if(stopped)return;await light(c,Math.max(250,600-seq.length*30))}pos=0;busy=false;draw('Tocca le caselle nello stesso ordine.')};
+    const play=async()=>{busy=true;seq.push(rnd(9));draw('Guarda…');await sleep(500);for(const c of seq){if(stopped)return;await light(c,Math.max(180,(600-seq.length*30)*speed))}pos=0;busy=false;draw('Tocca le caselle nello stesso ordine.')};
     const tap=async(c,el)=>{if(busy||stopped)return;el.classList.add('on');setTimeout(()=>el.classList.remove('on'),180);
       if(c!==seq[pos]){stopped=true;ctx.beep('bad');ctx.shake(root.querySelector('.simon'));await sleep(600);ctx.end({pts:best*10,nOk:best,n:seq.length,metric:best,metricLabel:'sequenza più lunga'});return}
       pos++;if(pos===seq.length){best=seq.length;ctx.beep('ok');ctx.floatText(el,'+'+seq.length*10);await sleep(500);play()}};
@@ -36,7 +41,7 @@ const stessa={id:'stessa',area:'rot',kind:'gioco',name:'Stessa o specchiata?',ic
     const shapes=Q.polyShapes();let pts=0,nOk=0,n=0,streak=0,cur=null;
     const stop=countdown(ctx,45,()=>finish());
     const finish=()=>{stop();ctx.end({pts,nOk,n,metric:nOk,metricLabel:'risposte giuste'})};
-    const next=()=>{const base=pick(shapes);const same=Math.random()<0.5;let other=same?base:Q.tfCells(base,'m');const k=1+rnd(3);for(let i=0;i<k;i++)other=Q.tfCells(other,'r');cur={same};
+    const next=()=>{const base=pick(shapes);const same=Math.random()<0.5;let other=same?base:Q.tfCells(base,'m');const k=1+rnd(Math.round(byDiff(ctx,3,1,3)))+(ctx.diff!=null&&ctx.diff>=7?1:0);for(let i=0;i<k;i++)other=Q.tfCells(other,'r');cur={same};
       root.innerHTML=`${head('🪞 Stessa o specchiata? · '+nOk+' giuste','La seconda figura è la prima ruotata?')}<div class="pair"><div class="figbox">${Q.cellsSVG(base,null)}</div><div class="figbox">${Q.cellsSVG(other,null)}</div></div>${choiceBtns(['✅ Sì, è ruotata','🪞 No, è specchiata'])}`;
       root.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>answer(+b.dataset.i===0,b)))};
     const answer=(saidSame,el)=>{n++;if(saidSame===cur.same){nOk++;streak++;const p=5+Math.min(5,streak-1);pts+=p;ctx.beep('ok');ctx.floatText(el,'+'+p,streak>=5?'gold':'')}else{streak=0;ctx.beep('bad');ctx.shake(el)}next()};
@@ -49,7 +54,7 @@ const verofalso={id:'verofalso',area:'num',kind:'gioco',name:'Vero o falso',ic:'
     let pts=0,nOk=0,n=0,streak=0,cur=null;
     const stop=countdown(ctx,45,()=>finish());
     const finish=()=>{stop();ctx.end({pts,nOk,n,metric:nOk,metricLabel:'risposte giuste'})};
-    const next=()=>{const it=Q.oneItem('num',rnd(2147483647),Math.random()*0.5);const right=it.options[it.answer];const truth=Math.random()<0.5;const shown=truth?right:pick(it.options.filter(o=>o!==right));cur={truth,right,rule:it.rule};
+    const next=()=>{const it=Q.oneItem('num',rnd(2147483647),d01(ctx,Math.random()*0.5));const right=it.options[it.answer];const truth=Math.random()<0.5;const shown=truth?right:pick(it.options.filter(o=>o!==right));cur={truth,right,rule:it.rule};
       root.innerHTML=`${head('🎯 Vero o falso · '+nOk+' giuste','Il numero proposto continua la serie?')}<div class="seq mono">${it.seq.map(x=>`<span>${x}</span>`).join('')}<span class="qm">${shown}</span></div>${choiceBtns(['✅ Vero','❌ Falso'])}`;
       root.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>answer(+b.dataset.i===0,b)))};
     const answer=(said,el)=>{n++;if(said===cur.truth){nOk++;streak++;const p=5+Math.min(5,streak-1);pts+=p;ctx.beep('ok');ctx.floatText(el,'+'+p,streak>=5?'gold':'')}else{streak=0;ctx.beep('bad');ctx.shake(el);ctx.floatText(el,'era '+cur.right,'bad')}next()};
@@ -60,7 +65,7 @@ const verofalso={id:'verofalso',area:'num',kind:'gioco',name:'Vero o falso',ic:'
 const relazione={id:'relazione',area:'verb',kind:'gioco',name:'Stessa relazione',ic:'🔗',desc:'Una coppia di parole e due coppie candidate: quale ha la stessa relazione? 45 secondi.',
   start(root,ctx){
     const pairs=Q.verbPairs();let pts=0,nOk=0,n=0,streak=0,cur=null;
-    const stop=countdown(ctx,45,()=>finish());
+    const stop=countdown(ctx,Math.round(byDiff(ctx,45,60,25)),()=>finish());
     const finish=()=>{stop();ctx.end({pts,nOk,n,metric:nOk,metricLabel:'risposte giuste'})};
     const next=()=>{const p=pick(pairs);const good=`${p.c} : ${p.ok}`,bad=`${p.c} : ${pick(p.bad)}`;const okIdx=rnd(2);cur={okIdx};
       root.innerHTML=`${head('🔗 Stessa relazione · '+nOk+' giuste','Quale coppia ha la stessa relazione?')}<div class="analogy"><span>${esc(p.a)}</span><span class="op">:</span><span>${esc(p.b)}</span></div>${choiceBtns(okIdx===0?[esc(good),esc(bad)]:[esc(bad),esc(good)])}`;
@@ -77,7 +82,7 @@ const coppia={id:'coppia',area:'mat',kind:'gioco',name:'Trova la coppia',ic:'�
     const finish=()=>{stop();ctx.end({pts,nOk,n,metric:nOk,metricLabel:'coppie trovate'})};
     const spec=(sh,fi,sz,rot)=>({els:[{shape:sh,fill:fi,size:sz,rot:rot}],count:1});
     const next=()=>{const cells=[];const used=new Set();
-      while(cells.length<7){const c=spec(pick(SHAPES),pick(FILLS),pick(['s','m','l']),0);const k=JSON.stringify(c);if(used.has(k))continue;used.add(k);cells.push(c)}
+      const nFig=Math.round(byDiff(ctx,7,5,11));while(cells.length<nFig){const c=spec(pick(SHAPES),pick(FILLS),pick(['s','m','l']),0);const k=JSON.stringify(c);if(used.has(k))continue;used.add(k);cells.push(c)}
       const dup=cells[0];cells.push(dup);const order=shuffle(cells.map((c,i)=>i));cur={cells,order,dup:JSON.stringify(dup)};sel=null;
       root.innerHTML=`${head('👀 Trova la coppia · '+nOk+' trovate','Tocca le due figure identiche.')}<div class="opts fig">${order.map(i=>`<button class="opt fig" data-i="${i}">${Q.cellSVG(cells[i])}</button>`).join('')}</div>`;
       root.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>tap(+b.dataset.i,b)))};
@@ -125,13 +130,13 @@ const rotm={id:'rotm',area:'rot',kind:'serio',name:'Rotazione mentale',ic:'🔄'
 // ========================= 8. Coppie di memoria (memoria, gioco) =========================
 const memocards={id:'memocards',area:'mem',kind:'gioco',name:'Coppie nascoste',ic:'🃏',desc:'Dodici carte coperte, sei coppie di figure. Scoprile due alla volta e ricorda dove sono: meno mosse fai, più punti prendi.',
   start(root,ctx){
-    const specs=[];const used=new Set();while(specs.length<6){const c={els:[{shape:pick(SHAPES),fill:pick(FILLS),size:'m',rot:0}],count:1};const k=JSON.stringify(c);if(used.has(k))continue;used.add(k);specs.push(c)}
+    const NP=Math.round(byDiff(ctx,6,4,10));const specs=[];const used=new Set();while(specs.length<NP){const c={els:[{shape:pick(SHAPES),fill:pick(FILLS),size:'m',rot:0}],count:1};const k=JSON.stringify(c);if(used.has(k))continue;used.add(k);specs.push(c)}
     const cards=shuffle(specs.concat(specs).map((c,i)=>({c,k:JSON.stringify(c),open:false,done:false})));let first=null,lock=false,moves=0,found=0;const t0=Date.now();
-    const draw=()=>{root.innerHTML=`${head('🃏 Coppie nascoste · '+found+' di 6 trovate · '+moves+' mosse','Scopri due carte alla volta e trova le coppie.')}<div class="memo">${cards.map((cd,i)=>`<button class="mcard ${cd.open||cd.done?'open':''} ${cd.done?'done':''}" data-i="${i}" aria-label="Carta ${i+1}">${cd.open||cd.done?Q.cellSVG(cd.c):'<span>?</span>'}</button>`).join('')}</div>`;
+    const draw=()=>{root.innerHTML=`${head('🃏 Coppie nascoste · '+found+' di '+NP+' trovate · '+moves+' mosse','Scopri due carte alla volta e trova le coppie.')}<div class="memo">${cards.map((cd,i)=>`<button class="mcard ${cd.open||cd.done?'open':''} ${cd.done?'done':''}" data-i="${i}" aria-label="Carta ${i+1}">${cd.open||cd.done?Q.cellSVG(cd.c):'<span>?</span>'}</button>`).join('')}</div>`;
       root.querySelectorAll('.mcard').forEach(b=>b.addEventListener('click',()=>flip(+b.dataset.i,b)))};
     const flip=async(i,el)=>{const cd=cards[i];if(lock||cd.open||cd.done)return;cd.open=true;ctx.beep('tick');draw();
       if(first===null){first=i;return}moves++;lock=true;const a=cards[first];
-      if(a.k===cd.k){a.done=cd.done=true;found++;ctx.beep('ok');ctx.floatText(root.querySelector(`[data-i="${i}"]`),'+10');first=null;lock=false;draw();if(found===6){const sec=Math.round((Date.now()-t0)/1000);const pts=Math.max(10,120-moves*4-Math.floor(sec/5));await sleep(400);ctx.end({pts,nOk:6,n:moves,metric:pts,metricLabel:'punti',detail:`${moves} mosse in ${sec} s`})}}
+      if(a.k===cd.k){a.done=cd.done=true;found++;ctx.beep('ok');ctx.floatText(root.querySelector(`[data-i="${i}"]`),'+10');first=null;lock=false;draw();if(found===NP){const sec=Math.round((Date.now()-t0)/1000);const pts=Math.max(10,20*NP-moves*4-Math.floor(sec/5));await sleep(400);ctx.end({pts,nOk:NP,n:moves,metric:pts,metricLabel:'punti',detail:`${moves} mosse in ${sec} s`})}}
       else{await sleep(700);a.open=cd.open=false;first=null;lock=false;ctx.beep('bad');draw()}};
     draw();return()=>{};
   }};
@@ -140,7 +145,7 @@ const memocards={id:'memocards',area:'mem',kind:'gioco',name:'Coppie nascoste',i
 const ordina={id:'ordina',area:'num',kind:'gioco',name:'Ordina i numeri',ic:'🔢',desc:'Nove numeri sparsi: toccali dal più piccolo al più grande, più in fretta che puoi. Tre tabelle, poi il conto.',
   start(root,ctx){
     let round=0,pts=0,errors=0,t0=Date.now(),cur=null,next=0;const ROUNDS=3;
-    const gen=()=>{const kind=round===0?'int':round===1?'big':'mix';const set=new Set();while(set.size<9){set.add(kind==='int'?rnd(50)+1:kind==='big'?rnd(900)+100:(rnd(2)?-(rnd(40)+1):rnd(40)+1))}const vals=shuffle([...set]);cur={vals,sorted:vals.slice().sort((a,b)=>a-b)};next=0;t0=Date.now()};
+    const gen=()=>{let kind=round===0?'int':round===1?'big':'mix';if(ctx.diff!=null)kind=ctx.diff<4?'int':ctx.diff<7?(round===0?'int':'big'):(round===0?'big':'mix');const set=new Set();while(set.size<9){set.add(kind==='int'?rnd(50)+1:kind==='big'?rnd(900)+100:(rnd(2)?-(rnd(40)+1):rnd(40)+1))}const vals=shuffle([...set]);cur={vals,sorted:vals.slice().sort((a,b)=>a-b)};next=0;t0=Date.now()};
     const draw=()=>{root.innerHTML=`${head(`🔢 Ordina i numeri · tabella ${round+1} di ${ROUNDS}`,'Tocca i numeri dal più piccolo al più grande.')}<div class="numgrid">${cur.vals.map((v,i)=>`<button class="ncell ${i<0?'':''}" data-i="${i}" ${cur.sorted.indexOf(v)<next?'disabled':''}>${v}</button>`).join('')}</div>`;
       root.querySelectorAll('.ncell').forEach(b=>b.addEventListener('click',()=>tap(+b.dataset.i,b)))};
     const tap=(i,el)=>{const v=cur.vals[i];if(v===cur.sorted[next]){next++;ctx.beep('tick');el.disabled=true;el.classList.add('done');
@@ -152,7 +157,7 @@ const ordina={id:'ordina',area:'num',kind:'gioco',name:'Ordina i numeri',ic:'�
 // ========================= 10. Anagramma (analogie, gioco) =========================
 const anagramma={id:'anagramma',area:'verb',kind:'gioco',name:'Anagramma lampo',ic:'🔤',desc:'Lettere mescolate: quale delle tre parole è quella nascosta? 45 secondi.',
   start(root,ctx){
-    const words=[...new Set(Q.verbPairs().flatMap(p=>[p.a,p.b,p.c,p.ok].filter(w=>w.length>=5&&w.length<=10&&!/\s/.test(w))))];
+    const minL=Math.round(byDiff(ctx,5,4,7)),maxL=Math.round(byDiff(ctx,10,6,12));const words=[...new Set(Q.verbPairs().flatMap(p=>[p.a,p.b,p.c,p.ok].filter(w=>w.length>=minL&&w.length<=maxL&&!/\s/.test(w))))];
     let pts=0,nOk=0,n=0,streak=0,cur=null;
     const stop=countdown(ctx,45,()=>finish());const finish=()=>{stop();ctx.end({pts,nOk,n,metric:nOk,metricLabel:'parole trovate'})};
     const next=()=>{const w=pick(words);let scr;do{scr=shuffle(w.split('')).join('')}while(scr===w);const others=shuffle(words.filter(x=>x!==w&&Math.abs(x.length-w.length)<=1)).slice(0,2);const opts=shuffle([w,...others]);cur={w};

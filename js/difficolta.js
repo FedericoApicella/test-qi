@@ -1,6 +1,6 @@
 // Difficoltà scelta dal giocatore, uguale per tutti i giochi del sito (allenamento, sudoku, parole…).
 // Scala 1–10. Se scegli 6, il livello 1 vale 6 e i livelli salgono pianissimo dentro la fascia:
-// livello 10 ≈ 6,47 · livello 100 ≈ 6,91 · livello 1000 ≈ 6,99 (mai 7). "Auto" = difficoltà adattiva del gioco.
+// livello 10 ≈ 6,04 · livello 100 ≈ 6,37 · livello 500 ≈ 6,90 · livello 1000 ≈ 6,99 (mai 7). "Auto" = difficoltà adattiva del gioco.
 // Salvataggio in localStorage "testqi.difficolta": {scelte:{gioco:d|null}, livelli:{gioco:{d:partite}}}.
 // Uso: Difficolta.selettoreHtml('nback') nel menù del gioco, Difficolta.bind(root,'nback',cb) dopo il render,
 //      Difficolta.valore(d,L) per avere il numero 1–10,99, Difficolta.norm(d,L) per avere 0–1,
@@ -11,7 +11,8 @@ const KEY='testqi.difficolta';
 function load(){try{const v=JSON.parse(localStorage.getItem(KEY)||'{}');return{scelte:v.scelte||{},livelli:v.livelli||{}}}catch(e){return{scelte:{},livelli:{}}}}
 function save(o){try{localStorage.setItem(KEY,JSON.stringify(o))}catch(e){}}
 const clampD=(d)=>Math.max(1,Math.min(10,Math.round(d)));
-function valore(d,L){d=clampD(d);L=Math.max(1,Math.floor(L||1));return d+0.99*(L-1)/(L+9)}
+// stessa curva dei giochi (giochi/comune.js): livello 1 = d, livello 1000 ≈ d+0,99
+function valore(d,L){d=clampD(d);L=Math.max(1,Math.floor(L||1));return d+0.995*(1-Math.exp(-(L-1)/217))}
 function norm(d,L){return Math.min(1,Math.max(0,(valore(d,L)-1)/10))}
 function leggi(id){const v=load().scelte[id];return v==null?null:clampD(v)}
 function scrivi(id,d){const o=load();if(d==null)delete o.scelte[id];else o.scelte[id]=clampD(d);save(o)}
