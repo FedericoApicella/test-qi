@@ -92,3 +92,9 @@ body.playing main.wrap{padding-bottom:190px}
 .keymap .kn.ok{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
 .keymap .kn.given{background:var(--brand-100);border-color:var(--brand-300);color:var(--brand)}
 .keymap .kn.on{border-color:var(--brand);background:var(--brand-100)}
+/* difficoltà 1-10 */
+.diffpick{display:grid;gap:4px}
+.diffrow{display:flex;gap:4px}
+.diffrow button{appearance:none;flex:1;min-width:0;height:32px;border-radius:8px;border:2px solid var(--border);background:var(--surface);font:inherit;font-weight:800;font-size:.85rem;cursor:pointer;padding:0;color:var(--muted)}
+.diffrow button.on{color:#fff;border-color:transparent}
+.diffrow button.d-easy.on{background:#16a34a}.diffrow button.d-mid.on{background:var(--brand)}.diffrow button.d-hard.on{background:#ea580c}.diffrow button.d-max.on{background:#be123c}
