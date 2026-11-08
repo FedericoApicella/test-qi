@@ -355,11 +355,11 @@ function renderCody(){
   const col=z.rows.map((zr,i)=>{const r=S.rows[i];return(r.ok||r.fixed[zr.k])?zr.w[zr.k]:''});
   const hidden=`<div class="hidden-word ${S.guessHidden?'on':''}" id="hidden" data-act="guess"><small>${S.solvedHidden?'Parola nascosta trovata!':'Parola nascosta · tocca per provare a indovinarla subito (bonus)'}</small><div class="cells">${z.hidden.split('').map((ch,i)=>`<span class="cell ${S.guessHidden?(S.hg[i]?'on':''):(col[i]?'on':'')}" style="--cs:${cs}px">${S.guessHidden?(S.hg[i]||''):(col[i]||'')}</span>`).join('')}</div>${S.solvedHidden?`<small>${esc(z.hiddenDef)}</small>`:(S.guessHidden?'<small>Scrivi la parola con la tastiera · tocca di nuovo per annullare</small>':'')}</div>`;
   const rows=z.rows.map((zr,i)=>{const r=S.rows[i];const on=S.cur===i&&!S.guessHidden;
-    const cells=[];for(let x=0;x<z.width;x++){const k=x-zr.off;if(k<0||k>=zr.w.length){cells.push(`<span class="cell gap" style="--cs:${cs}px"></span>`);continue}
+    const cells=[];for(let x=0;x<z.width;x++){const k=x-zr.off;if(k<0||k>=zr.w.length){cells.push(`<span class="cell gap"></span>`);continue}
       const cls=['cell'];if(k===zr.k)cls.push('key');if(on&&S.pos===k&&!r.ok)cls.push('cur');if(r.bad[k])cls.push('bad');if(r.fixed[k]&&!r.ok)cls.push(r.gift&&r.gift[k]?'gift':'hint');
-      cells.push(`<span class="${cls.join(' ')}" style="--cs:${cs}px" data-row="${i}" data-k="${k}">${r.letters[k]||''}</span>`)}
+      cells.push(`<span class="${cls.join(' ')}" data-row="${i}" data-k="${k}">${r.letters[k]||''}</span>`)}
     return`<div class="crow ${on?'on':''} ${r.ok?'ok':''}" id="row${i}" data-row="${i}"><div class="def"><span class="n">${i+1}.</span><span>${esc(zr.def)}</span><span class="hint" style="margin-left:auto;white-space:nowrap">${zr.w.length} lettere</span></div><div class="cells">${cells.join('')}</div></div>`}).join('');
-  return`${lvNavHtml('cody')}<div class="card stack"><div class="sec-head"><span class="theme">🏷️ ${TEMI[z.tema]||z.tema}</span><span class="hint">${S.rows.filter(r=>r.ok).length}/${z.rows.length} parole${S.giftFlash&&Date.now()-S.giftFlash<2500?' · 🎁 lettere regalo!':''}</span></div>${hidden}<div class="cody">${rows}</div></div>${kbHtml()}`;
+  return`${lvNavHtml('cody')}<div class="card stack"><div class="sec-head"><span class="theme">🏷️ ${TEMI[z.tema]||z.tema}</span><span class="hint">${S.rows.filter(r=>r.ok).length}/${z.rows.length} parole${S.giftFlash&&Date.now()-S.giftFlash<2500?' · 🎁 lettere regalo!':''}</span></div>${hidden}<div class="cody" style="--cs:${cs}px" data-w="${z.width}">${rows}</div></div>${kbHtml()}`;
 }
 function renderCruci(){
   const z=S.z,N=z.N;const s=curSlot();const dy=s?(s.dir?1:0):0,dx=s?(s.dir?0:1):0;
@@ -395,12 +395,14 @@ function renderHome(){
   <details class="card fold"><summary>Come funziona</summary><ul style="margin:8px 0 0;padding-left:18px;display:grid;gap:6px"><li>Tocca una riga o una casella e scrivi con la tastiera. Una parola completa viene controllata subito: verde se è giusta, lettere sbagliate in rosso.</li><li>Nella parola nascosta ogni parola indovinata ti <b>regala una o due lettere</b> 🎁 nelle righe ancora aperte.</li><li>Nel crittografato ogni numero è sempre la stessa lettera; con ✏️ Ipotesi provi fino a 3 lettere a matita per numero senza errori.</li><li><b>Difficoltà da 1 a 10</b> a tua scelta: il livello 1 vale la difficoltà scelta e i livelli salgono pianissimo. Ogni difficoltà ha i suoi livelli e le sue stelle.</li><li><b>${FREE_HINTS} aiuti gratis</b> per livello, poi costano ${HINT_COST} punti. Tre stelle senza errori e con al massimo un aiuto.</li><li>Ogni livello fa crescere le tue <a href="../abilita/">abilità di gioco</a>.</li></ul></details>
   <p class="foot"><a href="../" style="color:var(--muted)">← Home</a> · <a href="../abilita/" style="color:var(--muted)">📈 Le tue abilità</a> · dizionario di ${ALL.length} parole</p>`;
 }
+function fitCody(){const c=$('.cody');if(!c)return;const cells=c.querySelector('.crow .cells');if(!cells)return;const n=+c.dataset.w||1;const w=cells.clientWidth;if(!w)return;let g=3,cs=Math.floor((w-g*(n-1))/n);if(cs<16){g=2;cs=Math.floor((w-g*(n-1))/n)}cs=Math.max(10,Math.min(34,cs));c.style.setProperty('--cs',cs+'px');c.style.setProperty('--cg',g+'px');c.classList.toggle('tiny',cs<16)}
 function render(){
   const app=$('#app');
   if(!S)app.innerHTML=renderHome();
   else if(S.done)app.innerHTML=renderWin();
   else app.innerHTML=S.mode==='cody'?renderCody():S.mode==='critto'?renderCritto():renderCruci();
   const title=$('#barTitle');if(title)title.innerHTML=S?`<a href="./" data-act="quit" style="color:inherit;text-decoration:none">Parole</a> · ${S.daily?'Sfida del giorno':(S.mode==='cody'?'Parola nascosta':S.mode==='critto'?'Crittografato':'Cruciverba')+' '+S.L}`:`<a href="../" style="color:inherit;text-decoration:none">🧠 Mente Allenata</a> · Parole`;
+  fitCody();
   if(S&&!S.done&&S.mode!=='cody'){const c=$('.cw .c.cur');if(c&&c.scrollIntoView&&window.innerWidth<=640){const r=c.getBoundingClientRect();if(r.bottom>window.innerHeight-200||r.top<100)c.scrollIntoView({block:'center',behavior:'smooth'})}}
 }
 
