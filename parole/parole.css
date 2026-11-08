@@ -98,3 +98,20 @@ body.playing main.wrap{padding-bottom:190px}
 .diffrow button{appearance:none;flex:1;min-width:0;height:32px;border-radius:8px;border:2px solid var(--border);background:var(--surface);font:inherit;font-weight:800;font-size:.85rem;cursor:pointer;padding:0;color:var(--muted)}
 .diffrow button.on{color:#fff;border-color:transparent}
 .diffrow button.d-easy.on{background:#16a34a}.diffrow button.d-mid.on{background:var(--brand)}.diffrow button.d-hard.on{background:#ea580c}.diffrow button.d-max.on{background:#be123c}
+/* home compatta */
+.hero.compact{padding:18px 20px;gap:8px}
+.hero.compact h1{font-size:clamp(1.5rem,5vw,2rem)}
+.htop{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.kpis.mini{grid-template-columns:repeat(3,auto);gap:6px}
+.kpis.mini .kpi{padding:6px 10px}.kpis.mini .kpi b{font-size:1.1rem}.kpis.mini .kpi span{font-size:.7rem}
+.daily{padding:10px 14px;gap:2px}.daily b{font-size:1rem}.daily span{font-size:.85rem}
+.gcard{background:var(--surface);border:2px solid var(--border);border-radius:16px;padding:12px 14px;display:grid;gap:8px;box-shadow:var(--shadow)}
+.gtop{display:flex;align-items:center;gap:10px}
+.gtop .ic{font-size:1.7rem;line-height:1;flex:none}
+.gtxt{display:grid;gap:2px;min-width:0;flex:1}.gtxt b{font-size:1.05rem}.gtxt .hint{font-size:.85rem;line-height:1.3}
+.gtop .btn{padding:8px 12px;font-size:.9rem;white-space:nowrap;flex:none}
+.gopt{appearance:none;border:0;background:var(--bg);border-radius:10px;padding:7px 10px;font:inherit;font-size:.85rem;font-weight:700;color:var(--muted);text-align:left;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+.gopt.on{color:var(--brand);background:var(--brand-50)}
+.gopt i{font-style:normal}
+.gbody{display:grid;gap:8px}
+details.fold{padding:12px 16px}details.fold summary{cursor:pointer;font-weight:800;font-size:1.05rem;list-style:none;display:flex;justify-content:space-between}details.fold summary::after{content:'▾';color:var(--muted)}details.fold[open] summary::after{content:'▴'}

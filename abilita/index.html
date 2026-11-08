@@ -8,6 +8,17 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="../stile.css">
 <style>
+.hero.compact{padding:18px 20px;gap:8px}.hero.compact h1{font-size:clamp(1.5rem,5vw,2rem)}
+.htop{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.kpis.mini{grid-template-columns:repeat(4,auto);gap:6px}.kpis.mini .kpi{padding:6px 10px}.kpis.mini .kpi b{font-size:1.1rem}.kpis.mini .kpi span{font-size:.7rem}
+.tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
+.tabs button{appearance:none;border:2px solid var(--border);background:var(--surface);border-radius:999px;padding:7px 14px;font:inherit;font-weight:800;font-size:.9rem;cursor:pointer;white-space:nowrap;color:var(--muted)}
+.tabs button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.oggi{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.oggi .ring{margin:0}
+.mis-row{display:flex;gap:6px;flex-wrap:wrap}
+.mis-row .mis{padding:5px 9px;border-radius:999px;gap:5px;font-size:.8rem}.mis-row .mis .ic{font-size:1rem}.mis-row .mis .st{font-family:inherit;font-weight:700;font-size:.78rem}.mis-row .mis.ok .st{color:var(--brand)}
+.oggi .ring{width:72px;height:72px}.oggi .ring span{width:56px;height:56px;font-size:.85rem}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
 .kpi{background:rgba(255,255,255,.16);border-radius:14px;padding:10px 14px;display:grid;gap:2px}
 .kpi b{font-family:var(--font-mono);font-size:1.4rem;line-height:1.1}
@@ -39,18 +50,16 @@
 <body>
 <div class="bar"><div class="bar-in"><div class="title"><a href="../" style="color:inherit;text-decoration:none">🧠 Mente Allenata</a> · Abilità</div><div class="scores"></div></div></div>
 <main class="wrap" id="app">
-<section class="hero">
-  <div class="eyebrow">Punteggio di gioco · non è il QI</div>
-  <h1>Le tue abilità</h1>
-  <p>Sei abilità che crescono ogni volta che giochi. La <b>forza</b> resta per sempre; la <b>forma</b> sale nei giorni in cui ti alleni e scende se ti fermi. Per questo il grafico cambia davvero.</p>
-  <div class="kpis" id="kpis"></div>
+<section class="hero compact">
+  <div class="htop"><div><div class="eyebrow">Punteggio di gioco · non è il QI</div><h1>Le tue abilità</h1></div><div class="kpis mini" id="kpis"></div></div>
 </section>
-<section class="card stack"><div class="sec-head"><h2>Oggi</h2></div><div id="oggi"></div></section>
-<section class="card stack"><h2>Il <span class="grad">grafico</span></h2><div id="radar"></div></section>
-<section class="card stack"><div class="sec-head" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center"><h2>Andamento</h2><div class="toggle" id="toggle"></div></div><div id="linea"></div><p class="hint" id="lineaNota"></p></section>
-<section class="card stack"><h2>Le sei abilità</h2><div class="skills" id="skills"></div></section>
-<section class="card stack"><h2>Giorni di allenamento</h2><div class="heat" id="heat"></div><p class="hint">Ultime 12 settimane: più scuro = più punti quel giorno.</p></section>
-<section class="note"><strong>È un gioco.</strong> Questi punteggi misurano quanto e quanto bene giochi qui, non la tua intelligenza. Per una stima del QI c'è il <a href="../test.html">test</a>, che resta separato.</section>
+<section class="card stack" style="padding:14px 16px"><div id="oggi"></div></section>
+<div class="tabs" id="tabs"><button class="on" data-tab="grafico">📊 Grafico</button><button data-tab="andamento">📈 Andamento</button><button data-tab="abilita">🧩 Abilità</button><button data-tab="giorni">📅 Giorni</button></div>
+<section class="card stack tab" data-tab="grafico"><div id="radar"></div><p class="hint">La <b>forza</b> resta per sempre, la <b>forma</b> sale nei giorni in cui giochi e scende se ti fermi: per questo il grafico cambia davvero.</p></section>
+<section class="card stack tab" data-tab="andamento" hidden><div class="toggle" id="toggle"></div><div id="linea"></div><p class="hint" id="lineaNota"></p></section>
+<section class="card stack tab" data-tab="abilita" hidden><div class="skills" id="skills"></div></section>
+<section class="card stack tab" data-tab="giorni" hidden><div class="heat" id="heat"></div><p class="hint">Ultime 12 settimane: più scuro = più punti quel giorno.</p></section>
+<p class="hint" style="text-align:center">È un gioco: misura quanto e quanto bene giochi qui, non la tua intelligenza. Il <a href="../test.html">test del QI</a> resta separato.</p>
 <p class="foot"><a href="../" style="color:var(--muted)">← Torna alla home</a></p>
 </main>
 <script>window.RACCOLTA_ENDPOINT="https://script.google.com/macros/s/AKfycbzgsmL26nxf3wzvzADgJ4ulpLXbfru19l_NfYDS-NGeXM5lYN4QLITrEe-sNHm23iBi/exec";</script>
@@ -69,9 +78,8 @@ function render(){
   const pct=Math.min(100,Math.round(100*s.oggi/s.obiettivo));
   const F=A.FONTI;const fontiMis=['parole','giochi','allenamento','storia','sfide'];
   const nf=fontiMis.filter(f=>s.fontiOggi[f]>0).length;
-  const mis=fontiMis.map(f=>`<a class="mis ${s.fontiOggi[f]?'ok':''}" href="../${F[f].url}"><span class="ic">${F[f].ic}</span><b>${F[f].nome}</b><span class="st">${s.fontiOggi[f]?'✓ +'+s.fontiOggi[f]:'da fare'}</span></a>`).join('');
-  $('#oggi').innerHTML=`<div class="two"><div class="stack" style="justify-items:center;text-align:center"><div class="ring" style="--p:${pct}"><span>${pct}%</span></div><div><b>${s.oggi} / ${s.obiettivo} punti</b><br><span class="hint">${pct>=100?'Obiettivo raggiunto! Serie salva. 🔥':'Raggiungi l\'obiettivo per allungare la serie.'}</span></div><div class="hint">Livello ${s.livello}: ${s.xpLivello}/${s.xpProssimo} punti al prossimo</div><div class="lvbar" style="width:100%"><i style="width:${Math.min(100,100*s.xpLivello/s.xpProssimo)}%"></i></div></div>
-  <div class="stack"><div class="eyebrow">Missioni del giorno · ${nf}/3</div><div class="missioni">${mis}</div><span class="hint">${s.bonusOggi?'🎁 Bonus missioni preso: +40 Creatività.':'Gioca in 3 zone diverse oggi: bonus +40 Creatività.'}</span></div></div>`;
+  const NB={parole:'Parole',giochi:'Giochi',allenamento:'Allenamento',storia:'Storia',sfide:'Sfide'};const misR=fontiMis.map(f=>`<a class="mis ${s.fontiOggi[f]?'ok':''}" href="../${F[f].url}" title="${F[f].nome}"><span class="ic">${F[f].ic}</span><span class="st">${s.fontiOggi[f]?'+'+s.fontiOggi[f]:NB[f]}</span></a>`).join('');
+  $('#oggi').innerHTML=`<div class="oggi"><div class="ring" style="--p:${pct}"><span>${pct}%</span></div><div class="stack" style="gap:6px;flex:1;min-width:200px"><div><b>Oggi ${s.oggi} / ${s.obiettivo} punti</b> <span class="hint">· ${pct>=100?'obiettivo raggiunto 🔥':'per allungare la serie'}</span></div><div class="lvbar"><i style="width:${Math.min(100,100*s.xpLivello/s.xpProssimo)}%"></i></div><div class="hint">Livello ${s.livello} · ${s.xpLivello}/${s.xpProssimo} al prossimo · missioni ${nf}/3 ${s.bonusOggi?'🎁 bonus preso':'(3 zone diverse = +40 Creatività)'}</div><div class="mis-row">${misR}</div></div></div>`;
   $('#radar').innerHTML=A.radarHtml(s.punteggi)+`<div class="legend"><span><i style="background:var(--brand)"></i>oggi · media ${s.totale}</span></div>`;
   const ser=A.storico(giorni);$('#linea').innerHTML=A.lineaHtml(ser,campo==='tot'?'tot':'p_'+campo);
   const first=ser[0],last=ser[ser.length-1];const v0=campo==='tot'?first.tot:first.p[campo],v1=campo==='tot'?last.tot:last.p[campo];
@@ -86,9 +94,10 @@ function render(){
 }
 // la linea per singola abilità legge p_<id>: adattiamo lineaHtml passando un campo derivato
 const _linea=A.lineaHtml;A.lineaHtml=(ser,c)=>{if(c.startsWith('p_')){const id=c.slice(2);ser=ser.map(x=>Object.assign({},x,{v:x.p[id]}));c='v'}return _linea(ser,c)};
-document.addEventListener('click',e=>{const b=e.target.closest('#toggle button');if(!b)return;if(b.dataset.c)campo=b.dataset.c;if(b.dataset.g)giorni=giorni===90?30:90;render()});
+document.addEventListener('click',e=>{const tb=e.target.closest('#tabs button');if(tb){document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===tb));document.querySelectorAll('section.tab').forEach(x=>x.hidden=x.dataset.tab!==tb.dataset.tab);try{localStorage.setItem('testqi.abilita.tab',tb.dataset.tab)}catch(e){}return}const b=e.target.closest('#toggle button');if(!b)return;if(b.dataset.c)campo=b.dataset.c;if(b.dataset.g)giorni=giorni===90?30:90;render()});
 window.addEventListener('testqi:account',render);
 render();
+try{const t=localStorage.getItem('testqi.abilita.tab');const tb=t&&document.querySelector(`#tabs button[data-tab="${t}"]`);if(tb)tb.click()}catch(e){}
 })();
 </script>
 <script src="../js/pwa.js"></script>
