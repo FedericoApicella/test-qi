@@ -117,3 +117,8 @@ body.playing main.wrap{padding-bottom:190px}
 .gopt i{font-style:normal}
 .gbody{display:grid;gap:8px}
 details.fold{padding:12px 16px}details.fold summary{cursor:pointer;font-weight:800;font-size:1.05rem;list-style:none;display:flex;justify-content:space-between}details.fold summary::after{content:'▾';color:var(--muted)}details.fold[open] summary::after{content:'▴'}
+
+/* sfida a due dentro un iframe: solo il gioco */
+body.in-sfida .bar,body.in-sfida #menuPop,body.in-sfida .foot,body.in-sfida footer{display:none!important}
+body.in-sfida{padding-top:0}
+body.in-sfida .wrap{padding-top:8px}
