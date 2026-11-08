@@ -189,6 +189,13 @@ function amiciHtml(inLobby){
 }
 function invitoHtml(){if(!S.invito)return'';return`<div class="card invito"><h3>🎯 ${esc(S.invito.da)} ti sfida!</h3><p class="hint">Stanza <b class="mono">${esc(S.invito.stanza)}</b>. ${S.name.trim()?'':'Scrivi prima il tuo nome, poi entra.'}</p><div class="actions"><button class="btn primary big" data-act="accetta">Entra nella sfida</button><button class="btn" data-act="ignora">Ignora</button></div></div>`}
 
+// dati del quesito da allegare a una segnalazione (testo leggibile, niente oggetti grafici)
+function infoQuesito(it,extra){const L='ABCDEF';const o={tipo:it.kind,risposta:L[it.answer]||String(it.answer),regola:it.rule||''};
+  if(it.kind==='num'){o.serie=it.seq.join(', ');o.opzioni=it.options.join(' | ')}
+  else if(it.kind==='verb'){o.analogia=it.a+' : '+it.b+' = '+it.c+' : ?';o.opzioni=it.options.join(' | ')}
+  else if(it.kind==='mem'){o.sequenza=(it.seq||[]).join(' ');o.risposta=it.answer}
+  return Object.assign(o,extra||{})}
+const segnalaBtn=(it,ctx,extra)=>window.Segnala?`<div class="actions" style="justify-content:center">${window.Segnala.bottoneHtml('Errore in questa domanda',ctx,infoQuesito(it,extra))}</div>`:'';
 // ========================= interfaccia =========================
 const fmtMs=(ms)=>(ms/1000).toFixed(1).replace('.',',')+' s';
 function roomLink(){return location.origin+location.pathname+'?stanza='+S.code}
@@ -335,7 +342,7 @@ function rResult(){
   const readyBox=`<div class="actions"><button class="btn primary big wide" data-act="ready" ${iReady?'disabled':''}>${iReady?(S.solo?'…':`<span class="spin"></span> Aspetto ${esc(n[o]||'l\'avversario')}…`):'Avanti ▶'}</button></div><p class="hint" style="text-align:center">${nextTxt} tra <span class="mono" id="resLeft">${left}</span> s${!S.solo&&oReady&&!iReady?` · ${esc(n[o]||'L\'avversario')} è pronto`:''}</p>`;
   return`<div class="eyebrow">${esc(KIND_NAME[it.kind])} · quesito ${S.i+1} di ${S.items.length} · esito</div>
     <div class="verdict">${row(m,'me')}${S.solo?'':row(o,'opp')}</div>
-    <p class="q">La risposta giusta era ${LETTERS[it.answer]}.</p>${rule}${readyBox}${body}`;
+    <p class="q">La risposta giusta era ${LETTERS[it.answer]}.</p>${rule}${readyBox}${body}${segnalaBtn(it,'Sfide · '+KIND_NAME[it.kind]+' · quesito '+(S.i+1),{seme:S.seed,indice:S.i})}`;
 }
 function rEnd(){
   const n=names(),m=me(),o=opp();const sm=S.score[m],so=S.score[o];

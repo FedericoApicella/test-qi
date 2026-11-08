@@ -264,6 +264,13 @@ function rGameEnd(){
     ${g.kind==='serio'?`<div class="card"><h3>I tuoi progressi</h3>${metricChart(rec.hist,r.metricLabel)}</div>`:''}
     <div class="actions"><button class="btn primary big" data-act="gameAgain">Ancora</button><button class="btn" data-act="quit">Torna ai giochi</button></div>`;
 }
+// dati del quesito da allegare a una segnalazione (testo leggibile, niente oggetti grafici)
+function infoQuesito(it,extra){const L='ABCDEF';const o={tipo:it.kind,risposta:L[it.answer]||String(it.answer),regola:it.rule||''};
+  if(it.kind==='num'){o.serie=it.seq.join(', ');o.opzioni=it.options.join(' | ')}
+  else if(it.kind==='verb'){o.analogia=it.a+' : '+it.b+' = '+it.c+' : ?';o.opzioni=it.options.join(' | ')}
+  else if(it.kind==='mem'){o.sequenza=(it.seq||[]).join(' ');o.risposta=it.answer}
+  return Object.assign(o,extra||{})}
+const segnalaBtn=(it,ctx,extra)=>window.Segnala?`<div class="actions" style="justify-content:center">${window.Segnala.bottoneHtml('Errore in questa domanda',ctx,infoQuesito(it,extra))}</div>`:'';
 function rQ(){
   const it=S.items[S.i];const area=P.aree[S.area.id]||{level:0};
   const head=S.daily?`<div class="eyebrow">📅 Sfida del giorno · ${esc(KIND_NAME[it.kind])} · ${S.i+1} di ${SESSION_N}</div>`:S.sprint?`<div class="eyebrow">⚡ Sprint · ${esc(KIND_NAME[it.kind])} · ${S.log.filter(l=>l.ok).length} giuste</div>`:`<div class="eyebrow">${esc(KIND_NAME[it.kind])} · quesito ${S.i+1} di ${SESSION_N} · ${S.diff?`difficoltà ${S.diff.d} · livello ${S.diff.L}`:`livello ${lvNum(area.level)}`}</div>`;
@@ -282,7 +289,7 @@ function rQ(){
     const f=S.fb;
     fb=`<div class="fb ${f.ok?'ok':'bad'}"><b>${f.ok?(S.streak>=5?`Giusto! 🔥 ${S.streak} di fila, +${f.pts} punti`:`Giusto! +${f.pts} punti`):(f.choice===null?'Tempo scaduto.':'Sbagliato.')+' La risposta giusta era '+(it.kind==='mem'?it.answer:LETTERS[it.answer])+'.'}</b>
       ${it.rule?`<span>💡 ${esc(window.Quesiti.spiegazione?window.Quesiti.spiegazione(it):'Spiegazione: '+it.rule+'.')}</span>`:''}${f.levelUp?`<span>🎉 Sei salito al livello ${f.lvAfter}!</span>`:''}
-      <div class="actions"><button class="btn primary" id="nextBtn" data-act="next">${S.i+1<SESSION_N?'Avanti':'Vedi il risultato'}</button><span class="hint">Invio per continuare</span></div></div>`;
+      <div class="actions"><button class="btn primary" id="nextBtn" data-act="next">${S.i+1<SESSION_N?'Avanti':'Vedi il risultato'}</button><span class="hint">Invio per continuare</span></div>${segnalaBtn(it,'Allenamento · '+esc(S.area.name)+' · '+KIND_NAME[it.kind])}</div>`;
   }
   return`${head}<div id="qbox" class="stack">${body}</div>${fb}${S.fb?'':'<div class="actions"><button class="btn" data-act="quit">Interrompi</button></div>'}`;
 }
