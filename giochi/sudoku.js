@@ -20,9 +20,9 @@ function countSol(g,peers,n,limit){ // conta le soluzioni fino a limit
   let best=-1,bestC=null;for(let i=0;i<n*n;i++){if(g[i])continue;const c=candidates(g,peers,i,n);if(!c.length)return 0;if(!bestC||c.length<bestC.length){best=i;bestC=c;if(c.length===1)break}}
   if(best<0)return 1;let tot=0;for(const v of bestC){g[best]=v;tot+=countSol(g,peers,n,limit-tot);if(tot>=limit)break}g[best]=0;return tot}
 function genera(level){
-  const d=G.d01(G.diffOf(level,P.imp));
-  const n=d<0.08?4:d<0.22?6:9;
-  let clues=n===4?(d<0.04?10:8):n===6?Math.round(22-(d-0.08)/0.14*7):Math.round(42-(d-0.22)/0.78*18);
+  const d=G.d01(G.diffOf(level,P[GAME].diff));
+  const n=d<0.08?4:d<0.18?6:9;
+  let clues=n===4?(d<0.04?10:8):n===6?Math.round(22-(d-0.08)/0.10*7):Math.round(42-(d-0.18)/0.82*18);
   const r=G.rng('sudoku:'+level+':'+n);const peers=makePeers(n);
   const sol=new Array(n*n).fill(0);fill(sol,peers,n,r);
   const g=sol.slice();const order=r.shuffle([...Array(n*n).keys()]);
@@ -35,7 +35,7 @@ function genera(level){
 let S=null; // {level,n,sol,given,grid,notes,sel,noteMode,hints,errors,start}
 function nuovo(level,ripresa){
   const pz=genera(level);
-  S={level,n:pz.n,sol:pz.sol,given:pz.given,peers:pz.peers,grid:pz.given.slice(),notes:pz.given.map(()=>[]),sel:-1,noteMode:false,hints:0,errors:0,done:false,elapsed:0};
+  S={level,diffBase:P[GAME].diff,n:pz.n,sol:pz.sol,given:pz.given,peers:pz.peers,grid:pz.given.slice(),notes:pz.given.map(()=>[]),sel:-1,noteMode:false,hints:0,errors:0,done:false,elapsed:0};
   const c=P[GAME].corso;
   if(ripresa&&c&&c.level===level&&c.n===pz.n&&c.grid&&c.grid.length===pz.n*pz.n){S.grid=c.grid;S.notes=c.notes||S.notes;S.hints=c.hints||0;S.errors=c.errors||0;S.elapsed=c.elapsed||0}
   location.hash='liv='+level;
@@ -110,7 +110,7 @@ document.addEventListener('keydown',e=>{if(!S||document.getElementById('gOv'))re
   else if(e.key==='n'||e.key==='N'){S.noteMode=!S.noteMode;render()}
   else if(e.key.startsWith('Arrow')){let i=S.sel<0?0:S.sel;const r=Math.floor(i/n),c=i%n;
     if(e.key==='ArrowUp'&&r>0)i-=n;if(e.key==='ArrowDown'&&r<n-1)i+=n;if(e.key==='ArrowLeft'&&c>0)i--;if(e.key==='ArrowRight'&&c<n-1)i++;seleziona(i);e.preventDefault()}});
-G.bottoniComuni(()=>P,GAME,{vai:(L)=>nuovo(L,true),ricarica:()=>{const d=G.diffOf(S.level,P.imp);P=G.load();if(G.diffOf(S.level,P.imp)!==d){delete P[GAME].corso;G.save(P);nuovo(S.level);return}G.applySkin(P);G.intestazione(P,GAME,S.level,`${S.n}×${S.n}`);render()},aiuto});
+G.bottoniComuni(()=>P,GAME,{vai:(L)=>nuovo(L,true),ricarica:()=>{P=G.load();if(P[GAME].diff!==S.diffBase){nuovo(P[GAME].next,true);return}G.applySkin(P);G.intestazione(P,GAME,S.level,`${S.n}×${S.n}`);render()},aiuto});
 G.onSync=()=>{P=G.load();G.applySkin(P)};
 $('#barSound').innerHTML=FX.soundButtonHtml();FX.bindSoundButton();
 window.addEventListener('beforeunload',salvaCorso);

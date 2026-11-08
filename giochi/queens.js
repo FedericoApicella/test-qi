@@ -46,7 +46,7 @@ function seconda(n,reg,cols){ // una soluzione diversa da cols, se esiste
     for(let c=0;c<n;c++){if(usedC[c])continue;const g=reg[row*n+c];if(usedR[g])continue;if(row>0&&Math.abs(cur[row-1]-c)<=1)continue;usedC[c]=true;usedR[g]=true;cur[row]=c;go(row+1);usedC[c]=false;usedR[g]=false}}
   go(0);return found}
 function genera(level){
-  const d=G.d01(G.diffOf(level,P.imp));const n=5+Math.round(6*d);
+  const d=G.d01(G.diffOf(level,P[GAME].diff));const n=5+Math.round(6*d);
   const r=G.rng('queens:'+level+':'+n);
   for(let tent=0;tent<30;tent++){
     const cols=soluzione(n,r);if(!cols)continue;
@@ -72,7 +72,7 @@ function genera(level){
 let S=null;
 function nuovo(level,ripresa){
   const pz=genera(level);
-  S={level,n:pz.n,cols:pz.cols,reg:pz.reg,cell:new Array(pz.n*pz.n).fill(0),hints:0,done:false,elapsed:0};
+  S={level,diffBase:P[GAME].diff,n:pz.n,cols:pz.cols,reg:pz.reg,cell:new Array(pz.n*pz.n).fill(0),hints:0,done:false,elapsed:0};
   const c=P[GAME].corso;
   if(ripresa&&c&&c.level===level&&c.n===pz.n&&c.cell&&c.cell.length===pz.n*pz.n){S.cell=c.cell;S.hints=c.hints||0;S.elapsed=c.elapsed||0}
   location.hash='liv='+level;
@@ -119,7 +119,7 @@ function aiuto(){G.aiuto('Come si gioca a Queens',`<ul>
 
 $('#board').addEventListener('click',e=>{const c=e.target.closest('.c');if(c)tocca(+c.dataset.i)});
 $('#bHint').addEventListener('click',suggerimento);$('#bClear').addEventListener('click',pulisci);
-G.bottoniComuni(()=>P,GAME,{vai:(L)=>nuovo(L,true),ricarica:()=>{const d=G.diffOf(S.level,P.imp);P=G.load();if(G.diffOf(S.level,P.imp)!==d){delete P[GAME].corso;G.save(P);nuovo(S.level);return}G.applySkin(P);G.intestazione(P,GAME,S.level,`${S.n}×${S.n} · ${S.n} regine`);render()},aiuto});
+G.bottoniComuni(()=>P,GAME,{vai:(L)=>nuovo(L,true),ricarica:()=>{P=G.load();if(P[GAME].diff!==S.diffBase){nuovo(P[GAME].next,true);return}G.applySkin(P);G.intestazione(P,GAME,S.level,`${S.n}×${S.n} · ${S.n} regine`);render()},aiuto});
 G.onSync=()=>{P=G.load();G.applySkin(P);render()};
 $('#barSound').innerHTML=FX.soundButtonHtml();FX.bindSoundButton();
 window.addEventListener('beforeunload',salvaCorso);
