@@ -5,7 +5,7 @@
  * - Non tocca mai: le POST, Google Apps Script (raccolta dati e account), PeerJS (sfide).
  * Per pubblicare una nuova versione basta cambiare VERSIONE: il vecchio contenuto viene cancellato.
  */
-const VERSIONE = 'ma-2026-11-08c';
+const VERSIONE = 'ma-2026-11-08d';
 const CACHE = 'mente-allenata-' + VERSIONE;
 const FONT_CACHE = 'mente-allenata-font';
 const PRECARICA = [
