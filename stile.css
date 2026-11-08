@@ -167,7 +167,7 @@ details .body{padding:0 16px 16px;display:grid;gap:12px}
 .stat{display:grid;gap:2px;text-align:center}
 .stat .v{font-family:var(--font-mono);font-size:1.6rem;font-weight:600;line-height:1.1}
 .stat .l{font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:10px}
 .fb{display:grid;gap:8px;padding:14px 16px;border-radius:10px;border:1px solid var(--border);background:var(--surface)}
 .fb.ok{border-color:var(--ok);background:var(--ok-soft)}
 .fb.bad{border-color:var(--bad);background:var(--bad-soft)}
@@ -243,3 +243,34 @@ details .body{padding:0 16px 16px;display:grid;gap:12px}
 
 /* diagnostica del collegamento (sfide) */
 .diag pre{margin:0;max-height:220px;overflow:auto;font-size:.78rem;line-height:1.45;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;white-space:pre-wrap;word-break:break-word}
+
+/* ---- compattezza su telefono (Federico: "troppo scroll") ----
+   .tiles.compact : card piccole, 2 per riga (3 da 720px), ognuna col suo colore (8 palette a rotazione)
+   .fold          : sezione richiudibile; l'intestazione .sec-head (o h2/h3) apre e chiude, stato salvato in localStorage (js/menu.js)
+   .note.small    : avvertenza in una riga piccola */
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.tiles.compact{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tiles.compact .tile{--c1:#7c3aed;--c2:#c084fc;--tint:#f3e8ff;padding:12px 12px 10px;gap:4px;border-radius:18px;border:0;background:linear-gradient(160deg,#fff 0%,var(--tint) 100%);box-shadow:0 1px 2px rgba(76,29,149,.06),0 10px 24px -14px rgba(76,29,149,.35);overflow:hidden}
+.tiles.compact .tile::before{content:"";position:absolute;inset:0 0 auto 0;height:4px;background:linear-gradient(90deg,var(--c1),var(--c2))}
+.tiles.compact .tile::after{content:"";position:absolute;right:-28px;bottom:-28px;width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,var(--c1),var(--c2));opacity:.10}
+.tiles.compact .tile .ic{font-size:1.3rem;width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(135deg,var(--c1),var(--c2));box-shadow:0 6px 14px -6px var(--c1);margin:4px 0 4px}
+.tiles.compact .tile b{font-size:.95rem;line-height:1.2;letter-spacing:-.01em}
+.tiles.compact .tile>span:not(.ic):not(.pill):not(.cta){font-size:.74rem;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tiles.compact .tile .cta{font-size:.78rem;margin-top:2px;color:var(--c1);display:inline-flex;align-items:center;gap:4px}
+.tiles.compact .tile .pill{top:12px;right:10px;font-size:.6rem;padding:2px 7px;background:rgba(255,255,255,.85);color:var(--c1);border:1px solid color-mix(in srgb,var(--c1) 25%,transparent)}
+.tiles.compact .tile:hover{transform:translateY(-3px);box-shadow:0 16px 28px -14px var(--c1)}
+.tiles.compact .tile:active{transform:scale(.98)}
+.tiles.compact .tile:nth-child(8n+2){--c1:#f59e0b;--c2:#fbbf24;--tint:#fff7e6}
+.tiles.compact .tile:nth-child(8n+3){--c1:#0ea5e9;--c2:#67e8f9;--tint:#e8f7fd}
+.tiles.compact .tile:nth-child(8n+4){--c1:#e11d48;--c2:#fb7185;--tint:#ffe9ee}
+.tiles.compact .tile:nth-child(8n+5){--c1:#16a34a;--c2:#4ade80;--tint:#e9f9ee}
+.tiles.compact .tile:nth-child(8n+6){--c1:#ea580c;--c2:#fb923c;--tint:#fff1e8}
+.tiles.compact .tile:nth-child(8n+7){--c1:#2563eb;--c2:#60a5fa;--tint:#e8f0fe}
+.tiles.compact .tile:nth-child(8n+8){--c1:#db2777;--c2:#f472b6;--tint:#fde8f3}
+@media (min-width:720px){.tiles.compact{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.fold>.sec-head,.fold>h2:first-child,.fold>h3:first-child{cursor:pointer;user-select:none;position:relative;padding-right:28px;margin:0}
+.fold>.sec-head::after,.fold>h2:first-child::after,.fold>h3:first-child::after{content:"";position:absolute;right:6px;top:50%;width:9px;height:9px;border-right:2.5px solid var(--muted);border-bottom:2.5px solid var(--muted);transform:translateY(-70%) rotate(45deg);transition:transform .2s}
+.fold.open>.sec-head::after,.fold.open>h2:first-child::after,.fold.open>h3:first-child::after{transform:translateY(-30%) rotate(225deg)}
+.fold:not(.open)>*:not(.sec-head):not(h2:first-child):not(h3:first-child){display:none}
+.fold:not(.open){padding-top:14px;padding-bottom:14px}
+.note.small{font-size:.8rem;padding:8px 12px;border-radius:8px;line-height:1.35}
