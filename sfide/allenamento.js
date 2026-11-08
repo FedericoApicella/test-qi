@@ -45,9 +45,13 @@ function award(id){if(P.badges[id])return false;P.badges[id]=new Date().toISOStr
 
 // ========================= stato della sessione =========================
 let S=null,tick=null,memT=null;
+const DF=window.Difficolta;
+// menù di avvio con la scelta della difficoltà (Auto o 1–10); la Sfida del giorno non ce l'ha
+function startPre(kind,id){S={screen:'pre',pre:{kind,id}};render()}
+function diffFor(id){const d=DF?DF.leggi(id):null;return d==null?null:{d,L:DF.livello(id,d)}}
 function startSession(areaId){
   const area=AREAS.find(a=>a.id===areaId);
-  S={screen:'q',area,i:-1,items:[],log:[],pts:0,streak:0,maxStreak:0,newBadges:[],lvStart:lvNum(P.aree[area.id].level),mem:null,fb:null};
+  S={screen:'q',area,i:-1,items:[],log:[],pts:0,streak:0,maxStreak:0,newBadges:[],lvStart:lvNum(P.aree[area.id].level),mem:null,fb:null,diff:diffFor(area.id)};
   FX.beep('start');next();
 }
 // Sfida del giorno: stessi 10 quesiti per tutti, seme dalla data; un record al giorno e la serie di giorni consecutivi.
@@ -60,24 +64,27 @@ function startDaily(){
   FX.beep('start');next();
 }
 function startSprint(){
-  S={screen:'q',area:{id:'sprint',name:'Sprint 60 secondi',ic:'⚡',time:60},sprint:true,endAt:Date.now()+SPRINT_MS,i:-1,items:[],log:[],pts:0,streak:0,maxStreak:0,newBadges:[],lvStart:0,mem:null,fb:null};
+  S={screen:'q',area:{id:'sprint',name:'Sprint 60 secondi',ic:'⚡',time:60},sprint:true,endAt:Date.now()+SPRINT_MS,i:-1,items:[],log:[],pts:0,streak:0,maxStreak:0,newBadges:[],lvStart:0,mem:null,fb:null,diff:diffFor('sprint')};
   FX.beep('start');next();
   tick=setInterval(()=>{S.timeLeft=Math.max(0,Math.ceil((S.endAt-Date.now())/1000));updateBar();if(S.timeLeft<=5&&S.timeLeft>0)FX.beep('tick');if(Date.now()>=S.endAt){clearInterval(tick);tick=null;clearTimeout(memT);endSession()}},250);
 }
 function startGame(id){
   const g=GAMES.find(x=>x.id===id);if(!g)return;
   const rec=P.giochi[id]||(P.giochi[id]={best:0,n:0,level:1,hist:[]});
-  S={screen:'game',game:g,area:AREAS.find(a=>a.id===g.area),pts:0,newBadges:[],timeLeft:null};
+  const diff=diffFor(id);const dv=diff?DF.valore(diff.d,diff.L):null;
+  S={screen:'game',game:g,area:AREAS.find(a=>a.id===g.area),pts:0,newBadges:[],timeLeft:null,diff};
   FX.beep('start');render();
   const root=$('#gameRoot');
-  const ctx={beep:FX.beep,floatText:FX.floatText,shake:FX.shake,level:rec.level,timer:(sec)=>{S.timeLeft=sec;updateBar()},
-    end:(res)=>{gameStop=null;S.res=res;S.pts=res.pts;const isBest=res.metric>rec.best;if(isBest)rec.best=res.metric;rec.n++;if(res.level)rec.level=res.level;
+  // con difficoltà fissa i giochi "seri" prendono il livello dalla fascia scelta (n-back: N = 1–5, rotazione: 1–6) e non lo salvano
+  const fixedLevel=dv==null?rec.level:g.id==='nback'?Math.max(1,Math.min(5,Math.ceil(dv/2))):g.id==='rotm'?Math.max(1,Math.min(6,Math.ceil(dv*0.6))):rec.level;
+  const ctx={beep:FX.beep,floatText:FX.floatText,shake:FX.shake,level:fixedLevel,diff:dv,timer:(sec)=>{S.timeLeft=sec;updateBar()},
+    end:(res)=>{gameStop=null;S.res=res;S.pts=res.pts;const isBest=res.metric>rec.best;if(isBest)rec.best=res.metric;rec.n++;if(res.level&&dv==null)rec.level=res.level;if(diff)DF.incrementa(id,diff.d);
       rec.hist.push({d:Date.now(),metric:res.metric,score:res.score!==undefined?res.score:res.nOk,pts:res.pts});if(rec.hist.length>60)rec.hist.shift();
       P.totalDone+=res.n||0;P.totalPts+=Math.max(0,res.pts);award('primo');if(g.kind==='serio')award('serio');if(Object.keys(P.giochi).length>=5)award('giocherellone');
       S.isBest=isBest;S.screen='gameEnd';saveP();render();if(isBest&&res.metric>0){FX.beep('win');FX.confetti(90)}else FX.beep('ok')}};
   gameStop=g.start(root,ctx)||null;
 }
-function curLevel(){return S.daily?0.5:S.sprint?0.12+Math.random()*0.25:P.aree[S.area.id].level}
+function curLevel(){if(S.diff)return DF.norm(S.diff.d,S.diff.L);return S.daily?0.5:S.sprint?0.12+Math.random()*0.25:P.aree[S.area.id].level}
 function next(){
   stopTimer();clearTimeout(memT);
   if(S.daily){S.i++;if(S.i>=SESSION_N){endSession();return}const it=S.pre[S.i];S.items.push(it);S.fb=null;S.mine=null;S.mem=null;S.screen='q';S.time=45;startTimer();render();return}
@@ -113,13 +120,13 @@ function answer(choice,el){
   const area=P.aree[S.area.id]||{level:0.5,done:0,correct:0,best:0,sessions:[]};const lvBefore=lvNum(area.level);
   let pts=0;
   if(ok){S.streak++;S.maxStreak=Math.max(S.maxStreak,S.streak);pts=10+Math.round(5*Math.max(0,1-ms/(S.time*1000)))+Math.min(5,S.streak-1)*2;
-    area.level=Math.min(1,area.level+(S.streak>=3?0.05:0.035));area.correct++;
+    if(!S.diff)area.level=Math.min(1,area.level+(S.streak>=3?0.05:0.035));area.correct++;
     FX.beep(S.streak>0&&S.streak%5===0?'streak':'ok');FX.floatText(el||$('#qbox'),'+'+pts,S.streak>=5?'gold':'');
     if(ms<3000)award('veloce');
-  }else{S.streak=0;area.level=Math.max(0,area.level-0.06);FX.beep('bad');FX.shake($('#qbox'));if(el)FX.floatText(el,'✗','bad')}
+  }else{S.streak=0;if(!S.diff)area.level=Math.max(0,area.level-0.06);FX.beep('bad');FX.shake($('#qbox'));if(el)FX.floatText(el,'✗','bad')}
   area.done++;area.best=Math.max(area.best,S.streak);P.totalDone++;P.totalPts+=pts;P.bestStreak=Math.max(P.bestStreak,S.streak);S.pts+=pts;
   if(S.streak>=5)award('fila5');if(S.streak>=10)award('fila10');if(P.totalDone>=50)award('q50');if(P.totalDone>=200)award('q200');
-  const lvAfter=lvNum(area.level);const levelUp=lvAfter>lvBefore;
+  const lvAfter=lvNum(area.level);const levelUp=!S.diff&&lvAfter>lvBefore;
   if(levelUp){FX.beep('level');FX.confetti(40);if(lvAfter>=5)award('lv5');if(lvAfter>=10)award('lv10')}
   S.log.push({ok,ms,pts,kind:it.kind,choice});S.fb={ok,pts,choice,levelUp,lvAfter};
   saveP();render();
@@ -129,9 +136,10 @@ function endSession(){
   if(S.daily){const today=dayKey();const nOk=S.log.filter(l=>l.ok).length;const d=P.daily;const prev=d.giorni[today];if(!prev||S.pts>prev.pts)d.giorni[today]={pts:S.pts,ok:nOk};
     if(d.ultimo!==today){const y=new Date();y.setDate(y.getDate()-1);const yk=y.getFullYear()+'-'+String(y.getMonth()+1).padStart(2,'0')+'-'+String(y.getDate()).padStart(2,'0');d.serie=d.ultimo===yk?d.serie+1:1;d.ultimo=today}
     if(d.serie>=7)award('settimana');award('primo');saveP();S.screen='end';render();if(nOk>=7){FX.beep('win');FX.confetti(nOk===10?140:70)}return}
+  if(S.diff)DF.incrementa(S.area.id,S.diff.d);
   if(S.sprint){const nOk=S.log.filter(l=>l.ok).length;S.record=S.pts>P.sprintBest;if(S.record)P.sprintBest=S.pts;P.sprintN++;award('primo');saveP();S.screen='end';render();if(S.record&&S.pts>0){FX.beep('win');FX.confetti(100)}else FX.beep('ok');return}
   const area=P.aree[S.area.id];const nOk=S.log.filter(l=>l.ok).length;
-  area.sessions.push({d:Date.now(),acc:nOk/SESSION_N,lvl:lvNum(area.level),pts:S.pts});if(area.sessions.length>60)area.sessions.shift();
+  area.sessions.push({d:Date.now(),acc:nOk/SESSION_N,lvl:S.diff?Math.min(10,Math.round(DF.valore(S.diff.d,S.diff.L))):lvNum(area.level),pts:S.pts});if(area.sessions.length>60)area.sessions.shift();
   award('primo');if(nOk===SESSION_N)award('perfetto');
   if(['mat','num','verb','mem','rot'].every(k=>P.aree[k].sessions.length>0))award('tutte');
   saveP();S.screen='end';render();
@@ -142,8 +150,9 @@ function quit(){if(tick){clearInterval(tick);tick=null}clearTimeout(memT);if(gam
 // ========================= interfaccia =========================
 const fmtMs=(ms)=>(ms/1000).toFixed(1).replace('.',',')+' s';
 function render(){
-  $('#app').innerHTML=S?(S.screen==='end'?rEnd():S.screen==='game'?rGame():S.screen==='gameEnd'?rGameEnd():rQ()):rHome();
+  $('#app').innerHTML=S?(S.screen==='pre'?rPre():S.screen==='end'?rEnd():S.screen==='game'?rGame():S.screen==='gameEnd'?rGameEnd():rQ()):rHome();
   updateBar();bind();
+  if(S&&S.screen==='pre'&&DF)DF.bind($('#app'),S.pre.id,()=>{const p=$('#preHint');if(p)p.textContent=preHint()});
 }
 function updateBar(){
   const sc=$('#barScores'),t=$('#barTimer');
@@ -164,10 +173,11 @@ function bind(){
   document.onkeydown=(e)=>{if(e.target&&e.target.tagName==='INPUT')return;if(S&&!S.sprint&&S.fb&&(e.key==='Enter'||e.key===' ')){e.preventDefault();next()}};
 }
 function act(a,btn){
-  if(a==='area')startSession(btn.dataset.area);
-  else if(a==='sprint')startSprint();
+  if(a==='area')startPre('area',btn.dataset.area);
+  else if(a==='sprint')startPre('sprint','sprint');
   else if(a==='daily')startDaily();
-  else if(a==='game')startGame(btn.dataset.game);
+  else if(a==='game')startPre('game',btn.dataset.game);
+  else if(a==='preGo'){const {kind,id}=S.pre;if(kind==='area')startSession(id);else if(kind==='sprint')startSprint();else startGame(id)}
   else if(a==='gameAgain')startGame(S.game.id);
   else if(a==='next')next();
   else if(a==='memOk'){const mi=$('#memInput');answer(mi&&mi.value.trim().toUpperCase()||null,mi)}
@@ -224,6 +234,12 @@ function rHome(){
     <div class="card"><h3>Medaglie</h3><div class="badges">${badges}</div></div>
     <div class="actions"><a class="btn" href="./">⚔️ Sfida un amico</a><a class="btn" href="../">🏠 Home</a><button class="btn" data-act="reset" style="margin-left:auto">Azzera i progressi</button></div>`;
 }
+function preInfo(){const {kind,id}=S.pre;if(kind==='area'){const a=AREAS.find(x=>x.id===id);return{ic:a.ic,name:a.name,desc:a.desc,sub:'Dieci quesiti, ogni risposta spiegata.'}}if(kind==='sprint')return{ic:'⚡',name:'Sprint 60 secondi',desc:'Quesiti a raffica: quanti ne fai in un minuto? Ogni risposta giusta di fila vale di più.',sub:`Record ${P.sprintBest} punti`};const g=GAMES.find(x=>x.id===id);const r=P.giochi[id];return{ic:g.ic,name:g.name,desc:g.desc,sub:r&&r.n?`Record ${r.best} · ${r.n} partit${r.n===1?'a':'e'}`:'Mai provato'}}
+function preHint(){const d=DF?DF.leggi(S.pre.id):null;if(d==null)return S.pre.kind==='area'?`Parti dal tuo livello ${lvNum(P.aree[S.pre.id].level)}: sale se rispondi bene, scende se sbagli.`:'Regole normali del gioco.';return`Giochi a difficoltà ${d} finché vuoi; se cambi difficoltà, i livelli di questa restano salvati.`}
+function rPre(){const i=preInfo();
+  return`<div class="stack"><div class="eyebrow">${i.ic} ${esc(i.name)}</div><h1>Scegli la difficoltà</h1><p class="lede">${esc(i.desc)}</p></div>
+    <div class="card">${DF?DF.selettoreHtml(S.pre.id,{auto:true}):''}<p class="hint" id="preHint">${esc(preHint())}</p><p class="hint">${esc(i.sub)}</p>
+      <div class="actions"><button class="btn primary big wide" data-act="preGo">▶️ Gioca</button><button class="btn" data-act="quit">Indietro</button></div></div>`}
 function rGame(){return`<div id="gameRoot" class="stack"></div><div class="actions"><button class="btn" data-act="quit">Interrompi</button></div>`}
 function metricChart(hist,label){
   const h=hist.slice(-30);if(h.length<2)return'<p class="hint">Il grafico compare dalla seconda partita.</p>';
@@ -244,7 +260,7 @@ function rGameEnd(){
 }
 function rQ(){
   const it=S.items[S.i];const area=P.aree[S.area.id]||{level:0};
-  const head=S.daily?`<div class="eyebrow">📅 Sfida del giorno · ${esc(KIND_NAME[it.kind])} · ${S.i+1} di ${SESSION_N}</div>`:S.sprint?`<div class="eyebrow">⚡ Sprint · ${esc(KIND_NAME[it.kind])} · ${S.log.filter(l=>l.ok).length} giuste</div>`:`<div class="eyebrow">${esc(KIND_NAME[it.kind])} · quesito ${S.i+1} di ${SESSION_N} · livello ${lvNum(area.level)}</div>`;
+  const head=S.daily?`<div class="eyebrow">📅 Sfida del giorno · ${esc(KIND_NAME[it.kind])} · ${S.i+1} di ${SESSION_N}</div>`:S.sprint?`<div class="eyebrow">⚡ Sprint · ${esc(KIND_NAME[it.kind])} · ${S.log.filter(l=>l.ok).length} giuste</div>`:`<div class="eyebrow">${esc(KIND_NAME[it.kind])} · quesito ${S.i+1} di ${SESSION_N} · ${S.diff?`difficoltà ${S.diff.d} · livello ${S.diff.L}`:`livello ${lvNum(area.level)}`}</div>`;
   let body;
   if(it.kind==='mem'){
     const instr=it.type==='back'?'Memorizza le cifre: dovrai riscriverle in ordine inverso.':'Memorizza i simboli: dovrai scrivere prima le cifre in ordine crescente, poi le lettere in ordine alfabetico.';
