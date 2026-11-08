@@ -23,7 +23,7 @@ function maschera(tipo,w,h){ // insiemi di tessere al piano 0, in coordinate tes
   return out;
 }
 function layout(level){
-  const d=G.d01(G.diffOf(level,P.imp));
+  const d=G.d01(G.diffOf(level,P[GAME].diff));
   const target=Math.round((24+120*d)/2)*2;
   const r=G.rng('mahjong:'+level);
   const tipi=['rett','piramide','croce','rombo','farfalla','anello'];
@@ -102,10 +102,10 @@ function assegna(tiles,quali,r,nFacce){
 let S=null;
 function nuovo(level,ripresa){
   const {tiles,r,tipo}=layout(level);relazioni(tiles);
-  const d=G.d01(G.diffOf(level,P.imp));
+  const d=G.d01(G.diffOf(level,P[GAME].diff));
   const nFacce=Math.max(4,Math.min(FACCE.length,Math.round(tiles.length/4*(0.6+0.5*d))));
   const costruito=assegna(tiles,tiles.map(t=>t.i),G.rng("mahjong-facce:"+level),nFacce);
-  S={level,tiles,vivo:tiles.map(()=>true),slots:[null,null,null],sel:-1,selSlot:-1,hints:0,shuffles:0,storia:[],done:false,elapsed:0,r,costruito};
+  S={level,diffBase:P[GAME].diff,tiles,vivo:tiles.map(()=>true),slots:[null,null,null],sel:-1,selSlot:-1,hints:0,shuffles:0,storia:[],done:false,elapsed:0,r,costruito};
   const c=P[GAME].corso;
   if(ripresa&&c&&c.level===level&&c.vivo&&c.vivo.length===tiles.length&&c.facce&&c.facce.length===tiles.length&&c.facce.every(f=>FACCE.includes(f))){S.vivo=c.vivo;c.facce.forEach((f,i)=>tiles[i].f=f);if(c.slots&&c.slots.length===3)S.slots=c.slots.map(v=>v==null?null:v);S.hints=c.hints||0;S.shuffles=c.shuffles||0;S.elapsed=c.elapsed||0}
   location.hash='liv='+level;
@@ -204,7 +204,7 @@ $('#board').addEventListener('click',e=>{const t=e.target.closest('.t');if(t)toc
 $('#slots').addEventListener('click',e=>{const s=e.target.closest('.mj-slot');if(s)toccaSlot(+s.dataset.k)});
 $('#bHint').addEventListener('click',suggerimento);$('#bShuf').addEventListener('click',mescola);$('#bUndo').addEventListener('click',annulla);
 let rz=null;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if(S)render(true)},150)});
-G.bottoniComuni(()=>P,GAME,{vai:(L)=>nuovo(L,true),ricarica:()=>{const d=G.diffOf(S.level,P.imp);P=G.load();if(G.diffOf(S.level,P.imp)!==d){delete P[GAME].corso;G.save(P);nuovo(S.level);return}G.applySkin(P);G.intestazione(P,GAME,S.level,`${S.tiles.length} tessere`)},aiuto});
+G.bottoniComuni(()=>P,GAME,{vai:(L)=>nuovo(L,true),ricarica:()=>{P=G.load();if(P[GAME].diff!==S.diffBase){nuovo(P[GAME].next,true);return}G.applySkin(P);G.intestazione(P,GAME,S.level,`${S.tiles.length} tessere`)},aiuto});
 G.onSync=()=>{P=G.load();G.applySkin(P)};
 $('#barSound').innerHTML=FX.soundButtonHtml();FX.bindSoundButton();
 window.addEventListener('beforeunload',salvaCorso);
