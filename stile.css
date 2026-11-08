@@ -291,3 +291,17 @@ details .body{padding:0 16px 16px;display:grid;gap:12px}
 @media (max-width:560px){.areas.compact{grid-template-columns:1fr 1fr}.areas.compact .area>.hint{display:none}.areas.compact .area .lv{flex-direction:column;align-items:flex-start;gap:2px;font-size:.8rem}.areas.compact .area b{font-size:.95rem}.areas.compact .area svg.spark{height:24px}}
 details.mini{border:none;background:none}details.mini summary{padding:4px 0;font-weight:700;color:var(--brand)}details.mini .body{padding:8px 0 0}
 @media (max-width:560px){.tab{padding:8px 11px;font-size:.92rem}}
+/* sfide sui giochi: scelta rapida del gioco e partita a tutta pagina */
+.gchips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.gchip{appearance:none;border:2px solid var(--border);background:var(--surface);color:var(--fg);border-radius:12px;padding:6px 10px;font:inherit;font-weight:700;font-size:.88rem;cursor:pointer}
+.gchip.on{background:var(--grad,var(--accent));color:#fff;border-color:transparent}
+.gchip:disabled,.gd:disabled,.preset:disabled{cursor:default;opacity:.85}
+.gdiff{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
+.gd{appearance:none;border:2px solid var(--border);background:var(--surface);color:var(--fg);border-radius:9px;padding:7px 0;font:inherit;font-weight:800;font-family:var(--font-mono);cursor:pointer;min-width:0}
+.gd.on{background:var(--grad,var(--accent));color:#fff;border-color:transparent}
+body.gara-on .wrap{max-width:none;padding:0;gap:0}
+.gstrip{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px max(10px,env(safe-area-inset-left,0px));font-size:.88rem;border-bottom:1px solid var(--border);background:var(--surface)}
+.gstrip .gs-t{font-weight:700}
+.gstrip .gs-o{position:relative;flex:1;min-width:120px;padding:3px 8px;border-radius:999px;background:var(--opp-soft);color:var(--opp);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.gstrip .gs-o i{position:absolute;left:0;top:0;bottom:0;background:var(--opp);opacity:.18}
+.gframe{display:block;width:100%;border:0;height:calc(100vh - 92px);height:calc(100dvh - 92px);background:var(--bg)}

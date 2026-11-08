@@ -21,7 +21,7 @@ const KINDS=[['mat','Matrici'],['num','Serie numeriche'],['verb','Analogie'],['r
 let S;
 function fresh(){
   return{screen:'home',role:null,solo:false,code:'',name:localStorage.getItem('testqi.nome')||accountName()||'',oppName:'',connected:false,invito:null,invitato:'',
-    cfg:{rounds:10,time:45,kinds:['mat','num','verb','rot']},seed:0,items:[],i:-1,
+    cfg:{rounds:10,time:45,kinds:['mat','num','verb','rot'],mode:'quiz',gn:1,gd:4,gcresc:false,gpreset:'g1',mix:null},seed:0,items:[],i:-1,
     ans:[],         // per turno: [{choice,ms}|null per host, idem per ospite]
     results:[],     // per turno: {pts:[p0,p1]}
     score:[0,0],streak:[0,0],mine:null,theirs:null,roundAt:0,timeLeft:0,err:'',busy:'',joinCode:'',preset:'classica',log:[],via:''};
@@ -44,7 +44,7 @@ function onLost(){
   clearInterval(hbT);hbT=null;if(!S.connected)return;
   log('collegamento con l\'altro giocatore perso');
   S.connected=false;
-  if(S.screen!=='home'){S.err=(S.oppName||'L\'altro giocatore')+' si è scollegato.';if(S.screen==='round'||S.screen==='countdown'||S.screen==='result'){stopTimer();clearTimeout(nextT);clearTimeout(graceT);S.screen='end'}render()}
+  if(S.screen!=='home'){S.err=(S.oppName||'L\'altro giocatore')+' si è scollegato.';if(S.screen==='round'||S.screen==='countdown'||S.screen==='result'){stopTimer();clearTimeout(nextT);clearTimeout(graceT);S.screen='end'}else if(['gplay','gres'].includes(S.screen)){garaEnd();return}render()}
 }
 function netError(msg){log('errore: '+msg);S.err=msg;S.busy='';render()}
 function callbacks(){
@@ -69,8 +69,9 @@ function joinRoom(code){
 }
 function onData(m){
   if(!m||typeof m!=='object')return;
+  if(onGaraData(m))return;
   switch(m.t){
-    case'hello':S.oppName=String(m.name||'').slice(0,20)||(S.role==='host'?'Giocatore 2':'Giocatore 1');S.busy='';log('ciao da '+S.oppName);if(S.screen!=='round'&&S.screen!=='result'&&S.screen!=='countdown')S.screen='lobby';render();break;
+    case'hello':S.oppName=String(m.name||'').slice(0,20)||(S.role==='host'?'Giocatore 2':'Giocatore 1');S.busy='';log('ciao da '+S.oppName);if(!['round','result','countdown','gplay','gres','gend'].includes(S.screen))S.screen='lobby';if(S.role==='host')send({t:'cfg',cfg:S.cfg});if(S.screen==='gplay')render0();else render();break;
     case'start':if(S.role==='guest')startGame(m.seed,m.cfg);break;
     case'round':if(S.role==='guest')startRound(m.i);break;
     case'ans':if(S.i===m.i&&S.screen==='round'){S.theirs={choice:m.choice,ms:m.ms};if(S.role==='host')S.ans[S.i][1]=S.theirs;render();if(S.role==='host')checkRound()}break;
@@ -160,8 +161,8 @@ function endGame(){stopTimer();clearTimeout(nextT);clearTimeout(graceT);S.screen
   else{FX.beep('win');if(S.score[0]>=S.items.length*10)FX.confetti(80)}
   render()}
 function recordHtml(){if(S.solo||!S.oppName)return'';const r=FX.load(KEY_REC,{})[(S.oppName||'').trim().toLowerCase()];if(!r)return'';return`<p class="vs-rec">Contro ${esc(r.nome)}: <b>${r.v}</b> vinte · <b>${r.p}</b> perse${r.x?` · ${r.x} pari`:''}</p>`}
-function startSolo(){S.role='host';S.solo=true;S.oppName='';S.connected=false;hostStart()}
-function goHome(){if(S.connected)send({t:'bye'});destroyNet();stopTimer();clearTimeout(nextT);clearTimeout(graceT);const name=S.name,lg=S.log;S=fresh();S.name=name;S.log=lg;history.replaceState(null,'',location.pathname);render()}
+function startSolo(){S.role='host';S.solo=true;S.oppName='';S.connected=false;if(isGara())hostGara();else hostStart()}
+function goHome(){if(S.connected)send({t:'bye'});destroyNet();stopTimer();clearInterval(G.poll);garaRipristina();document.body.classList.remove('gara-on');clearTimeout(nextT);clearTimeout(graceT);const name=S.name,lg=S.log;S=fresh();S.name=name;S.log=lg;history.replaceState(null,'',location.pathname);render()}
 
 // ========================= amici e inviti =========================
 const amici=()=>FX.load(KEY_AMICI,[]);
@@ -201,22 +202,27 @@ const fmtMs=(ms)=>(ms/1000).toFixed(1).replace('.',',')+' s';
 function roomLink(){return location.origin+location.pathname+'?stanza='+S.code}
 function render(){
   const app=$('#app');
-  const r={home:rHome,lobby:rLobby,countdown:rCountdown,round:rRound,result:rResult,end:rEnd}[S.screen];
+  // durante una partita a un gioco l'iframe non va ridisegnato: si aggiorna solo la striscia
+  if(S.screen==='gplay'&&$('#gframe')&&!G.nuovoFrame){render0();return}
+  G.nuovoFrame=false;document.body.classList.toggle('gara-on',S.screen==='gplay');
+  const r={home:rHome,lobby:rLobby,countdown:rCountdown,round:rRound,result:rResult,end:rEnd,gplay:rGPlay,gres:rGRes,gend:rGEnd}[S.screen];
   app.innerHTML=r();
   updateBar();bind();ascolta();
 }
 function updateBar(){
-  const inGame=['countdown','round','result','end'].includes(S.screen);
+  const inGame=['countdown','round','result','end','gplay','gres','gend'].includes(S.screen);
   const sc=$('#barScores');document.querySelector('.bar').classList.toggle('ingame',inGame);
   if(inGame){
     const n=names();const m=me(),o=opp();
     sc.innerHTML=`<span class="sc me"><span class="n">${esc(n[m]||'Tu')}</span><span class="v">${S.score[m]}</span></span>${S.streak[m]>=2?`<span class="streak">🔥${S.streak[m]}</span>`:''}`+(S.solo?'':`<span class="sc opp"><span class="n">${esc(n[o]||'Avversario')}</span><span class="v">${S.score[o]}</span></span>`);
   }else sc.innerHTML='';
   const t=$('#barTimer');
-  if(S.screen==='round'){t.classList.remove('hidden-timer');t.textContent=S.timeLeft+' s';t.classList.toggle('low',S.timeLeft<=10)}
+  if(S.screen==='gplay'){t.classList.remove('hidden-timer','low');t.textContent=fmtSec(Date.now()-G.startAt)}
+  else if(S.screen==='round'){t.classList.remove('hidden-timer');t.textContent=S.timeLeft+' s';t.classList.toggle('low',S.timeLeft<=10)}
   else t.classList.add('hidden-timer');
   if(!$('#soundBtn')){const sb=$('#barSound');if(sb){sb.innerHTML=FX.soundButtonHtml();FX.bindSoundButton()}}
   const p=$('#barProg');
+  if(isGara()&&G.plan.length&&['gplay','gres','gend'].includes(S.screen)){p.style.width=((S.screen==='gend'?G.plan.length:G.k+(S.screen==='gres'?1:0))/G.plan.length*100)+'%';return}
   p.style.width=inGame&&S.items.length?((S.screen==='end'?S.items.length:Math.max(0,S.i+(S.screen==='result'?1:0)))/S.items.length*100)+'%':'0';
 }
 function bind(){
@@ -225,6 +231,7 @@ function bind(){
   const jc=$('#joinCode');if(jc){jc.addEventListener('keydown',e=>{if(e.key==='Enter')act('join')});jc.addEventListener('input',()=>{S.joinCode=jc.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4)})}
   const nm=$('#nameInput');if(nm)nm.addEventListener('input',()=>{S.name=nm.value.slice(0,20);localStorage.setItem('testqi.nome',S.name);clearTimeout(nm._t);nm._t=setTimeout(ascolta,800)});
   const ai=$('#amicoInput');if(ai)ai.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();act('addAmico',ai)}});
+  bindGara();
   document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>{const pr=PRESETS.find(x=>x[0]===b.dataset.preset);S.preset=pr[0];S.cfg.rounds=pr[2];S.cfg.time=pr[3];render()}));
   document.querySelectorAll('[data-cfg]').forEach(el=>el.addEventListener('change',()=>{
     if(el.dataset.cfg==='kinds'){const ks=[...document.querySelectorAll('[data-cfg="kinds"]:checked')].map(x=>x.value);if(ks.length)S.cfg.kinds=ks;else el.checked=true}
@@ -237,8 +244,10 @@ function act(a,btn){
   if(a==='retry'){S.err='';if(S.role==='guest'&&S.joinCode)joinRoom(S.joinCode);else createRoom();return}
   if(a==='copydiag'){copyText('Diagnostica sfida '+(S.code||'')+' · strada '+(S.via||'-')+'\n'+S.log.join('\n'),btn);return}
   if(a==='solo'){if(!S.name.trim())S.name='Tu';startSolo();return}
-  if(a==='start'){if(S.role==='host'&&(S.connected||S.solo))hostStart();return}
+  if(a==='start'){if(S.role==='host'&&(S.connected||S.solo)){if(isGara())hostGara();else hostStart()}return}
   if(a==='again'){if(S.role==='host')hostStart();return}
+  if(a==='gagain'){if(S.role==='host'&&(S.connected||S.solo))hostGara();return}
+  if(a==='gready'){garaReady();return}
   if(a==='home'){goHome();return}
   if(a==='copy'){copyText(roomLink(),btn);return}
   if(a==='ready'){readyNow();return}
@@ -268,19 +277,19 @@ function rHome(){
   const kindsHtml=KINDS.map(([k,n])=>`<label><input type="checkbox" data-cfg="kinds" value="${k}" ${S.cfg.kinds.includes(k)?'checked':''}> ${n}</label>`).join('');
   const presets=`<div class="presets">${PRESETS.map(p=>`<button class="preset ${S.preset===p[0]?'on':''}" data-preset="${p[0]}" type="button">${p[1]} · ${p[2]} × ${p[3]} s</button>`).join('')}</div>`;
   return`<div class="stack"><div class="eyebrow">Due giocatori · stessi quesiti · stesso tempo</div><h1><span class="grad">Sfide di logica</span></h1>
-    <p class="lede">Stesso quesito per entrambi: giusto vale 10 punti più un bonus velocità, e chi risponde giusto per primo prende sempre almeno un punto in più. Vince chi ha più punti.</p></div>
+    <p class="lede">Stesso quesito per entrambi: giusto vale 10 punti più un bonus velocità, e chi risponde giusto per primo prende sempre almeno un punto in più. Vince chi ha più punti. Oppure scegli un gioco (Sudoku, Mahjong, Regine, parole): stessa partita per entrambi, vince chi finisce prima.</p></div>
     ${invitoHtml()}
     ${S.err?`<div class="err">${esc(S.err)}${S.role?'<div class="actions" style="margin-top:8px"><button class="btn primary" data-act="retry">Riprova</button></div>':''}</div>`:''}
     <div class="card"><div class="field"><label for="nameInput">Il tuo nome</label><input id="nameInput" type="text" maxlength="20" value="${esc(S.name)}" placeholder="Come ti chiami?" autocomplete="nickname" style="max-width:300px"></div>${accountName()?`<p class="hint">Hai fatto l'accesso come <b>${esc(accountName())}</b>: gli amici ti trovano con questo nome.</p>`:'<p class="hint">Con l\'accesso (in alto) il nome e la lista amici restano uguali su tutti i tuoi dispositivi.</p>'}</div>
     ${amiciHtml(false)}
     <div class="two">
-      <div class="card"><h2>Crea una stanza</h2>${presets}
+      <div class="card"><h2>Crea una stanza</h2>${cfgGaraHtml(true)}${isGara()?'':presets+`
         <details class="mini"><summary>Regole personalizzate</summary><div class="body">
         <div class="two">
           <div class="field"><label for="cfgRounds">Quesiti</label><select id="cfgRounds" data-cfg="rounds">${[6,10,16].map(n=>`<option value="${n}" ${S.cfg.rounds===n?'selected':''}>${n} quesiti</option>`).join('')}</select></div>
           <div class="field"><label for="cfgTime">Tempo per quesito</label><select id="cfgTime" data-cfg="time">${[30,45,60,90].map(n=>`<option value="${n}" ${S.cfg.time===n?'selected':''}>${n} secondi</option>`).join('')}</select></div>
         </div>
-        <div class="field"><label>Tipi di quesito</label><div class="checks">${kindsHtml}</div></div></div></details>
+        <div class="field"><label>Tipi di quesito</label><div class="checks">${kindsHtml}</div></div></div></details>`}
         <div class="actions"><button class="btn primary big" data-act="create" ${S.busy?'disabled':''}>${S.busy&&S.role==='host'?`<span class="spin"></span> ${esc(S.busy)}`:'Crea la stanza'}</button></div>
       </div>
       <div class="card"><h2>Entra con un codice</h2>
@@ -294,7 +303,7 @@ function rHome(){
 function rLobby(){
   const host=S.role==='host';
   const kinds=S.cfg.kinds.map(k=>KINDS.find(x=>x[0]===k)[1]).join(', ');
-  const rules=`<div class="card"><h3>Regole della partita</h3><p>${S.cfg.rounds} quesiti, ${S.cfg.time} secondi ciascuno. Tipi: ${esc(kinds)}.</p><p class="hint">Risposta giusta: 10 punti più un bonus fino a 5 in base alla velocità. Risposta sbagliata o tempo scaduto: 0.</p></div>`;
+  const rules=isGara()?`<div class="card"><h3>${host?'Scegli il gioco':'Gioco scelto'}</h3>${cfgGaraHtml(host)}${host?'':'<p class="hint">Sceglie chi ha creato la stanza: lo vedi cambiare qui in diretta.</p>'}</div>`+garaRules():host?`<div class="card"><h3>Gioco</h3>${cfgGaraHtml(true)}</div>`+`<div class="card"><h3>Regole della partita</h3><p>${S.cfg.rounds} quesiti, ${S.cfg.time} secondi ciascuno. Tipi: ${esc(kinds)}.</p><p class="hint">Risposta giusta: 10 punti più un bonus fino a 5 in base alla velocità. Risposta sbagliata o tempo scaduto: 0.</p></div>`:`<div class="card"><h3>Regole della partita</h3><p>${S.cfg.rounds} quesiti, ${S.cfg.time} secondi ciascuno. Tipi: ${esc(kinds)}.</p><p class="hint">Risposta giusta: 10 punti più un bonus fino a 5 in base alla velocità. Risposta sbagliata o tempo scaduto: 0.</p></div>`;
   const players=`<div class="card"><h3>Giocatori</h3>
       <div class="pl"><span class="dot on"></span><span class="nm">${esc(host?S.name:S.oppName)}</span><span class="st">${host?'tu · ha creato la stanza':'ha creato la stanza'}</span></div>
       <div class="pl"><span class="dot ${S.connected?'on':''}"></span><span class="nm">${esc(host?(S.connected?S.oppName:'In attesa…'):S.name)}</span><span class="st">${host?(S.connected?'collegato':'<span class="spin"></span> non ancora entrato'):'tu · collegato'}</span></div></div>`;
@@ -362,12 +371,175 @@ function rEnd(){
     <details open><summary>Quesito per quesito</summary><div class="body"><table><thead><tr><th>#</th><th>Tipo</th><th style="text-align:right">${esc(n[m]||'Tu')}</th>${S.solo?'':`<th style="text-align:right">${esc(n[o]||'Avversario')}</th>`}</tr></thead><tbody>${rows}</tbody></table></div></details>`;
 }
 
+// ========================= sfide sui giochi =========================
+// Stessa partita per entrambi (gioco, difficoltà, livello decisi da chi crea la stanza), gioco caricato in un iframe
+// della stessa origine in «modalità sfida» (?sfida=1&d=D&l=L). Vince il turno chi finisce per primo; vince la sfida chi
+// vince più turni. Il gioco avvisa con postMessage {sfida:'pronto'|'progresso'|'fatto'|'resa'}; finché un gioco non
+// ha la modalità sfida (window.SFIDA_OK), un ripiego avvia il livello dall'esterno e legge S.done.
+const GIOCHI_SFIDA=[
+  {id:'sudoku',n:'Sudoku',ic:'🔢',url:(d,l)=>`../giochi/sudoku.html?sfida=1&d=${d}&l=${l}#liv=${l}`,hook:'Sudoku',g:'sudoku'},
+  {id:'mahjong',n:'Mahjong',ic:'🀄',url:(d,l)=>`../giochi/mahjong.html?sfida=1&d=${d}&l=${l}#liv=${l}`,hook:'Mahjong',g:'mahjong'},
+  {id:'queens',n:'Regine',ic:'👑',url:(d,l)=>`../giochi/queens.html?sfida=1&d=${d}&l=${l}#liv=${l}`,hook:'Queens',g:'queens'},
+  {id:'cody',n:'Parola nascosta',ic:'🔤',url:(d,l)=>`../parole/?gioco=cody&d=${d}&l=${l}&sfida=1`,hook:'Parole'},
+  {id:'cruci',n:'Cruciverba',ic:'▦',url:(d,l)=>`../parole/?gioco=cruci&d=${d}&l=${l}&sfida=1`,hook:'Parole'},
+  {id:'critto',n:'Crittografato',ic:'🔐',url:(d,l)=>`../parole/?gioco=critto&d=${d}&l=${l}&sfida=1`,hook:'Parole'},
+];
+const GPRESET=[['g1','⚡ 1 partita',1,false],['g3','🎯 Al meglio di 3',3,false],['g5','🏆 5 crescenti',5,true]];
+const gInfo=(id)=>GIOCHI_SFIDA.find(g=>g.id===id);
+const isGara=()=>S.cfg.mode&&S.cfg.mode!=='quiz';
+function gPlan(seed,cfg){
+  const r=window.Quesiti.mulberry32(seed);const list=cfg.mode==='mix'?(cfg.mix&&cfg.mix.length?cfg.mix:GIOCHI_SFIDA.map(g=>g.id)):[cfg.mode];
+  const ord=list.slice();for(let i=ord.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[ord[i],ord[j]]=[ord[j],ord[i]]}
+  const out=[];for(let k=0;k<cfg.gn;k++)out.push({g:ord[k%ord.length],d:Math.min(10,cfg.gd+(cfg.gcresc?k:0)),l:1+Math.floor(r()*400)});
+  return out;
+}
+// scelta del gioco, rapida: una riga di chip + preset + difficoltà
+function cfgGaraHtml(editable){
+  const c=S.cfg;const dis=editable?'':'disabled';
+  const chip=(id,ic,n)=>`<button type="button" class="gchip ${c.mode===id?'on':''}" data-gmode="${id}" ${dis}>${ic} ${n}</button>`;
+  let h=`<div class="gchips">${chip('quiz','🧠','Quiz')}${GIOCHI_SFIDA.map(g=>chip(g.id,g.ic,g.n)).join('')}${chip('mix','🎲','Mix')}</div>`;
+  if(isGara()){
+    h+=`<div class="presets">${GPRESET.map(p=>`<button type="button" class="preset ${c.gpreset===p[0]?'on':''}" data-gpreset="${p[0]}" ${dis}>${p[1]}</button>`).join('')}</div>
+    <div class="field"><label>Difficoltà${c.gcresc?' di partenza':''}: <b>${c.gd}</b>${c.gcresc?' → '+Math.min(10,c.gd+c.gn-1):''}</label><div class="gdiff">${[1,2,3,4,5,6,7,8,9,10].map(d=>`<button type="button" class="gd ${c.gd===d?'on':''}" data-gd="${d}" ${dis}>${d}</button>`).join('')}</div></div>
+    <details class="mini gopz" ${G.opzAperte?'open':''}><summary>Altre opzioni</summary><div class="body">
+      <div class="field"><label>Partite</label><div class="presets">${[1,2,3,5,7].map(n=>`<button type="button" class="preset ${c.gn===n?'on':''}" data-gn="${n}" ${dis}>${n}</button>`).join('')}</div></div>
+      <div class="field"><label>Difficoltà</label><div class="presets"><button type="button" class="preset ${!c.gcresc?'on':''}" data-gcresc="0" ${dis}>Sempre uguale</button><button type="button" class="preset ${c.gcresc?'on':''}" data-gcresc="1" ${dis}>Crescente (+1 a partita)</button></div></div>
+      ${c.mode==='mix'?`<div class="field"><label>Giochi nel mix</label><div class="checks">${GIOCHI_SFIDA.map(g=>`<label><input type="checkbox" data-gmix="${g.id}" ${(!c.mix||!c.mix.length||c.mix.includes(g.id))?'checked':''} ${dis}> ${g.ic} ${g.n}</label>`).join('')}</div></div>`:''}
+    </div></details>`;
+  }
+  return h;
+}
+function garaRules(){const c=S.cfg;const g=c.mode==='mix'?'🎲 Mix di giochi':(gInfo(c.mode).ic+' '+gInfo(c.mode).n);
+  return`<div class="card"><h3>Regole della sfida</h3><p>${g} · ${c.gn} partit${c.gn===1?'a':'e'} · difficoltà ${c.gd}${c.gcresc&&c.gn>1?' → '+Math.min(10,c.gd+c.gn-1):''}.</p><p class="hint">Stessa partita per entrambi: vince la partita chi la finisce per primo. Vince la sfida chi vince più partite.</p></div>`}
+function bindGara(){
+  document.querySelectorAll('details.gopz').forEach(d=>d.addEventListener('toggle',()=>{G.opzAperte=d.open}));
+  const upd=()=>{if(S.role==='host'&&S.connected)send({t:'cfg',cfg:S.cfg});render()};
+  document.querySelectorAll('[data-gmode]').forEach(b=>b.addEventListener('click',()=>{S.cfg.mode=b.dataset.gmode;if(S.cfg.mode!=='quiz'&&!S.cfg.gn){S.cfg.gn=1;S.cfg.gd=4;S.cfg.gpreset='g1'}upd()}));
+  document.querySelectorAll('[data-gpreset]').forEach(b=>b.addEventListener('click',()=>{const p=GPRESET.find(x=>x[0]===b.dataset.gpreset);S.cfg.gpreset=p[0];S.cfg.gn=p[2];S.cfg.gcresc=p[3];upd()}));
+  document.querySelectorAll('[data-gd]').forEach(b=>b.addEventListener('click',()=>{S.cfg.gd=+b.dataset.gd;upd()}));
+  document.querySelectorAll('[data-gn]').forEach(b=>b.addEventListener('click',()=>{S.cfg.gn=+b.dataset.gn;S.cfg.gpreset=(GPRESET.find(p=>p[2]===S.cfg.gn&&p[3]===!!S.cfg.gcresc)||[''])[0];upd()}));
+  document.querySelectorAll('[data-gcresc]').forEach(b=>b.addEventListener('click',()=>{S.cfg.gcresc=b.dataset.gcresc==='1';S.cfg.gpreset=(GPRESET.find(p=>p[2]===S.cfg.gn&&p[3]===S.cfg.gcresc)||[''])[0];upd()}));
+  document.querySelectorAll('[data-gmix]').forEach(el=>el.addEventListener('change',()=>{const ks=[...document.querySelectorAll('[data-gmix]:checked')].map(x=>x.dataset.gmix);if(!ks.length){el.checked=true;return}S.cfg.mix=ks;upd()}));
+}
+// ---- svolgimento ----
+let G={k:-1,plan:[],won:[0,0],ms:[[],[]],deciso:false,startAt:0,frame:null,poll:null,prog:[0,0],ready:[false,false],stato:''};
+function hostGara(){const seed=Math.floor(Math.random()*2147483647);const plan=gPlan(seed,S.cfg);send({t:'gstart',plan,cfg:S.cfg});garaStart(plan)}
+function garaStart(plan){
+  stopTimer();clearTimeout(nextT);
+  G={opzAperte:G.opzAperte,k:-1,plan,won:[0,0],ms:[[],[]],deciso:false,startAt:0,frame:null,poll:null,prog:[0,0],ready:[false,false],stato:''};
+  S.score=[0,0];S.err='';FX.beep('start');
+  if(S.role==='host'||S.solo)garaNext();
+}
+function garaNext(){const k=G.k+1;if(k>=G.plan.length){send({t:'gend'});garaEnd();return}send({t:'gturno',k});garaTurno(k)}
+function garaTurno(k){
+  clearInterval(G.poll);stopTimer();clearTimeout(nextT);G.k=k;G.deciso=false;G.prog=[0,0];G.ready=[false,false];G.res=null;G.stato='caricamento';
+  S.screen='gplay';G.nuovoFrame=true;render();render0();
+  const p=G.plan[k],gi=gInfo(p.g);const f=$('#gframe');G.frame=f;G.startAt=Date.now();
+  f.addEventListener('load',()=>garaFrameLoad(p,gi));
+  if(!G.snap)G.snap=SNAP_KEYS.map(k=>localStorage.getItem(k));
+  f.src=gi.url(p.d,p.l);
+  tick=setInterval(()=>{const t=$('#barTimer');if(t&&S.screen==='gplay'){t.classList.remove('hidden-timer');t.textContent=fmtSec(Date.now()-G.startAt)}},500);
+}
+const fmtSec=(ms)=>{const s=Math.floor(ms/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+// i giochi senza modalità sfida potrebbero salvare livelli o difficoltà: a fine partita si rimette tutto com'era
+const SNAP_KEYS=['testqi.giochi','testqi.parole'];
+function garaRipristina(){if(!G.snap)return;SNAP_KEYS.forEach((k,i)=>{try{const v=G.snap[i];if(localStorage.getItem(k)!==v){if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v)}}catch(e){}});G.snap=null}
+function garaFrameLoad(p,gi){
+  const w=G.frame&&G.frame.contentWindow;if(!w)return;
+  G.startAt=Date.now();G.stato='gioco';
+  try{
+    const doc=w.document;
+    // nasconde barra e menu del gioco anche se la modalità sfida non c'è ancora
+    const st=doc.createElement('style');st.textContent='.bar,.home-btn,#barMenu,.sg-fab,.pwa-banner,footer{display:none!important}body{padding-top:0!important}';doc.head.appendChild(st);
+    if(!w.SFIDA_OK){
+      // in sfida la partita non deve cambiare i livelli salvati del giocatore
+      try{w.Storage.prototype.setItem=function(){}}catch(e){}
+      // ripiego: avvia il livello giusto dall'esterno, senza toccare la difficoltà salvata
+      const h=w[gi.hook];
+      if(gi.g&&h&&h.P&&h.nuovo){const old=h.P[gi.g].diff;h.P[gi.g].diff=p.d;h.nuovo(p.l,false);h.P[gi.g].diff=old}
+      G.poll=setInterval(()=>{try{const hh=w[gi.hook];if(hh&&hh.S&&hh.S.done&&!G.deciso&&S.screen==='gplay')garaFatto()}catch(e){}},400);
+    }
+  }catch(e){log('gioco: '+e.message)}
+  render0();
+}
+// messaggi dal gioco nell'iframe
+window.addEventListener('message',e=>{
+  if(e.origin!==location.origin||!e.data||!e.data.sfida||S.screen!=='gplay')return;
+  if(!G.frame||e.source!==G.frame.contentWindow)return;
+  const m=e.data;
+  if(m.sfida==='progresso'){G.prog[me()]=Math.max(0,Math.min(100,+m.pct||0));send({t:'gprog',k:G.k,pct:G.prog[me()]});render0()}
+  else if(m.sfida==='fatto')garaFatto(m);
+  else if(m.sfida==='resa')garaResa();
+});
+function garaFatto(m){if(G.deciso)return;const ms=(m&&m.ms)||Date.now()-G.startAt;G.mioMs=ms;log('partita finita in '+fmtSec(ms));
+  if(S.role==='host'||S.solo)garaDecidi(me(),ms);else send({t:'gfatto',k:G.k,ms})}
+function garaResa(){if(G.deciso)return;if(S.role==='host'||S.solo)garaDecidi(S.solo?-1:opp(),null,true);else send({t:'gresa',k:G.k})}
+function garaDecidi(win,ms,resa){if(G.deciso)return;const r={k:G.k,win,ms,resa:!!resa};send({t:'gres',...r});garaRisultato(r)}
+function garaRisultato(r){
+  if(r.k!==G.k)return;G.deciso=true;clearInterval(G.poll);stopTimer();setTimeout(garaRipristina,300);
+  try{G.frame&&G.frame.contentWindow.postMessage({sfida:'stop'},location.origin)}catch(e){}
+  if(r.win>=0){G.won[r.win]++;G.ms[r.win].push(r.ms||0)}S.score=G.won.slice();G.res=r;G.ready=[false,false];
+  const mine=r.win===me();FX.beep(mine?'win':(S.solo?'win':'lose'));if(mine&&!S.solo)FX.confetti(60);
+  S.screen='gres';render();
+  if(S.role==='host'||S.solo){clearTimeout(nextT);nextT=setTimeout(garaNext,15000)}
+}
+function garaReady(){if(S.screen!=='gres'||G.ready[me()])return;G.ready[me()]=true;send({t:'gready',k:G.k});render();garaCheckReady()}
+function garaCheckReady(){if((S.role==='host'||S.solo)&&S.screen==='gres'&&(S.solo||(G.ready[0]&&G.ready[1]))){clearTimeout(nextT);garaNext()}}
+function garaEnd(){garaRipristina();clearInterval(G.poll);stopTimer();clearTimeout(nextT);S.screen='gend';
+  if(!S.solo){const m=me(),o=opp();const key=(S.oppName||'?').trim().toLowerCase();const rec=FX.load(KEY_REC,{});const r=rec[key]||{nome:S.oppName,v:0,p:0,x:0};
+    if(G.won[m]>G.won[o])r.v++;else if(G.won[m]<G.won[o])r.p++;else r.x++;r.nome=S.oppName;r.ultimo=Date.now();rec[key]=r;FX.save(KEY_REC,rec);
+    if(G.won[m]>G.won[o]){FX.beep('win');FX.confetti(120)}else if(G.won[m]<G.won[o])FX.beep('lose');else FX.beep('ok')}
+  render()}
+function onGaraData(m){
+  switch(m.t){
+    case'cfg':if(S.role==='guest'&&m.cfg){S.cfg=Object.assign(S.cfg,m.cfg);if(S.screen==='lobby')render()}return true;
+    case'gstart':if(S.role==='guest'){S.cfg=Object.assign(S.cfg,m.cfg);garaStart(m.plan)}return true;
+    case'gturno':if(S.role==='guest')garaTurno(m.k);return true;
+    case'gprog':if(m.k===G.k){G.prog[opp()]=m.pct;render0()}return true;
+    case'gfatto':if(S.role==='host'&&m.k===G.k&&!G.deciso)garaDecidi(opp(),m.ms);return true;
+    case'gresa':if(S.role==='host'&&m.k===G.k&&!G.deciso)garaDecidi(me(),null,true);return true;
+    case'gres':if(S.role==='guest')garaRisultato(m);return true;
+    case'gready':if(m.k===G.k&&S.screen==='gres'){G.ready[opp()]=true;render();garaCheckReady()}return true;
+    case'gend':if(S.role==='guest')garaEnd();return true;
+  }
+  return false;
+}
+// la schermata di gioco non si ridisegna (perderebbe l'iframe): si aggiorna solo la striscia in alto
+function render0(){
+  const el=$('#gstrip');if(!el){updateBar();return}
+  const n=names(),m=me(),o=opp();const p=G.plan[G.k],gi=gInfo(p.g);
+  el.innerHTML=`<span class="gs-t">${gi.ic} ${esc(gi.n)} · ${G.k+1}/${G.plan.length} · diff. ${p.d}</span>${S.solo?'':`<span class="gs-o">${esc(n[o]||'Avversario')}: ${G.prog[o]?G.prog[o]+'%':'gioca…'}<i style="width:${G.prog[o]||0}%"></i></span>`}${frameOk()?'':'<button class="btn" data-act="gresa" style="padding:4px 10px;font-size:.85rem">Mi arrendo</button>'}`;
+  const rb=el.querySelector('[data-act=gresa]');if(rb)rb.addEventListener('click',()=>{if(confirm('Vuoi arrenderti in questa partita?'))garaResa()});
+  updateBar();
+}
+function frameOk(){try{return!!(G.frame&&G.frame.contentWindow&&G.frame.contentWindow.SFIDA_OK)}catch(e){return false}}
+function rGPlay(){return`<div class="gstrip" id="gstrip"></div><iframe id="gframe" class="gframe" title="Partita" allow="autoplay"></iframe>`}
+function rGRes(){
+  const n=names(),m=me(),o=opp();const r=G.res;const p=G.plan[G.k],gi=gInfo(p.g);
+  const mine=r.win===m;const title=S.solo?`Finito in ${fmtSec(r.ms||0)}`:r.resa?(mine?`${esc(n[o]||'L\'avversario')} si è arreso`:'Ti sei arreso'):mine?'Hai finito per primo! 🏆':`${esc(n[o]||'L\'avversario')} ha finito per primo`;
+  const iReady=G.ready[m];
+  return`<div class="final"><div class="eyebrow">${gi.ic} ${esc(gi.n)} · partita ${G.k+1} di ${G.plan.length}</div><div class="big">${title}</div>${r.ms&&!S.solo?`<div class="sub">Tempo: ${fmtSec(r.ms)}</div>`:''}
+    <div class="scoreline"><div class="p me"><span class="n">${esc(n[m]||'Tu')}</span><span class="v">${G.won[m]}</span></div>${S.solo?'':`<div class="vs">partite vinte</div><div class="p opp"><span class="n">${esc(n[o]||'Avversario')}</span><span class="v">${G.won[o]}</span></div>`}</div></div>
+    <div class="actions"><button class="btn primary big wide" data-act="gready" ${iReady?'disabled':''}>${iReady?`<span class="spin"></span> Aspetto ${esc(n[o]||'l\'avversario')}…`:(G.k+1<G.plan.length?'Prossima partita ▶':'Risultato finale ▶')}</button></div>
+    <p class="hint" style="text-align:center">Si parte da soli tra 15 secondi.${!S.solo&&G.ready[o]&&!iReady?' '+esc(n[o]||'L\'avversario')+' è pronto.':''}</p>`;
+}
+function rGEnd(){
+  const n=names(),m=me(),o=opp();const a=G.won[m],b=G.won[o];
+  const tm=(x)=>G.ms[x].reduce((s,v)=>s+v,0);
+  let title=S.solo?`${a} partit${a===1?'a':'e'} finit${a===1?'a':'e'}`:a>b?'Hai vinto la sfida!':a<b?`Ha vinto ${esc(n[o]||'l\'avversario')}`:'Pareggio!';
+  const again=S.solo?`<button class="btn primary big" data-act="gagain">Ancora</button>`:S.role==='host'?`<button class="btn primary big" data-act="gagain" ${S.connected?'':'disabled'}>Rivincita</button>`:(S.connected?`<div class="wait"><span class="spin"></span> ${esc(n[o]||'L\'avversario')} può avviare la rivincita.</div>`:'');
+  return`<div class="final"><div class="eyebrow">Sfida finita</div><div class="big">${title}</div>${!S.solo&&a===b&&a>0?`<div class="sub">Tempo totale delle vittorie: tu ${fmtSec(tm(m))}, ${esc(n[o]||'avversario')} ${fmtSec(tm(o))}</div>`:''}
+    <div class="scoreline"><div class="p me"><span class="n">${esc(n[m]||'Tu')}</span><span class="v">${a}</span></div>${S.solo?'':`<div class="vs">contro</div><div class="p opp"><span class="n">${esc(n[o]||'Avversario')}</span><span class="v">${b}</span></div>`}</div></div>
+    ${recordHtml()}${S.err?`<div class="err">${esc(S.err)}</div>`:''}
+    <div class="actions">${again}<button class="btn" data-act="home">Torna all'inizio</button></div>`;
+}
+
 // ========================= avvio =========================
-window.addEventListener('beforeunload',e=>{if(S.connected&&(S.screen==='round'||S.screen==='countdown'||S.screen==='result')){e.preventDefault();e.returnValue=''}});
+window.addEventListener('beforeunload',e=>{if(S.connected&&['round','countdown','result','gplay','gres'].includes(S.screen)){e.preventDefault();e.returnValue=''}});
 const q=new URLSearchParams(location.search).get('stanza');
 if(q){S.joinCode=q.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);S.invited=S.joinCode.length===4}
 render();
 if(S.invited){if(S.name.trim())joinRoom(S.joinCode);else setTimeout(()=>$('#nameInput')&&$('#nameInput').focus(),0)}
 window.addEventListener('testqi:account',()=>{if(S.screen==='home'){if(!S.name.trim())S.name=accountName()||'';render()}});
-window.__sfide={get S(){return S},answer,hostStart,showResult};
+window.__sfide={get S(){return S},get G(){return G},answer,hostStart,showResult,garaFatto,gPlan};
 })();
