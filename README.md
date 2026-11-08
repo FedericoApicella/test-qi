@@ -25,6 +25,7 @@ In locale basta aprire `index.html` con un browser.
 - `data/mars-ib/`: parametri pubblici di difficoltà delle matrici MaRs-IB (licenza MIT).
 - `docs/calibrazione.md`: soglie di affidabilità, fonti aperte verificate e piano di taratura.
 - `docs/app.md`: app installabile (PWA): come si installa su telefono, icone, service worker e cache offline.
+- `docs/bug.md`: segnalazioni di bug («🐞 Segnala un errore» nel menu ⚙️): dove si leggono e come aggiornare l'Apps Script.
 
 ## Come proporre modifiche
 

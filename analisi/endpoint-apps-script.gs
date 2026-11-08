@@ -2,7 +2,9 @@
  * Endpoint gratuito del sito Test QI: un foglio Google + Apps Script.
  * Fa due cose, sullo stesso URL /exec:
  *   1. raccolta anonima dei risultati (js/raccolta.js): ogni sessione una riga nella PRIMA scheda;
- *   2. mini accesso con nome utente e password (js/account.js): scheda "utenti", creata da sola.
+ *   2. mini accesso con nome utente e password (js/account.js): scheda "utenti", creata da sola;
+ *   3. segnalazioni di bug ed errori (js/segnala.js): scheda "bug", creata da sola. Si leggono dal foglio
+ *      oppure dalla pagina /bug/ del sito (solo gli amministratori, vedi AMMINISTRATORI_BUG).
  *
  * Come si installa (5 minuti):
  *  1. Crea un foglio Google vuoto, chiamalo "testqi-dati".
@@ -28,6 +30,9 @@
  */
 
 var NOME_SCHEDA_UTENTI = "utenti";
+var NOME_SCHEDA_BUG = "bug";
+var AMMINISTRATORI_BUG = ["fede"];   // nomi utente (minuscoli) che possono leggere e chiudere le segnalazioni dal sito
+var MAX_BUG_LISTA = 200;
 var MAX_DATI = 45000;        // caratteri di JSON per utente (limite di una cella: 50.000)
 var MAX_TOKEN = 8;           // dispositivi collegati contemporaneamente
 var ITERAZIONI_HASH = 1000;
@@ -40,6 +45,7 @@ function doPost(e) {
   var testo = e.postData && e.postData.contents;
   var r;
   try { r = JSON.parse(testo); } catch (err) { return txt("json non valido"); }
+  if (r && /^bug/.test(String(r.azione))) return json(bug(r));
   if (r && r.azione) return json(account(r));
   return txt(raccolta(r, testo));
 }
@@ -296,4 +302,102 @@ function elimina(u, r) {
   if (hashPassword(String(r.password || ""), String(u.riga[C.sale])) !== String(u.riga[C.hash])) return err("Password sbagliata.");
   u.scheda.deleteRow(u.n);
   return ok();
+}
+
+// ============================ 3. segnalazioni di bug ============================
+// POST {azione:"bug", messaggio, pagina, contesto, utente, dispositivo, schermo, titolo, errori_js, extra, ...}
+//   -> {ok:true, id}. Chiunque può inviare (come la raccolta). Niente token salvato.
+// POST {azione:"bug_lista", token}            -> {ok:true, bug:[...]} (solo amministratori)
+// POST {azione:"bug_stato", token, id, stato, nota} -> {ok:true}     stato: "nuovo" | "in_corso" | "risolto"
+var BUG_INTESTAZIONE = ["id", "ricevuto", "stato", "messaggio", "pagina", "contesto", "utente", "dispositivo",
+  "schermo", "titolo", "errori_js", "extra_json", "nota", "lingua", "ua", "ora_dispositivo", "ref"];
+var B = {}; BUG_INTESTAZIONE.forEach(function (n, i) { B[n] = i; });
+
+function schedaBug() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var s = ss.getSheetByName(NOME_SCHEDA_BUG);
+  if (!s) {
+    s = ss.insertSheet(NOME_SCHEDA_BUG);
+    s.appendRow(BUG_INTESTAZIONE);
+    s.setFrozenRows(1);
+  }
+  return s;
+}
+
+function bug(r) {
+  var az = String(r.azione);
+  if (az === "bug") return bugNuovo(r);
+  var u = perToken(r.token);
+  if (!u || AMMINISTRATORI_BUG.indexOf(String(u.riga[C.nome_min])) < 0) return err("Solo gli amministratori possono vedere le segnalazioni.", "token");
+  if (az === "bug_lista") return bugLista();
+  if (az === "bug_stato") return bugStato(r);
+  return err("Azione sconosciuta.");
+}
+
+function s300(v, n) { return String(v == null ? "" : v).slice(0, n || 300); }
+
+function bugNuovo(r) {
+  var msg = s300(r.messaggio, 2000).trim();
+  if (msg.length < 3) return err("Scrivi almeno qualche parola.");
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(10000); } catch (e) { return err("Server occupato, riprova tra un attimo."); }
+  try {
+    var s = schedaBug();
+    var id = s300(r.id, 40) || ("b" + new Date().getTime().toString(36));
+    // stessa segnalazione rispedita dalla coda del dispositivo: non duplicarla
+    var n = s.getLastRow();
+    if (n > 1) {
+      var ids = s.getRange(2, 1, n - 1, 1).getValues();
+      for (var i = 0; i < ids.length; i++) if (String(ids[i][0]) === id) return ok({ id: id, doppione: true });
+    }
+    var riga = [];
+    for (var k = 0; k < BUG_INTESTAZIONE.length; k++) riga.push("");
+    riga[B.id] = id; riga[B.ricevuto] = new Date().toISOString(); riga[B.stato] = "nuovo";
+    riga[B.messaggio] = msg; riga[B.pagina] = s300(r.pagina); riga[B.contesto] = s300(r.contesto);
+    riga[B.utente] = s300(r.utente, 40); riga[B.dispositivo] = s300(r.dispositivo, 120); riga[B.schermo] = s300(r.schermo, 40);
+    riga[B.titolo] = s300(r.titolo, 120);
+    riga[B.errori_js] = (r.errori_js && r.errori_js.length) ? s300(r.errori_js.join("\n"), 2000) : "";
+    riga[B.extra_json] = r.extra ? s300(JSON.stringify(r.extra), 5000) : "";
+    riga[B.lingua] = s300(r.lingua, 20); riga[B.ua] = s300(r.ua); riga[B.ora_dispositivo] = s300(r.ora, 40); riga[B.ref] = s300(r.ref, 200);
+    s.appendRow(riga);
+    return ok({ id: id });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function bugLista() {
+  var s = schedaBug();
+  var n = s.getLastRow();
+  if (n < 2) return ok({ bug: [] });
+  var da = Math.max(2, n - MAX_BUG_LISTA + 1);
+  var righe = s.getRange(da, 1, n - da + 1, BUG_INTESTAZIONE.length).getValues();
+  var out = [];
+  for (var i = righe.length - 1; i >= 0; i--) {
+    var o = {};
+    for (var k = 0; k < BUG_INTESTAZIONE.length; k++) {
+      if (k === B.ua) continue;
+      var v = righe[i][k];
+      o[BUG_INTESTAZIONE[k]] = (v instanceof Date) ? v.toISOString() : v;
+    }
+    out.push(o);
+  }
+  return ok({ bug: out });
+}
+
+function bugStato(r) {
+  var stato = String(r.stato || "");
+  if (["nuovo", "in_corso", "risolto"].indexOf(stato) < 0) return err("Stato non valido.");
+  var s = schedaBug();
+  var n = s.getLastRow();
+  if (n < 2) return err("Segnalazione non trovata.");
+  var ids = s.getRange(2, 1, n - 1, 1).getValues();
+  for (var i = 0; i < ids.length; i++) {
+    if (String(ids[i][0]) === String(r.id)) {
+      s.getRange(i + 2, B.stato + 1).setValue(stato);
+      if (r.nota !== undefined) s.getRange(i + 2, B.nota + 1).setValue(s300(r.nota, 1000));
+      return ok();
+    }
+  }
+  return err("Segnalazione non trovata.");
 }

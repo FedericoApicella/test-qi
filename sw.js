@@ -10,7 +10,7 @@ const CACHE = 'mente-allenata-' + VERSIONE;
 const FONT_CACHE = 'mente-allenata-font';
 const PRECARICA = [
   '/', '/index.html', '/test.html', '/stile.css', '/manifest.webmanifest',
-  '/js/account.js', '/js/difficolta.js', '/js/raccolta.js', '/js/pwa.js', '/js/menu.js',
+  '/js/account.js', '/js/difficolta.js', '/js/raccolta.js', '/js/pwa.js', '/js/menu.js', '/js/segnala.js', '/bug/', '/bug/index.html',
   '/sfide/', '/sfide/index.html', '/sfide/allenamento.html', '/sfide/allenamento.js',
   '/sfide/effetti.js', '/sfide/gioco.js', '/sfide/giochi.js', '/sfide/quesiti.js', '/sfide/peerjs.min.js', '/sfide/rete.js',
   '/misura/', '/misura/index.html',
