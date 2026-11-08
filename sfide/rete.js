@@ -59,10 +59,10 @@ function MiniMqtt(url,opts){
   return self;
 }
 // prova tutti i ponti insieme, tiene il primo che risponde
-function agganciaPonte(code,role,log){
+function agganciaPonte(code,role,log){return agganciaPonteWill(role==='host'?{topic:BASE+code+'/room',payload:''}:null,log)}
+function agganciaPonteWill(will,log){
   return new Promise((resolve,reject)=>{
     let done=false,left=PONTI.length;const all=[];
-    const will=role==='host'?{topic:BASE+code+'/room',payload:''}:null;
     const t=setTimeout(()=>{if(done)return;done=true;all.forEach(c=>c.close());reject('nessun ponte risponde entro '+(PONTE_MS/1000)+' s')},PONTE_MS);
     PONTI.forEach(url=>{
       const host=url.replace(/^wss?:\/\//,'').split(/[\/:]/)[0];
@@ -166,5 +166,25 @@ function connetti(role,code,via,cb){
     else cb.onError(msg,info)}}));
   return wrap;
 }
-window.Rete={connetti,PONTI};
+// ---------------- inviti diretti agli amici ----------------
+// Ogni giocatore con un nome ha una "cassetta" sul ponte: menteallenata/inviti/v1/<nome normalizzato>.
+// Invitare = pubblicare lì un messaggio retained {da, stanza, at}; vale 10 minuti. Chi lo riceve vede un avviso ed entra.
+const INVITI='menteallenata/inviti/v1/';
+const INVITO_MS=10*60*1000;
+const normNome=(n)=>String(n||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,30);
+// ascolta la propria cassetta; cb(invito) con invito={da,stanza,at}; ritorna {close, pulisci()}
+function ascoltaInviti(nome,cb,log){
+  const me=normNome(nome);let c=null,closed=false;if(!me)return{close(){},pulisci(){}};
+  const topic=INVITI+me;
+  agganciaPonteWill(null,log||(()=>{})).then(({c:cl})=>{if(closed){cl.close();return}c=cl;
+    c.onMessage=(t,payload)=>{if(t!==topic||!payload)return;let m=null;try{m=JSON.parse(payload)}catch(e){}if(!m||!m.stanza||!m.da)return;if(Date.now()-(m.at||0)>INVITO_MS)return;cb(m)};
+    c.onClose=()=>{};c.subscribe(topic)}).catch(()=>{});
+  return{close(){closed=true;if(c)c.close()},pulisci(){if(c&&c.open)c.publish(topic,'',true)}};
+}
+// manda un invito; ritorna Promise<true|false>
+function invita(nomeAmico,da,stanza,log){
+  const to=normNome(nomeAmico);if(!to)return Promise.resolve(false);
+  return agganciaPonteWill(null,log||(()=>{})).then(({c})=>{c.publish(INVITI+to,JSON.stringify({da:String(da||'').slice(0,20),stanza,at:Date.now()}),true);setTimeout(()=>c.close(),600);return true}).catch(()=>false);
+}
+window.Rete={connetti,PONTI,ascoltaInviti,invita,normNome};
 })();

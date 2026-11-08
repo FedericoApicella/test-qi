@@ -274,3 +274,20 @@ details .body{padding:0 16px 16px;display:grid;gap:12px}
 .fold:not(.open)>*:not(.sec-head):not(h2:first-child):not(h3:first-child){display:none}
 .fold:not(.open){padding-top:14px;padding-bottom:14px}
 .note.small{font-size:.8rem;padding:8px 12px;border-radius:8px;line-height:1.35}
+/* inviti tra amici (sfide) */
+.card.invito{border-color:var(--brand);background:linear-gradient(135deg,var(--brand-50) 0%,#fff 100%);animation:pop .4s}
+#amici .pl .st{display:flex;gap:6px;align-items:center}
+.card.spiega{border-color:var(--brand-300);background:var(--brand-50);gap:4px}
+.card.spiega p{margin:0}
+
+/* schede (meno scroll) e griglie compatte */
+.tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px;margin:0 -2px;position:sticky;top:var(--bar-h,58px);z-index:5;background:var(--bg)}
+.tabs::-webkit-scrollbar{display:none}
+.tab{appearance:none;flex:1 0 auto;border:2px solid var(--border);background:var(--surface);color:var(--fg);border-radius:999px;padding:9px 14px;font:inherit;font-weight:800;cursor:pointer;white-space:nowrap}
+.tab.on{background:var(--grad);color:#fff;border-color:transparent}
+.areas.compact{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.areas.compact .area{padding:12px 14px;gap:6px;border-radius:16px}
+.areas.compact .area .ic{font-size:1.4rem}
+@media (max-width:560px){.areas.compact{grid-template-columns:1fr 1fr}.areas.compact .area>.hint{display:none}.areas.compact .area .lv{flex-direction:column;align-items:flex-start;gap:2px;font-size:.8rem}.areas.compact .area b{font-size:.95rem}.areas.compact .area svg.spark{height:24px}}
+details.mini{border:none;background:none}details.mini summary{padding:4px 0;font-weight:700;color:var(--brand)}details.mini .body{padding:8px 0 0}
+@media (max-width:560px){.tab{padding:8px 11px;font-size:.92rem}}
