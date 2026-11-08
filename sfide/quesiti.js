@@ -170,31 +170,36 @@ const NUM_MORE=[
   [0.15,rng=>{const a=rint(rng,1,6),b=rint(rng,20,40),d=rint(rng,2,5),e=rint(rng,1,4);const s=[];for(let i=0;i<3;i++){s.push(a+i*d,b-i*e)}return{seq:s,next:a+3*d,rule:`due serie alternate: +${d} nei posti dispari, −${e} nei pari`}}],
   [0.2,rng=>{const k=rint(rng,2,5),a=k*rint(rng,8,20);const s=[a];let v=a;for(let i=0;i<3;i++){v=v/k*k-k;s.push(v)}return{seq:s,next:v-k,rule:`−${k}`}}],
   [0.25,rng=>{const e=rint(rng,1,4);const p=Math.pow(2,e+4)*rint(rng,1,3);const s=[];let v=p;for(let i=0;i<5;i++){s.push(v);v/=2}return{seq:s,next:v,rule:'÷2 ogni volta'}}],
-  [0.3,rng=>{const c=rint(rng,0,5),k0=rint(rng,1,4);const s=[];for(let i=0;i<5;i++)s.push((k0+i)*(k0+i+1)/2+c);return{seq:s,next:(k0+5)*(k0+6)/2+c,rule:`differenze +${k0+1}, +${k0+2}, +${k0+3}… (numeri triangolari${c?` +${c}`:''})`}}],
+  [0.5,rng=>{const c=rint(rng,0,5),k0=rint(rng,1,4);const s=[];for(let i=0;i<5;i++)s.push((k0+i)*(k0+i+1)/2+c);return{seq:s,next:(k0+5)*(k0+6)/2+c,rule:`differenze +${k0+1}, +${k0+2}, +${k0+3}… (numeri triangolari${c?` +${c}`:''})`}}],
   [0.3,rng=>{const a=rint(rng,1,4),m=rint(rng,2,4),k=rint(rng,1,3);const s=[a];let v=a;for(let i=0;i<4;i++){v=v*m+k;s.push(v)}return{seq:s,next:v*m+k,rule:`×${m} +${k}`}}],
   [0.35,rng=>{const a=rint(rng,70,120),d0=rint(rng,8,12);const s=[a];let v=a,d=d0;for(let i=0;i<4;i++){v-=d;s.push(v);d--}return{seq:s,next:v-d,rule:`differenze che calano di 1: −${d0}, −${d0-1}, −${d0-2}…`}}],
   [0.35,rng=>{const p=[rint(rng,2,4),rint(rng,5,8)];const a=rint(rng,1,10);const s=[a];let v=a;for(let i=0;i<5;i++){v+=p[i%2];s.push(v)}return{seq:s,next:v+p[1],rule:`si alternano +${p[0]} e +${p[1]}`}}],
-  [0.4,rng=>{const k=rint(rng,1,4),c=rint(rng,0,6);const s=[];for(let i=k;i<k+5;i++)s.push(i*i*2+c);return{seq:s,next:(k+5)*(k+5)*2+c,rule:`2 × n²${c?` + ${c}`:''}`}}],
-  [0.4,rng=>{const a=rint(rng,1,5);const sq=[1,4,9,16,25,36];const s=[a];let v=a;for(let i=0;i<4;i++){v+=sq[i];s.push(v)}return{seq:s,next:v+sq[4],rule:'si aggiungono i quadrati: +1, +4, +9, +16…'}}],
-  [0.45,rng=>{const a=rint(rng,1,9);const P=[2,3,5,7,11,13];const s=[a];let v=a;for(let i=0;i<4;i++){v+=P[i];s.push(v)}return{seq:s,next:v+P[4],rule:'si aggiungono i numeri primi: +2, +3, +5, +7…'}}],
-  [0.45,rng=>{const o=rint(rng,0,2)*2+1;const s=[];for(let i=0;i<4;i++)s.push((o+2*i)*(o+2*i));return{seq:s,next:(o+8)*(o+8),rule:'quadrati dei numeri dispari'}}],
-  [0.5,rng=>{const a=rint(rng,1,3),b=rint(rng,1,3),c=rint(rng,2,4);const s=[a,b,c];for(let i=0;i<3;i++)s.push(s[s.length-1]+s[s.length-2]+s[s.length-3]);return{seq:s,next:s[5]+s[4]+s[3],rule:'ogni numero è la somma dei tre precedenti'}}],
-  [0.5,rng=>{const m=rint(rng,2,3);const s=[];for(let i=1;i<=5;i++)s.push(Math.pow(m,i)-1);return{seq:s,next:Math.pow(m,6)-1,rule:`potenze di ${m} meno 1`}}],
+  [0.72,rng=>{const k=rint(rng,1,4),c=rint(rng,0,6);const s=[];for(let i=k;i<k+5;i++)s.push(i*i*2+c);return{seq:s,next:(k+5)*(k+5)*2+c,rule:`2 × n²${c?` + ${c}`:''}`}}],
+  [0.65,rng=>{const a=rint(rng,1,5);const sq=[1,4,9,16,25,36];const s=[a];let v=a;for(let i=0;i<4;i++){v+=sq[i];s.push(v)}return{seq:s,next:v+sq[4],rule:'si aggiungono i quadrati: +1, +4, +9, +16…'}}],
+  [0.6,rng=>{const a=rint(rng,1,9);const P=[2,3,5,7,11,13];const s=[a];let v=a;for(let i=0;i<4;i++){v+=P[i];s.push(v)}return{seq:s,next:v+P[4],rule:'si aggiungono i numeri primi: +2, +3, +5, +7…'}}],
+  [0.72,rng=>{const o=rint(rng,0,2)*2+1;const s=[];for(let i=0;i<4;i++)s.push((o+2*i)*(o+2*i));return{seq:s,next:(o+8)*(o+8),rule:'quadrati dei numeri dispari'}}],
+  [0.55,rng=>{const a=rint(rng,1,3),b=rint(rng,1,3),c=rint(rng,2,4);const s=[a,b,c];for(let i=0;i<3;i++)s.push(s[s.length-1]+s[s.length-2]+s[s.length-3]);return{seq:s,next:s[5]+s[4]+s[3],rule:'ogni numero è la somma dei tre precedenti'}}],
+  [0.62,rng=>{const m=rint(rng,2,3);const s=[];for(let i=1;i<=5;i++)s.push(Math.pow(m,i)-1);return{seq:s,next:Math.pow(m,6)-1,rule:`potenze di ${m} meno 1`}}],
   [0.55,rng=>{const a=rint(rng,1,4),b=rint(rng,2,5);const s=[a,b];for(let i=0;i<4;i++)s.push(2*s[s.length-1]+s[s.length-2]);return{seq:s,next:2*s[5]+s[4],rule:'il doppio del precedente più quello prima ancora'}}],
-  [0.55,rng=>{const k=rint(rng,1,3);const s=[];for(let i=k+1;i<=k+5;i++)s.push(i*i*i-i);return{seq:s,next:(k+6)*(k+6)*(k+6)-(k+6),rule:'n³ − n'}}],
+  [0.93,rng=>{const k=rint(rng,1,3);const s=[];for(let i=k+1;i<=k+5;i++)s.push(i*i*i-i);return{seq:s,next:(k+6)*(k+6)*(k+6)-(k+6),rule:'n³ − n'}}],
   [0.6,rng=>{const a=rint(rng,2,5);const s=[a];let v=a;for(let i=1;i<=4;i++){v=v*2+(i%2?1:-1);s.push(v)}return{seq:s,next:v*2+1,rule:'×2 +1, poi ×2 −1, alternati'}}],
   [0.6,rng=>{const a=rint(rng,2,6),b=rint(rng,2,6);const s=[a,b];for(let i=0;i<3;i++)s.push(s[s.length-1]*s[s.length-2]>2000?s[s.length-1]+s[s.length-2]:s[s.length-1]+s[s.length-2]);return{seq:s,next:s[4]+s[3],rule:'ogni numero è la somma dei due precedenti'}}],
   [0.65,rng=>{const a=rint(rng,1,4);const s=[a];let v=a;for(let i=1;i<=4;i++){v=v*i+i;s.push(v)}return{seq:s,next:v*5+5,rule:'×1 +1, ×2 +2, ×3 +3, ×4 +4…'}}],
-  [0.7,rng=>{const k=rint(rng,1,4);const s=[];for(let i=k;i<k+5;i++)s.push(i*i+(i+1)*(i+1));return{seq:s,next:(k+5)*(k+5)+(k+6)*(k+6),rule:'somma di due quadrati consecutivi: n² + (n+1)²'}}],
+  [0.93,rng=>{const k=rint(rng,1,4);const s=[];for(let i=k;i<k+5;i++)s.push(i*i+(i+1)*(i+1));return{seq:s,next:(k+5)*(k+5)+(k+6)*(k+6),rule:'somma di due quadrati consecutivi: n² + (n+1)²'}}],
   [0.7,rng=>{const a=rint(rng,1,3),d=rint(rng,2,3);const s=[a];let v=a,st=d;for(let i=0;i<4;i++){v+=st;st*=3;s.push(v)}return{seq:s,next:v+st,rule:`differenze che triplicano: +${d}, +${3*d}, +${9*d}…`}}],
-  [0.75,rng=>{const a=rint(rng,2,4);const s=[a];let v=a;for(let i=0;i<4;i++){v=v*v-v;if(v>5000)break;s.push(v)}if(s.length<4)return{seq:[2,2,2,2],next:2,rule:'costante'};const nx=s[s.length-1]*s[s.length-1]-s[s.length-1];return nx>99999?{seq:s.slice(0,-1),next:s[s.length-1],rule:'n² − n applicato al precedente'}:{seq:s,next:nx,rule:'n² − n applicato al precedente'}}],
-  [0.8,rng=>{const P=[2,3,5,7,11,13,17,19,23,29,31,37];const st=rint(rng,0,4);const s=P.slice(st,st+5).map(p=>p*p);return{seq:s,next:P[st+5]*P[st+5],rule:'quadrati dei numeri primi'}}],
+  [0.95,rng=>{const a=rint(rng,2,4);const s=[a];let v=a;for(let i=0;i<4;i++){v=v*v-v;if(v>5000)break;s.push(v)}if(s.length<4)return{seq:[2,2,2,2],next:2,rule:'costante'};const nx=s[s.length-1]*s[s.length-1]-s[s.length-1];return nx>99999?{seq:s.slice(0,-1),next:s[s.length-1],rule:'n² − n applicato al precedente'}:{seq:s,next:nx,rule:'n² − n applicato al precedente'}}],
+  [0.96,rng=>{const P=[2,3,5,7,11,13,17,19,23,29,31,37];const st=rint(rng,0,4);const s=P.slice(st,st+5).map(p=>p*p);return{seq:s,next:P[st+5]*P[st+5],rule:'quadrati dei numeri primi'}}],
   [0.85,rng=>{const a=rint(rng,1,3);const s=[];let v=a;for(let i=1;i<=5;i++){s.push(v);v=v*i+1}return{seq:s,next:v,rule:'×1 +1, ×2 +1, ×3 +1, ×4 +1…'}}],
-  [0.9,rng=>{const k=rint(rng,2,4);const s=[];for(let i=1;i<=5;i++)s.push(Math.pow(i,k)+i);return{seq:s,next:Math.pow(6,k)+6,rule:`n${k===2?'²':k===3?'³':'⁴'} + n`}}],
+  [0.97,rng=>{const k=rint(rng,2,4);const s=[];for(let i=1;i<=5;i++)s.push(Math.pow(i,k)+i);return{seq:s,next:Math.pow(6,k)+6,rule:`n${k===2?'²':k===3?'³':'⁴'} + n`}}],
 ];
-const NUM_ALL=NUM_GENS.map((g,i)=>[i/NUM_GENS.length,g]).concat(NUM_MORE);
+// difficoltà percepita dei generatori storici (stesso ordine di NUM_GENS): quadrati, cubi, n(n+1) e fattoriali
+// sono molto più duri di quanto dica la loro posizione (Federico, 8 nov 2026)
+const NUM_GENS_D=[0,0.03,0.15,0.62,0.3,0.4,0.25,0.35,0.4,0.78,0.5,0.45,0.88,0.6,0.85,0.82,0.92,0.5];
+const NUM_ALL=NUM_GENS.map((g,i)=>[NUM_GENS_D[i]!=null?NUM_GENS_D[i]:i/NUM_GENS.length,g]).concat(NUM_MORE);
 function numItem(rng,level){
-  let pool=[];for(let win=0.08;pool.length<4;win+=0.06)pool=NUM_ALL.filter(x=>Math.abs(x[0]-level)<=win);
+  // le serie sono più impegnative degli altri quesiti a parità di livello: la curva sale più piano
+  const eff=Math.pow(Math.max(0,Math.min(1,level)),1.7);
+  let pool=[];for(let win=0.08;pool.length<4;win+=0.06)pool=NUM_ALL.filter(x=>Math.abs(x[0]-eff)<=win);
   let g=pick(pool,rng)[1](rng);if(!g||g.next<2||!Number.isInteger(g.next)||g.seq.some(x=>!Number.isInteger(x)||x<0)||new Set(g.seq).size<2)g=NUM_GENS[0](rng);
   const {seq,next,rule}=g;
   const last=seq[seq.length-1],d=last-seq[seq.length-2];
