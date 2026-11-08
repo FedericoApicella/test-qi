@@ -112,7 +112,7 @@ document.addEventListener('keydown',e=>{if(!S||document.getElementById('gOv'))re
     if(e.key==='ArrowUp'&&r>0)i-=n;if(e.key==='ArrowDown'&&r<n-1)i+=n;if(e.key==='ArrowLeft'&&c>0)i--;if(e.key==='ArrowRight'&&c<n-1)i++;seleziona(i);e.preventDefault()}});
 G.bottoniComuni(()=>P,GAME,{vai:(L)=>nuovo(L,true),ricarica:()=>{P=G.load();if(P[GAME].diff!==S.diffBase){nuovo(P[GAME].next,true);return}G.applySkin(P);G.intestazione(P,GAME,S.level,`${S.n}×${S.n}`);render()},aiuto});
 G.onSync=()=>{P=G.load();G.applySkin(P)};
-$('#barSound').innerHTML=FX.soundButtonHtml();FX.bindSoundButton();
+if($('#barSound')){$('#barSound').innerHTML=FX.soundButtonHtml();FX.bindSoundButton()}
 window.addEventListener('beforeunload',salvaCorso);
 nuovo(G.livelloDaUrl(P,GAME),true);
 window.Sudoku={get S(){return S},get P(){return P},nuovo,metti,genera};

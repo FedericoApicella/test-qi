@@ -206,7 +206,7 @@ $('#bHint').addEventListener('click',suggerimento);$('#bShuf').addEventListener(
 let rz=null;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if(S)render(true)},150)});
 G.bottoniComuni(()=>P,GAME,{vai:(L)=>nuovo(L,true),ricarica:()=>{P=G.load();if(P[GAME].diff!==S.diffBase){nuovo(P[GAME].next,true);return}G.applySkin(P);G.intestazione(P,GAME,S.level,`${S.tiles.length} tessere`)},aiuto});
 G.onSync=()=>{P=G.load();G.applySkin(P)};
-$('#barSound').innerHTML=FX.soundButtonHtml();FX.bindSoundButton();
+if($('#barSound')){$('#barSound').innerHTML=FX.soundButtonHtml();FX.bindSoundButton()}
 window.addEventListener('beforeunload',salvaCorso);
 nuovo(G.livelloDaUrl(P,GAME),true);
 window.Mahjong={get S(){return S},get P(){return P},nuovo,tocca,toccaSlot,mosse,layout,libera};

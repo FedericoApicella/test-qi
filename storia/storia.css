@@ -3,7 +3,7 @@
 .btn.ghost{background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.5)}
 .hearts{display:inline-flex;gap:2px;font-size:1.15rem;line-height:1}
 .hearts .off{opacity:.55}
-.stars{display:inline-flex;gap:1px;font-size:1rem;line-height:1;color:var(--border-strong)}
+.stars{display:inline-flex;gap:0;font-size:.8rem;line-height:1;color:var(--border-strong)}
 .stars i{font-style:normal}
 .stars i.on{color:#f59e0b;text-shadow:0 1px 0 rgba(0,0,0,.08)}
 .stars.big{font-size:3rem;gap:6px;justify-content:center;margin:6px 0}
@@ -15,20 +15,18 @@
 .world .we{font-size:1.4em;vertical-align:-2px}
 .kinds{display:flex;flex-wrap:wrap;gap:6px}
 .badge.small{font-size:.8rem;padding:4px 10px}
-/* sentiero a zig-zag */
-.path{display:grid;gap:6px;padding:10px 0 4px;position:relative}
-.path::before{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:4px dotted var(--border-strong);transform:translateX(-50%)}
-.node{display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;width:33%;margin-left:calc(33% + 33% * sin(var(--k) * 0.9rad))}
-@supports not (margin-left:calc(1px * sin(1rad))){.node{margin-left:33%}.node:nth-child(odd){margin-left:0}.node:nth-child(even){margin-left:66%}}
-.node .nb{appearance:none;width:56px;height:56px;border-radius:50%;border:3px solid var(--border-strong);background:var(--surface);font:inherit;font-weight:800;font-size:1.15rem;color:var(--muted);cursor:pointer;box-shadow:var(--shadow);transition:transform .15s}
+/* mappa compatta: 5 livelli per riga (era un sentiero verticale a zig-zag, troppo lungo da scorrere) */
+.path{display:grid;grid-template-columns:repeat(5,1fr);gap:10px 4px;padding:8px 0 2px;position:relative}
+.node{display:flex;flex-direction:column;align-items:center;gap:3px;position:relative}
+.node .nb{appearance:none;width:48px;height:48px;border-radius:50%;border:3px solid var(--border-strong);background:var(--surface);font:inherit;font-weight:800;font-size:1.15rem;color:var(--muted);cursor:pointer;box-shadow:var(--shadow);transition:transform .15s}
 .node.done .nb{border-color:var(--brand-300);background:var(--brand-50);color:var(--brand)}
 .node.done .nb:hover{transform:scale(1.08)}
-.node.cur .nb{border-color:transparent;background:var(--grad);color:#fff;transform:scale(1.15);animation:pulse 1.6s infinite}
+.node.cur .nb{border-color:transparent;background:var(--grad);color:#fff;transform:scale(1.1);animation:pulse 1.6s infinite}
 .node.cur .nb:hover{transform:scale(1.22)}
 .node.lock .nb{cursor:not-allowed;opacity:.6;font-size:1rem}
-.node.boss .nb{width:68px;height:68px;font-size:1.6rem}
+.node.boss .nb{width:54px;height:54px;font-size:1.4rem}
 .node.boss.cur .nb{background:linear-gradient(135deg,#f59e0b,#ef4444)}
-.node .tag{font-size:.75rem;font-weight:800;color:var(--brand);text-transform:uppercase;letter-spacing:.05em}
+.node .tag{font-size:.65rem;font-weight:800;color:var(--brand);text-transform:uppercase;letter-spacing:.05em}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,.45)}60%{box-shadow:0 0 0 14px rgba(124,58,237,0)}}
 .rules{margin:0;padding-left:1.2em;display:grid;gap:6px}
 .brief h1{font-size:clamp(1.8rem,6vw,2.6rem)}

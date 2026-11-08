@@ -47,7 +47,7 @@ const d01=(diff)=>Math.min(1,Math.max(0,(diff-1)/9.995));
 const DIFF_NOMI=['Facilissimo','Facile','Tranquillo','Medio','Impegnativo','Difficile','Molto difficile','Durissimo','Estremo','Impossibile'];
 const nomeBase=(b)=>DIFF_NOMI[Math.min(9,Math.max(0,Math.round(b)-1))];
 // selettore 1..10 condiviso (stesso aspetto negli altri giochi del sito)
-function diffPickerHtml(id,val){return`<div class="g-diff" id="${id}" role="radiogroup">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button type="button" class="g-diff-b ${n===val?'on':''}" data-v="${n}" aria-pressed="${n===val}" title="${esc(nomeBase(n))}">${n}</button>`).join('')}</div>`}
+function diffPickerHtml(id,val,label){const cls=(n)=>n<=3?'d-easy':n<=6?'d-mid':n<=8?'d-hard':'d-max';return`<div class="g-diffpick">${label===false?'':`<span class="hint">Difficoltà <b class="g-diff-v">${val}</b> · <span class="g-diff-n">${esc(nomeBase(val))}</span></span>`}<div class="g-diff" id="${id}" role="radiogroup">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button type="button" class="g-diff-b ${cls(n)} ${n===val?'on':''}" data-v="${n}" aria-pressed="${n===val}" title="${esc(nomeBase(n))}">${n}</button>`).join('')}</div></div>`}
 function stelleDiff(diff){const n=Math.round(diff/2);return'★'.repeat(Math.max(1,n))+'☆'.repeat(5-Math.max(1,n))}
 const nomeDiff=(diff)=>nomeBase(Math.floor(diff));
 
@@ -126,14 +126,14 @@ function sceltaLivello(p,game,onPick){
 }
 
 // ---- impostazioni ----
-function impostazioni(p,onChange,game){
+function impostazioni(p,onChange,game,senzaDiff){
   const t=tierOf(p);
   const skins=[];for(let i=0;i<=t;i++){skins.push(skinInfo(i))}
-  const giochi=game?[game]:Object.keys(GIOCHI);
-  const diffHtml=giochi.map(g=>`<div class="field"><label>${game?'Difficoltà':GIOCHI[g].ic+' '+esc(GIOCHI[g].nome)}: <b class="mono" id="vD_${g}">${p[g].diff}</b>/10 · <span id="nD_${g}">${esc(nomeBase(p[g].diff))}</span></label>${diffPickerHtml('d_'+g,p[g].diff)}</div>`).join('');
+  const giochi=senzaDiff?[]:game?[game]:Object.keys(GIOCHI);
+  const diffHtml=giochi.map(g=>`<div class="field"><label>${game?'Difficoltà':GIOCHI[g].ic+' '+esc(GIOCHI[g].nome)}: <b class="mono" id="vD_${g}">${p[g].diff}</b>/10 · <span id="nD_${g}">${esc(nomeBase(p[g].diff))}</span></label>${diffPickerHtml('d_'+g,p[g].diff,false)}</div>`).join('');
   const o=overlay(`<div class="g-set"><h2>⚙️ Impostazioni</h2>
     ${diffHtml}
-    <div class="hint">Scegli un numero da 1 a 10 e giochi a quella difficoltà finché vuoi: il livello 1 parte esattamente lì e i livelli salgono pianissimo dentro la fascia (con 6, il livello 1000 è circa 6,99) senza mai passare al numero dopo. Ogni difficoltà tiene i suoi livelli: se alla 5 sei al 20 e passi alla 6 riparti dall’1, e tornando alla 5 ritrovi il 20.</div>
+    ${giochi.length?`<div class="hint">Scegli un numero da 1 a 10 e giochi a quella difficoltà finché vuoi: il livello 1 parte esattamente lì e i livelli salgono pianissimo dentro la fascia (con 6, il livello 1000 è circa 6,99) senza mai passare al numero dopo. Ogni difficoltà tiene i suoi livelli: se alla 5 sei al 20 e passi alla 6 riparti dall’1, e tornando alla 5 ritrovi il 20.</div>`:''}
     <div class="field"><label class="checks"><label><input type="checkbox" id="cErr" ${p.imp.errori?'checked':''}> Segnala subito gli errori (nel Sudoku e in Queens)</label></label></div>
     <div class="field"><label>Grafica</label><div class="g-skins">${skins.map(s=>`<button class="g-skin ${(p.imp.skin==null?s.tier===t:p.imp.skin===s.tier)?'on':''}" data-t="${s.tier}"><span>${s.ic}</span>${esc(s.nome)}</button>`).join('')}</div>
     <div class="hint">${skins.length>1?'Scegli una delle grafiche che hai sbloccato giocando.':'Continua a giocare: prima o poi arriverà una sorpresa.'}</div></div>

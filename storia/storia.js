@@ -219,7 +219,7 @@ function rMap(){
     <div class="kinds">${kinds.map(k=>`<span class="badge"><span class="e">${KIND_ICON[k]}</span>${KIND_NAME[k]}</span>`).join('')}</div>
     <div class="path">${nodes.join('')}</div>
   </section>
-  <section class="card">
+  <section class="card fold" data-fold="storia-regole">
     <h3>Come funziona</h3>
     <ul class="rules">
       <li>Ogni livello ha ${N_ITEMS} prove veloci (il boss ne ha ${N_BOSS}). Parti con tre cuori: ogni errore o tempo scaduto ne toglie uno.</li>

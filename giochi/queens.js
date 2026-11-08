@@ -121,7 +121,7 @@ $('#board').addEventListener('click',e=>{const c=e.target.closest('.c');if(c)toc
 $('#bHint').addEventListener('click',suggerimento);$('#bClear').addEventListener('click',pulisci);
 G.bottoniComuni(()=>P,GAME,{vai:(L)=>nuovo(L,true),ricarica:()=>{P=G.load();if(P[GAME].diff!==S.diffBase){nuovo(P[GAME].next,true);return}G.applySkin(P);G.intestazione(P,GAME,S.level,`${S.n}×${S.n} · ${S.n} regine`);render()},aiuto});
 G.onSync=()=>{P=G.load();G.applySkin(P);render()};
-$('#barSound').innerHTML=FX.soundButtonHtml();FX.bindSoundButton();
+if($('#barSound')){$('#barSound').innerHTML=FX.soundButtonHtml();FX.bindSoundButton()}
 window.addEventListener('beforeunload',salvaCorso);
 nuovo(G.livelloDaUrl(P,GAME),true);
 window.Queens={get S(){return S},get P(){return P},nuovo,tocca,genera,conta};

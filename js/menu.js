@@ -46,4 +46,36 @@
   window.addEventListener('testqi:pwa', aggInst);
   inst.addEventListener('click', function () { apri(false); if (window.PWA) window.PWA.installa(); });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', aggInst); else aggInst();
+
+  /* ---- sezioni richiudibili (.fold): clic sull'intestazione, stato in localStorage testqi.fold.<nome> ---- */
+  function foldKey(f) { return 'testqi.fold.' + (f.getAttribute('data-fold') || f.id || ''); }
+  function foldInit(f) {
+    if (f.__fold) return; f.__fold = true;
+    var v = null; try { v = localStorage.getItem(foldKey(f)); } catch (e) {}
+    var open = v === null ? f.hasAttribute('data-open') : v === '1';
+    f.classList.toggle('open', open);
+    var h = f.querySelector(':scope > .sec-head, :scope > h2:first-child, :scope > h3:first-child');
+    if (h) { h.setAttribute('role', 'button'); h.setAttribute('tabindex', '0'); h.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+  }
+  function foldToggle(f) {
+    var open = !f.classList.contains('open');
+    f.classList.toggle('open', open);
+    var h = f.querySelector(':scope > .sec-head, :scope > h2:first-child, :scope > h3:first-child');
+    if (h) h.setAttribute('aria-expanded', open ? 'true' : 'false');
+    try { localStorage.setItem(foldKey(f), open ? '1' : '0'); } catch (e) {}
+  }
+  function foldAll() { document.querySelectorAll('.fold').forEach(foldInit); }
+  document.addEventListener('click', function (e) {
+    var h = e.target.closest('.fold > .sec-head, .fold > h2:first-child, .fold > h3:first-child');
+    if (!h || e.target.closest('a,button,input,select')) return;
+    foldToggle(h.parentNode);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var h = e.target.closest && e.target.closest('.fold > .sec-head, .fold > h2:first-child, .fold > h3:first-child');
+    if (h) { e.preventDefault(); foldToggle(h.parentNode); }
+  });
+  foldAll();
+  if (window.MutationObserver) new MutationObserver(foldAll).observe(document.body, { childList: true, subtree: true });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', foldAll);
 })();
