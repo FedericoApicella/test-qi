@@ -5,12 +5,12 @@
  * - Non tocca mai: le POST, Google Apps Script (raccolta dati e account), PeerJS (sfide).
  * Per pubblicare una nuova versione basta cambiare VERSIONE: il vecchio contenuto viene cancellato.
  */
-const VERSIONE = 'ma-2026-11-07i';
+const VERSIONE = 'ma-2026-11-07j';
 const CACHE = 'mente-allenata-' + VERSIONE;
 const FONT_CACHE = 'mente-allenata-font';
 const PRECARICA = [
   '/', '/index.html', '/test.html', '/stile.css', '/manifest.webmanifest',
-  '/js/account.js', '/js/raccolta.js', '/js/pwa.js', '/js/menu.js',
+  '/js/account.js', '/js/difficolta.js', '/js/raccolta.js', '/js/pwa.js', '/js/menu.js',
   '/sfide/', '/sfide/index.html', '/sfide/allenamento.html', '/sfide/allenamento.js',
   '/sfide/effetti.js', '/sfide/gioco.js', '/sfide/giochi.js', '/sfide/quesiti.js', '/sfide/peerjs.min.js', '/sfide/rete.js',
   '/misura/', '/misura/index.html',
