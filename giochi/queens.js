@@ -78,7 +78,7 @@ function nuovo(level,ripresa){
   location.hash='liv='+level;
   G.applySkin(P);G.intestazione(P,GAME,level,`${pz.n}×${pz.n} · ${pz.n} regine`);
   G.timerStart($('#barTimer'),S.elapsed);
-  render();FX.beep('start');msg('');
+  render();FX.beep('start');msg('');G.sfidaPronto();
 }
 function salvaCorso(){if(!S||S.done)return;P=G.load();P[GAME].corso={level:S.level,n:S.n,cell:S.cell,hints:S.hints,elapsed:G.timerElapsed()};G.save(P)}
 function conflitti(){ // indici delle regine in conflitto
@@ -96,12 +96,12 @@ function render(){
     const v=S.cell[i];
     html+=`<div class="c ${bT?'bT':''} ${bL?'bL':''} ${mostra&&bad.has(i)?'bad':''} ${regOk.has(g)?'done':''}" data-i="${i}" style="background:${pal[g%pal.length]}" role="button" aria-label="riga ${row+1} colonna ${c+1} regione ${NOMI[g%NOMI.length]}${v===2?' regina':v===1?' esclusa':''}">${v===2?'<span class="q">👑</span>':v===1?'<span class="x">✕</span>':''}</div>`}
   const b=$('#board');b.style.gridTemplateColumns=`repeat(${n},1fr)`;b.innerHTML=html;
-  $('#qN').textContent=`${qs.length}/${n}`;$('#hintN').textContent=S.hints;
+  $('#qN').textContent=`${qs.length}/${n}`;if(G.SFIDA){let ok=0;for(let r=0;r<n;r++)if(S.cell[r*n+S.cols[r]]===2)ok++;G.sfidaProgresso(ok/n*100)}$('#hintN').textContent=S.hints;
 }
 function tocca(i){if(S.done)return;S.cell[i]=(S.cell[i]+1)%3;FX.beep(S.cell[i]===2?'ok':'tick');render();salvaCorso();controlla()}
 function controlla(){const {qs,bad}=conflitti();if(qs.length!==S.n)return;
   if(bad.size){if(P.imp.errori){msg('Ci sono regine che si disturbano: guarda quelle segnate in rosso.','bad')}else msg('Tutte le regine sono piazzate, ma qualcosa non va: controlla righe, colonne, colori e vicinanze.','bad');return}
-  S.done=true;const ms=G.timerStop();delete P[GAME].corso;const par=(20+S.n*S.n*2)*1000;
+  S.done=true;const ms=G.timerStop();delete P[GAME].corso;if(G.SFIDA){G.sfidaFatto(ms,0,S.hints);return}const par=(20+S.n*S.n*2)*1000;
   const stelle=Math.max(1,3-(S.hints>0?1:0)-(ms>par?1:0));
   setTimeout(()=>G.vittoria(P,GAME,S.level,stelle,ms,{next:(L)=>nuovo(L),nota:S.hints?`${S.hints} aiuti`:ms<=par?'veloce e senza aiuti':'senza aiuti'}),350)}
 function suggerimento(){if(S.done)return;const n=S.n;const rows=[];for(let r=0;r<n;r++){const i=r*n+S.cols[r];if(S.cell[i]!==2)rows.push(r)}if(!rows.length)return;
@@ -120,7 +120,7 @@ function aiuto(){G.aiuto('Come si gioca a Queens',`<ul>
 $('#board').addEventListener('click',e=>{const c=e.target.closest('.c');if(c)tocca(+c.dataset.i)});
 $('#bHint').addEventListener('click',suggerimento);$('#bClear').addEventListener('click',pulisci);
 G.bottoniComuni(()=>P,GAME,{vai:(L)=>nuovo(L,true),ricarica:()=>{P=G.load();if(P[GAME].diff!==S.diffBase){nuovo(P[GAME].next,true);return}G.applySkin(P);G.intestazione(P,GAME,S.level,`${S.n}×${S.n} · ${S.n} regine`);render()},aiuto});
-G.onSync=()=>{P=G.load();G.applySkin(P);render()};
+G.onSync=()=>{P=G.load();G.applySkin(P);render()};G.onStop=()=>{if(S){S.done=true;render()}};
 if($('#barSound')){$('#barSound').innerHTML=FX.soundButtonHtml();FX.bindSoundButton()}
 window.addEventListener('beforeunload',salvaCorso);
 nuovo(G.livelloDaUrl(P,GAME),true);

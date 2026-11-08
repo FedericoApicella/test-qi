@@ -255,3 +255,12 @@ body[data-skin=foresta] .mj-wrap{background-image:radial-gradient(ellipse at 50%
 .kpi b{font-family:var(--font-mono);font-size:1.4rem;line-height:1.1}
 .kpi span{font-size:.8rem;opacity:.9}
 .sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+/* ---- modalità sfida (iframe da sfide/): solo tavolo, timer e pulsanti di gioco ---- */
+body.in-sfida .bar .title,body.in-sfida .bar .scores,body.in-sfida #barMenu,body.in-sfida .home-btn,body.in-sfida .back,body.in-sfida .foot,body.in-sfida .g-top h1{display:none!important}
+body.in-sfida .bar-in{justify-content:center}
+body.in-sfida .bar .timer{margin:0;font-size:1.1rem}
+body.in-sfida .wrap{padding-block:10px 20px;gap:12px}
+body.in-sfida .g-btns{margin-left:auto}
+body.sfida-stop .g-board,body.sfida-stop .sd-pad,body.sfida-stop .g-tools,body.sfida-stop .mj-slots{pointer-events:none;filter:saturate(.6) brightness(.9)}
+body.sfida-stop #bResa{display:none}
