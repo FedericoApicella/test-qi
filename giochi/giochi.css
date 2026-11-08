@@ -113,6 +113,10 @@ body[data-skin=galassia] .bar{background:rgba(18,8,38,.85)}
 .g-lv.lock{opacity:.45;cursor:not-allowed}
 .g-set input[type=range]{width:100%;accent-color:var(--accent)}
 .g-skins{display:flex;flex-wrap:wrap;gap:8px}
+.g-diff{display:grid;grid-template-columns:repeat(10,1fr);gap:5px}
+.g-diff-b{appearance:none;border:2px solid var(--border);background:var(--surface);color:var(--fg);border-radius:10px;padding:8px 0;font-weight:800;font-family:var(--font-mono);cursor:pointer;min-width:0}
+.g-diff-b:hover{border-color:var(--accent)}
+.g-diff-b.on{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 6px 14px -6px rgba(0,0,0,.4)}
 .g-skin{appearance:none;border:2px solid var(--border);background:var(--surface);color:var(--fg);border-radius:999px;padding:6px 12px;font-weight:700;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
 .g-skin.on{border-color:var(--accent);background:var(--accent-soft)}
 .g-help ul{margin:0;padding-left:20px;display:grid;gap:6px}

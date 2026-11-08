@@ -23,7 +23,7 @@
   <section class="hero">
     <div class="eyebrow">Tre classici · livelli infiniti · difficoltà a scelta</div>
     <h1>Sudoku, Mahjong e Queens</h1>
-    <p>Si parte facile e si sale piano: ogni livello è un po' più difficile del precedente, fino al tetto che scegli tu.</p>
+    <p>Scegli la difficoltà da 1 a 10 per ogni gioco e giocaci finché vuoi: i livelli sono infiniti e salgono pianissimo dentro la fascia che hai scelto.</p>
     <div class="kpis" id="kpis"></div>
   </section>
   <section class="stack">
@@ -42,10 +42,10 @@ let P=G.load();
 const DESC={sudoku:'Griglie 4×4, poi 6×6, poi 9×9 con sempre meno numeri dati. Soluzione sempre unica, note a matita e aiuti.',mahjong:'Togli le tessere a coppie uguali. Disposizioni a più piani, sempre risolvibili, che crescono livello dopo livello.',queens:'Una regina per riga, colonna e colore, senza che si tocchino. Da 5×5 a 11×11, una sola soluzione.'};
 function disegna(){
   P=G.load();G.applySkin(P);const tot=G.totale(P),st=G.stelleTot(P);
-  $('#kpis').innerHTML=`<div class="kpi"><b>${tot}</b><span>livelli completati</span></div><div class="kpi"><b>${st}</b><span>stelle</span></div><div class="kpi"><b>${P.imp.max}/10</b><span>tetto difficoltà</span></div>`;
-  $('#cards').innerHTML=Object.keys(G.GIOCHI).map(k=>{const g=G.GIOCHI[k],p=P[k];const n=Object.keys(p.stelle).length;const d=G.diffOf(p.next,P.imp);const stars=Object.values(p.stelle).reduce((a,b)=>a+b,0);
+  $('#kpis').innerHTML=`<div class="kpi"><b>${tot}</b><span>livelli completati</span></div><div class="kpi"><b>${st}</b><span>stelle</span></div>`;
+  $('#cards').innerHTML=Object.keys(G.GIOCHI).map(k=>{const g=G.GIOCHI[k],p=P[k];const n=Object.keys(p.stelle).length;const d=G.diffOf(p.next,p.diff);const stars=Object.values(p.stelle).reduce((a,b)=>a+b,0);
     return`<a class="g-card" href="${g.file}"><span class="ic">${g.ic}</span><b>${g.nome}</b><span class="hint">${DESC[k]}</span>
-      <div class="lv"><span>Livello <span class="mono">${p.next}</span></span><span>${G.stelleDiff(d)} ${esc(G.nomeDiff(d))}</span></div>
+      <div class="lv"><span>Livello <span class="mono">${p.next}</span></span><span>Difficoltà <span class="mono">${p.diff}</span>/10 · ${esc(G.nomeBase(p.diff))}</span></div>
       <div class="track"><i style="width:${Math.min(100,(p.next-1)%25/25*100)}%"></i></div>
       <div class="lv"><span>${n} completat${n===1?'o':'i'}</span><span>★ ${stars}</span></div>
       <span class="cta">${n?(p.corso?'Riprendi il livello '+p.corso.level:'Gioca il livello '+p.next):'Inizia'} →</span></a>`}).join('');
