@@ -31,7 +31,8 @@ function loadP(){const p=Object.assign({cody:{},cruci:{},critto:{},giorno:{},pun
   for(const m of ['cody','cruci','critto']){const g=p[m];if(!g.liv){g.liv={};if(g.max){g.liv[DIFF_DEF]={max:g.max,done:g.done||{}}}delete g.max;delete g.done}if(!g.d)g.d=DIFF_DEF}
   return p}
 const livDi=(mode,D)=>{const g=P[mode];if(!g.liv[D])g.liv[D]={max:1,done:{}};return g.liv[D]};
-let P=loadP();const saveP=()=>FX.save(KEY,P);
+const SFIDA=new URLSearchParams(location.search).get('sfida')==='1'; // sfida a due dentro un iframe di sfide/: nessun salvataggio
+let P=loadP();const saveP=()=>{if(!SFIDA)FX.save(KEY,P)};
 window.addEventListener('testqi:account',()=>{P=loadP();if(!S)render()});
 
 // ---------- generatore "parola nascosta" ----------
@@ -211,7 +212,16 @@ function renderCritto(){
   return`${lvNavHtml('critto')}<div class="grid-wrap"><div class="clue-now" id="clueNow"><span class="dir">${curN}</span><span>${S.okNums.has(curN)?`= <b>${S.map[curN]}</b> (certa)`:S.map[curN]?`= <b>${S.map[curN]}</b> · scrivi un'altra lettera per cambiarla`:'scrivi la lettera che pensi corrisponda a questo numero'}</span><span class="arrows"><button class="btn icon" data-act="prevSlot" aria-label="precedente">‹</button><button class="btn icon" data-act="nextSlot" aria-label="successiva">›</button></span></div>
   <div class="cw cw-cr" style="grid-template-columns:repeat(${N},minmax(0,1fr))">${cells}</div>${hypBar}<p class="hint" style="text-align:center">${nOk}/${z.slots.length} parole · ${S.okNums.size}/${S.letters.length} lettere certe · ogni numero è sempre la stessa lettera</p><div class="keymap">${key}</div><p class="hint">Niente definizioni: parti dalle lettere date, prova le parole che riconosci e il resto si sblocca a catena. Una parola completa e giusta diventa verde e fissa le sue lettere.</p></div>${kbHtml()}`;
 }
-function quit(){S=null;document.body.classList.remove('playing');render()}
+function quit(){if(SFIDA)return;S=null;document.body.classList.remove('playing');render()}
+// ---------- modalità sfida a due ----------
+window.SFIDA_OK=true;
+let sfLastPct=-1;
+function sfPost(m){try{if(window.parent&&window.parent!==window)window.parent.postMessage(m,location.origin)}catch(e){}}
+function sfPct(){if(!S)return 0;if(S.done&&!S.stopped)return 100;const n=S.mode==='cody'?S.z.rows.length:S.z.slots.length;const k=S.mode==='cody'?S.rows.filter(r=>r.ok).length:Object.keys(S.okSlots).length;return Math.round(100*k/n)}
+function sfTick(){const el=document.getElementById('sfTimer');if(!el||!S)return;const ms=(S.done?S.endAt:Date.now())-S.start;const t=Math.floor(ms/1000);el.textContent=`⏱ ${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`}
+function sfStop(){if(!S||S.done)return;S.done=true;S.stopped=true;S.endAt=Date.now();document.body.classList.remove('playing');render()}
+function sfResa(){if(!S||S.done)return;if(!confirm('Vuoi arrenderti? La sfida finisce qui.'))return;sfPost({sfida:'resa'});sfStop()}
+if(SFIDA){document.body.classList.add('in-sfida');window.addEventListener('message',e=>{if(e.origin!==location.origin)return;const d=e.data;if(d&&d.sfida==='stop')sfStop()});setInterval(sfTick,500)}
 
 // ---------- logica parola nascosta ----------
 function codyRow(){return S.rows[S.cur]}
@@ -319,8 +329,9 @@ function cruciHint(){
 
 // ---------- fine livello ----------
 function finish(){
-  if(S.done)return;S.done=true;document.body.classList.remove('playing');
-  const secs=Math.round((Date.now()-S.start)/1000);
+  if(S.done)return;S.done=true;S.endAt=Date.now();document.body.classList.remove('playing');
+  const secs=Math.round((S.endAt-S.start)/1000);
+  if(SFIDA){S.secs=secs;S.stars=S.wrong===0&&S.hints<=1?3:(S.wrong<=2&&S.hints<=3?2:1);if(sfLastPct!==100){sfLastPct=100;sfPost({sfida:'progresso',pct:100})}sfPost({sfida:'fatto',ms:S.endAt-S.start,errori:S.wrong,aiuti:S.hints});FX.beep('win');FX.confetti(80);render();return}
   const D=S.D||DIFF_DEF;const bonus=(S.mode==='cody'?10:S.mode==='critto'?25:15)+D*(S.mode==='critto'?10:6)+Math.min(30,S.L);
   const perfect=S.wrong===0&&S.hints===0;const pb=perfect?25:0;
   const stars=S.wrong===0&&S.hints<=1?3:(S.wrong<=2&&S.hints<=3?2:1);
@@ -348,7 +359,7 @@ function kbHtml(){
 }
 function lvNavHtml(mode){
   const m=P[mode];const L=S.L;
-  return`<div class="lvnav"><span class="lv">Livello ${L}</span>${S.daily?'':`<span class="theme" title="${NOMI_DIFF[S.D]}">⚙️ Difficoltà ${S.D}</span>`}${S.daily?'<span class="theme">📅 Sfida del giorno</span>':''}<span class="pts">${S.pts} pt</span><span class="hint">· aiuti ${Math.max(0,FREE_HINTS-S.hints)} gratis${S.hints>=FREE_HINTS?` (poi −${HINT_COST} pt)`:''}</span><button class="btn" style="margin-left:auto;padding:6px 12px;font-size:.85rem" data-act="quit">Esci</button></div>`;
+  return`<div class="lvnav"><span class="lv">Livello ${L}</span>${S.daily?'':`<span class="theme" title="${NOMI_DIFF[S.D]}">⚙️ Difficoltà ${S.D}</span>`}${S.daily?'<span class="theme">📅 Sfida del giorno</span>':''}<span class="pts">${S.pts} pt</span><span class="hint">· aiuti ${Math.max(0,FREE_HINTS-S.hints)} gratis${S.hints>=FREE_HINTS?` (poi −${HINT_COST} pt)`:''}</span>${SFIDA?`<span class="theme" id="sfTimer">⏱ 0:00</span><button class="btn" style="margin-left:auto;padding:6px 12px;font-size:.85rem" data-act="resa">🏳️ Mi arrendo</button>`:`<button class="btn" style="margin-left:auto;padding:6px 12px;font-size:.85rem" data-act="quit">Esci</button>`}</div>`;
 }
 function renderCody(){
   const z=S.z;const avail=($('#app')?$('#app').clientWidth:window.innerWidth)-32-44-20-6;const cs=Math.max(20,Math.min(34,Math.floor((avail-3*(z.width-1))/z.width)));
@@ -372,6 +383,7 @@ function renderCruci(){
   <div class="cw" style="grid-template-columns:repeat(${N},minmax(0,1fr))">${cells}</div><p class="hint" style="text-align:center">${Object.keys(S.okSlots).length}/${z.slots.length} parole · tocca due volte una casella per cambiare direzione</p><div class="clues">${list(0)}${list(1)}</div></div>${kbHtml()}`;
 }
 function renderWin(){
+  if(SFIDA){const t=Math.round(((S.endAt||Date.now())-S.start)/1000);const tt=`${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`;return S.stopped?`<div class="win"><div class="big">🏁</div><h2>Sfida terminata</h2><p class="hint">Il risultato lo vedi nella stanza della sfida.</p></div>`:`<div class="win"><div class="big">🏁</div><h2>Finito in ${tt}!</h2><p class="hint">Errori ${S.wrong} · aiuti ${S.hints}</p><p class="hint">Aspetta l'avversario: il risultato lo vedi nella stanza della sfida.</p></div>`}
   const next=S.L+1;
   const abil=S.mode==='cody'?'Parole, Creatività e Logica':S.mode==='critto'?'Logica, Parole e Creatività':'Parole, Logica e Memoria';
   return`<div class="win"><div class="big">${S.stars===3?'🏆':S.stars===2?'🎉':'👏'}</div><h2>${S.daily?'Sfida del giorno completata!':`Livello ${S.L} completato!`}</h2><div style="font-size:1.8rem;color:var(--warn)">${starsHtml(S.stars)}</div><div class="statsrow"><div class="stat"><div class="v">+${S.total}</div><div class="l">punti</div></div><div class="stat"><div class="v">${Math.floor(S.secs/60)}:${String(S.secs%60).padStart(2,'0')}</div><div class="l">tempo</div></div><div class="stat"><div class="v">${S.wrong}</div><div class="l">errori</div></div><div class="stat"><div class="v">${S.hints}</div><div class="l">aiuti</div></div></div>${S.gifts?`<p class="hint">🎁 ${S.gifts} lettere regalo ricevute.</p>`:''}${S.perfect?'<p><b>Perfetto!</b> Nessun errore e nessun aiuto: +25 punti.</p>':''}${S.hiddenEarly?`<p>Hai indovinato la parola nascosta con ${S.hiddenEarly} righe ancora aperte: bonus creatività!</p>`:''}<p class="hint">Abilità di gioco aggiornate: ${abil}. <a href="../abilita/">Vedi il grafico</a></p><div class="actions">${S.daily?`<button class="btn primary" data-act="home">Torna alle parole</button>`:`<button class="btn primary" data-act="next">Livello ${next} →</button><button class="btn" data-act="home">Menu</button>`}</div></div>`;
@@ -403,6 +415,7 @@ function render(){
   else app.innerHTML=S.mode==='cody'?renderCody():S.mode==='critto'?renderCritto():renderCruci();
   const title=$('#barTitle');if(title)title.innerHTML=S?`<a href="./" data-act="quit" style="color:inherit;text-decoration:none">Parole</a> · ${S.daily?'Sfida del giorno':(S.mode==='cody'?'Parola nascosta':S.mode==='critto'?'Crittografato':'Cruciverba')+' '+S.L}`:`<a href="../" style="color:inherit;text-decoration:none">🧠 Mente Allenata</a> · Parole`;
   fitCody();
+  if(SFIDA&&S){const pct=sfPct();if(pct!==sfLastPct){sfLastPct=pct;sfPost({sfida:'progresso',pct})}sfTick()}
   if(S&&!S.done&&S.mode!=='cody'){const c=$('.cw .c.cur');if(c&&c.scrollIntoView&&window.innerWidth<=640){const r=c.getBoundingClientRect();if(r.bottom>window.innerHeight-200||r.top<100)c.scrollIntoView({block:'center',behavior:'smooth'})}}
 }
 
@@ -413,6 +426,8 @@ document.addEventListener('click',e=>{
   if(t.dataset.diff){P[t.dataset.diff].d=+t.dataset.d;saveP();FX.beep('tick');render();return}
   if(t.dataset.play){e.preventDefault();const m=t.dataset.play;if(m==='daily')startCody(1,AB.dayKey());else if(m==='cody')startCody(+t.dataset.l||1);else if(m==='critto')startCritto(+t.dataset.l||1);else startCruci(+t.dataset.l||1);return}
   const act=t.dataset.act;
+  if(act==='resa'){sfResa();return}
+  if(SFIDA&&(act==='quit'||act==='home'||act==='next'||t.dataset.play||t.dataset.diff||t.dataset.apri)){e.preventDefault();return}
   if(act==='quit'){e.preventDefault();quit();return}
   if(act==='home'){quit();return}
   if(act==='next'){const m=S.mode,L=S.L+1,D=S.D;if(m==='cody')startCody(L,null,D);else if(m==='critto')startCritto(L,D);else startCruci(L,D);return}
@@ -442,6 +457,7 @@ document.addEventListener('keydown',e=>{
 window.addEventListener('resize',()=>{if(S&&!S.done&&S.mode==='cody')render()});
 // link diretto: ?gioco=cody|cruci|giorno&l=N
 const q=new URLSearchParams(location.search);
-if(q.get('gioco')==='giorno')startCody(1,AB.dayKey());else{const g=q.get('gioco');if(g&&P[g]&&q.get('d'))P[g].d=Math.max(1,Math.min(10,+q.get('d')));if(g==='cody')startCody(+q.get('l')||livDi('cody',P.cody.d).max);else if(g==='critto')startCritto(+q.get('l')||livDi('critto',P.critto.d).max);else if(g==='cruci')startCruci(+q.get('l')||livDi('cruci',P.cruci.d).max);else render()}
+if(SFIDA){const g=q.get('gioco')||'cody';const D=Math.max(1,Math.min(10,+q.get('d')||DIFF_DEF)),L=Math.max(1,+q.get('l')||1);sfPost({sfida:'pronto',gioco:g,d:D,l:L});if(g==='critto')startCritto(L,D);else if(g==='cruci')startCruci(L,D);else startCody(L,null,D)}
+else if(q.get('gioco')==='giorno')startCody(1,AB.dayKey());else{const g=q.get('gioco');if(g&&P[g]&&q.get('d'))P[g].d=Math.max(1,Math.min(10,+q.get('d')));if(g==='cody')startCody(+q.get('l')||livDi('cody',P.cody.d).max);else if(g==='critto')startCritto(+q.get('l')||livDi('critto',P.critto.d).max);else if(g==='cruci')startCruci(+q.get('l')||livDi('cruci',P.cruci.d).max);else render()}
 window.Parole={get S(){return S},get P(){return P},buildCody,buildCruci,startCody,startCruci,startCritto,d01Of,WORDS};
 })();
