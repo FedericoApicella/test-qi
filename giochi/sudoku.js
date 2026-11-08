@@ -41,7 +41,7 @@ function nuovo(level,ripresa){
   location.hash='liv='+level;
   G.applySkin(P);G.intestazione(P,GAME,level,`${pz.n}×${pz.n} · ${pz.clues} numeri dati`);
   G.timerStart($('#barTimer'),S.elapsed);
-  render();FX.beep('start');
+  render();FX.beep('start');G.sfidaPronto();
 }
 function salvaCorso(){if(!S||S.done)return;P=G.load();P[GAME].corso={level:S.level,n:S.n,grid:S.grid,notes:S.notes,hints:S.hints,errors:S.errors,elapsed:tempo()};G.save(P)}
 const tempo=()=>G.timerElapsed();
@@ -59,6 +59,7 @@ function render(){
   b.className='sd n'+n;b.style.gridTemplateColumns=`repeat(${n},1fr)`;b.innerHTML=html;
   // tastierino
   const counts=new Array(n+1).fill(0);for(const v of S.grid)if(v)counts[v]++;
+  if(G.SFIDA){let tot=0,ok=0;for(let i=0;i<n*n;i++){if(S.given[i])continue;tot++;if(S.grid[i]===S.sol[i])ok++}G.sfidaProgresso(tot?ok/tot*100:100)}
   let pad='';for(let k=1;k<=n;k++)pad+=`<button data-v="${k}" class="${counts[k]>=n?'done':''}">${k}<span class="left">${Math.max(0,n-counts[k])}</span></button>`;
   const padEl=$('#pad');padEl.className='sd-pad n'+n;padEl.innerHTML=pad;
   $('#bNote').classList.toggle('on',S.noteMode);
@@ -86,6 +87,7 @@ function suggerimento(){
 function controlla(){
   for(let i=0;i<S.grid.length;i++)if(S.grid[i]!==S.sol[i])return;
   S.done=true;const ms=tempo();G.timerStop();delete P[GAME].corso;
+  if(G.SFIDA){G.sfidaFatto(ms,S.errors,S.hints);return}
   const stelle=Math.max(1,3-(S.hints>0?1:0)-(S.errors>2?1:0));
   setTimeout(()=>G.vittoria(P,GAME,S.level,stelle,ms,{next:(L)=>nuovo(L),nota:S.hints?`${S.hints} aiuti`:S.errors?`${S.errors} errori`:'senza aiuti né errori'}),350);
 }
@@ -111,7 +113,7 @@ document.addEventListener('keydown',e=>{if(!S||document.getElementById('gOv'))re
   else if(e.key.startsWith('Arrow')){let i=S.sel<0?0:S.sel;const r=Math.floor(i/n),c=i%n;
     if(e.key==='ArrowUp'&&r>0)i-=n;if(e.key==='ArrowDown'&&r<n-1)i+=n;if(e.key==='ArrowLeft'&&c>0)i--;if(e.key==='ArrowRight'&&c<n-1)i++;seleziona(i);e.preventDefault()}});
 G.bottoniComuni(()=>P,GAME,{vai:(L)=>nuovo(L,true),ricarica:()=>{P=G.load();if(P[GAME].diff!==S.diffBase){nuovo(P[GAME].next,true);return}G.applySkin(P);G.intestazione(P,GAME,S.level,`${S.n}×${S.n}`);render()},aiuto});
-G.onSync=()=>{P=G.load();G.applySkin(P)};
+G.onSync=()=>{P=G.load();G.applySkin(P)};G.onStop=()=>{if(S){S.done=true;render()}};
 if($('#barSound')){$('#barSound').innerHTML=FX.soundButtonHtml();FX.bindSoundButton()}
 window.addEventListener('beforeunload',salvaCorso);
 nuovo(G.livelloDaUrl(P,GAME),true);

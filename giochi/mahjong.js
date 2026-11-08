@@ -111,7 +111,7 @@ function nuovo(level,ripresa){
   location.hash='liv='+level;
   G.applySkin(P);G.intestazione(P,GAME,level,`${tiles.length} tessere · ${nFacce} simboli`);
   G.timerStart($('#barTimer'),S.elapsed);
-  render(true);FX.beep('start');msg('');
+  render(true);FX.beep('start');msg('');G.sfidaPronto();
 }
 function salvaCorso(){if(!S||S.done)return;P=G.load();P[GAME].corso={level:S.level,vivo:S.vivo,slots:S.slots,facce:S.tiles.map(t=>t.f),hints:S.hints,shuffles:S.shuffles,elapsed:G.timerElapsed()};G.save(P)}
 
@@ -135,7 +135,7 @@ function render(full){
       wrap.style.height=Math.ceil(bot+dy-r0.top+18)+'px';if(pass<3)requestAnimationFrame(()=>fit(pass+1))};
     requestAnimationFrame(()=>fit(0))}
   renderSlots();
-  const rest=S.vivo.filter(Boolean).length+S.slots.filter(v=>v!=null).length;$('#restN').textContent=rest;$('#hintN').textContent=S.hints;$('#shufN').textContent=S.shuffles;$('#bUndo').disabled=!S.storia.length;
+  const rest=S.vivo.filter(Boolean).length+S.slots.filter(v=>v!=null).length;$('#restN').textContent=rest;G.sfidaProgresso((1-rest/S.tiles.length)*100);$('#hintN').textContent=S.hints;$('#shufN').textContent=S.shuffles;$('#bUndo').disabled=!S.storia.length;
 }
 function renderSlots(){
   const box=$('#slots');box.innerHTML=S.slots.map((v,k)=>`<button class="mj-slot ${v==null?'empty':''} ${S.selSlot===k?'sel':''}" data-k="${k}" aria-label="${v==null?'posto libero':T3.nome(S.tiles[v].f)}">${v==null?'<span class="plus">+</span>':`<span class="f">${T3.svg(S.tiles[v].f)}</span>`}</button>`).join('');
@@ -188,7 +188,7 @@ function mescola(){if(S.done)return;S.slots.forEach((v,k)=>{if(v!=null){S.vivo[v
   if(ok){ // assegna() pesca facce dall'elenco intero: rimappa sulle facce che c'erano
     const nuove=[...new Set(quali.map(i=>S.tiles[i].f))];const vecchie=[...facce];const mappa={};nuove.forEach((f,k)=>mappa[f]=vecchie[k%vecchie.length]);quali.forEach(i=>S.tiles[i].f=mappa[S.tiles[i].f])}
   S.shuffles++;S.sel=-1;S.selSlot=-1;S.storia=[];render(true);FX.beep('level');msg('Tessere mescolate: adesso una soluzione c’è di sicuro.');salvaCorso()}
-function fine(){S.done=true;const ms=G.timerStop();delete P[GAME].corso;const stelle=Math.max(1,3-(S.hints>0?1:0)-(S.shuffles>0?1:0));
+function fine(){S.done=true;const ms=G.timerStop();delete P[GAME].corso;if(G.SFIDA){G.sfidaFatto(ms,0,S.hints+S.shuffles);return}const stelle=Math.max(1,3-(S.hints>0?1:0)-(S.shuffles>0?1:0));
   setTimeout(()=>G.vittoria(P,GAME,S.level,stelle,ms,{next:(L)=>nuovo(L),nota:S.hints||S.shuffles?`${S.hints} aiuti · ${S.shuffles} mescolate`:'senza aiuti'}),400)}
 function msg(t,cls){const m=$('#msg');m.textContent=t;m.className='g-msg '+(cls||'')}
 function aiuto(){G.aiuto('Come si gioca a Mahjong',`<ul>
@@ -205,7 +205,7 @@ $('#slots').addEventListener('click',e=>{const s=e.target.closest('.mj-slot');if
 $('#bHint').addEventListener('click',suggerimento);$('#bShuf').addEventListener('click',mescola);$('#bUndo').addEventListener('click',annulla);
 let rz=null;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if(S)render(true)},150)});
 G.bottoniComuni(()=>P,GAME,{vai:(L)=>nuovo(L,true),ricarica:()=>{P=G.load();if(P[GAME].diff!==S.diffBase){nuovo(P[GAME].next,true);return}G.applySkin(P);G.intestazione(P,GAME,S.level,`${S.tiles.length} tessere`)},aiuto});
-G.onSync=()=>{P=G.load();G.applySkin(P)};
+G.onSync=()=>{P=G.load();G.applySkin(P)};G.onStop=()=>{if(S){S.done=true;render()}};
 if($('#barSound')){$('#barSound').innerHTML=FX.soundButtonHtml();FX.bindSoundButton()}
 window.addEventListener('beforeunload',salvaCorso);
 nuovo(G.livelloDaUrl(P,GAME),true);

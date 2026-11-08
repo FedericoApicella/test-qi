@@ -32,8 +32,19 @@ function rng(seed){let a=typeof seed==='number'?seed>>>0:hash(String(seed));cons
 
 // ---- progressi ----
 function fresh(){return{sudoku:{next:1,stelle:{},tempi:{},diff:1},mahjong:{next:1,stelle:{},tempi:{},diff:1},queens:{next:1,stelle:{},tempi:{},diff:1},imp:{skin:null,errori:true},upgradeVisto:0}}
-function load(){const p=FX.load(KEY,null)||{};const f=fresh();const vecchiaMin=p.imp&&p.imp.min>1?p.imp.min:null;for(const g of Object.keys(GIOCHI)){const senza=!p[g]||p[g].diff==null;p[g]=Object.assign(f[g],p[g]||{});if(senza)p[g].diff=vecchiaMin||1;p[g].diff=Math.min(10,Math.max(1,Math.round(p[g].diff)))}for(const g of Object.keys(GIOCHI)){if(!p[g].per)p[g].per={};delete p[g].per[p[g].diff]}p.imp=Object.assign(f.imp,p.imp||{});delete p.imp.min;delete p.imp.max;if(p.upgradeVisto==null)p.upgradeVisto=0;return p}
-function save(p){FX.save(KEY,p)}
+function load(){const p=FX.load(KEY,null)||{};const f=fresh();const vecchiaMin=p.imp&&p.imp.min>1?p.imp.min:null;for(const g of Object.keys(GIOCHI)){const senza=!p[g]||p[g].diff==null;p[g]=Object.assign(f[g],p[g]||{});if(senza)p[g].diff=vecchiaMin||1;p[g].diff=Math.min(10,Math.max(1,Math.round(p[g].diff)))}for(const g of Object.keys(GIOCHI)){if(!p[g].per)p[g].per={};delete p[g].per[p[g].diff]}p.imp=Object.assign(f.imp,p.imp||{});delete p.imp.min;delete p.imp.max;if(p.upgradeVisto==null)p.upgradeVisto=0;if(SFIDA){for(const g of Object.keys(GIOCHI)){p[g].diff=SFIDA.d;p[g].next=SFIDA.l;delete p[g].corso}}return p}
+// ---- modalità sfida (pagina aperta in un iframe da sfide/: ?sfida=1&d=D&l=L) ----
+// parte subito dal livello L alla difficoltà D, non salva nulla, mostra solo tavolo e timer e parla col genitore via postMessage
+const SFIDA=(()=>{try{const q=new URLSearchParams(location.search);if(q.get('sfida')!=='1')return null;return{d:Math.min(10,Math.max(1,Math.round(+q.get('d')||1))),l:Math.max(1,Math.round(+q.get('l')||1)),pct:-1,pronto:false,stop:false}}catch(e){return null}})();
+if(SFIDA){window.SFIDA_OK=true;document.documentElement.classList.add('in-sfida');document.addEventListener('DOMContentLoaded',()=>document.body.classList.add('in-sfida'))}
+function sfidaPost(o){if(!SFIDA||window.parent===window)return;try{window.parent.postMessage(o,location.origin)}catch(e){}}
+function sfidaPronto(){if(!SFIDA||SFIDA.pronto)return;SFIDA.pronto=true;sfidaPost({sfida:'pronto'})}
+function sfidaProgresso(pct){if(!SFIDA)return;if(!SFIDA.pronto)sfidaPronto();pct=Math.max(0,Math.min(100,Math.round(pct)));if(pct===SFIDA.pct)return;SFIDA.pct=pct;sfidaPost({sfida:'progresso',pct})}
+function sfidaFatto(ms,errori,aiuti){if(!SFIDA)return;SFIDA.stop=true;sfidaProgresso(100);sfidaPost({sfida:'fatto',ms:Math.round(ms),errori:errori||0,aiuti:aiuti||0});FX.beep('win');document.body.classList.add('sfida-stop')}
+function sfidaResa(){if(!SFIDA)return;SFIDA.stop=true;timerStop();sfidaPost({sfida:'resa'});document.body.classList.add('sfida-stop')}
+function sfidaBlocca(){if(!SFIDA)return;SFIDA.stop=true;timerStop();document.body.classList.add('sfida-stop');if(window.Giochi.onStop)window.Giochi.onStop()}
+if(SFIDA)window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.sfida!=='stop')return;sfidaBlocca()});
+function save(p){if(SFIDA)return;FX.save(KEY,p)}
 // ogni difficoltà ha i suoi livelli: i campi next/stelle/tempi/corso sono quelli della difficoltà attiva, gli altri stanno in per[diff]
 const tutti=(p,g)=>[p[g]].concat(Object.values(p[g].per||{}));
 function totale(p){return Object.keys(GIOCHI).reduce((n,g)=>n+tutti(p,g).reduce((m,r)=>m+Object.keys(r.stelle||{}).length,0),0)}
@@ -156,14 +167,15 @@ function intestazione(p,game,level,extra){
 }
 function bottoniComuni(getP,game,opts){ // getP: funzione che restituisce i progressi attuali (l'oggetto può essere ricaricato)
   $('#gBtns').innerHTML=`<button class="btn icon" id="bLv" title="Livelli" aria-label="Livelli">🗺️</button><button class="btn icon" id="bSet" title="Impostazioni" aria-label="Impostazioni">⚙️</button><button class="btn icon" id="bHelp" title="Come si gioca" aria-label="Come si gioca">❓</button>`;
+  if(SFIDA){$('#gBtns').innerHTML=`<button class="btn" id="bResa">🏳️ Mi arrendo</button>`;$('#bResa').addEventListener('click',()=>{if(SFIDA.stop)return;if(confirm('Vuoi arrenderti? La sfida finisce qui.')){sfidaResa();if(window.Giochi.onStop)window.Giochi.onStop()}});return}
   $('#bLv').addEventListener('click',()=>sceltaLivello(getP(),game,opts.vai));
   $('#bSet').addEventListener('click',()=>impostazioni(getP(),opts.ricarica,game));
   $('#bHelp').addEventListener('click',opts.aiuto);
 }
-function livelloDaUrl(p,game){const m=location.hash.match(/liv(?:ello)?=(\d+)/);if(m){const L=+m[1];if(L>=1&&L<=p[game].next)return L}return p[game].next}
+function livelloDaUrl(p,game){if(SFIDA)return SFIDA.l;const m=location.hash.match(/liv(?:ello)?=(\d+)/);if(m){const L=+m[1];if(L>=1&&L<=p[game].next)return L}return p[game].next}
 
 // risincronizzazione dall'account: le altre pagine rileggono i progressi
 window.addEventListener('testqi:account',e=>{if(e.detail&&e.detail.chiavi&&e.detail.chiavi.indexOf(KEY)>=0&&window.Giochi.onSync)window.Giochi.onSync()});
 
-return{SKINS,GIOCHI,LIV_PER_SKIN,rng,hash,load,save,totale,stelleTot,diffOf,d01,cambiaDiff,nomeDiff,nomeBase,stelleDiff,diffPickerHtml,tierOf,skinInfo,skinCorrente,applySkin,prossimoUpgrade,timerStart,timerStop,timerElapsed,fmt,completa,vittoria,mostraUpgrade,sceltaLivello,impostazioni,aiuto,overlay,chiudi,intestazione,bottoniComuni,livelloDaUrl,esc,stelleHtml};
+return{SFIDA,sfidaPronto,sfidaProgresso,sfidaFatto,sfidaResa,SKINS,GIOCHI,LIV_PER_SKIN,rng,hash,load,save,totale,stelleTot,diffOf,d01,cambiaDiff,nomeDiff,nomeBase,stelleDiff,diffPickerHtml,tierOf,skinInfo,skinCorrente,applySkin,prossimoUpgrade,timerStart,timerStop,timerElapsed,fmt,completa,vittoria,mostraUpgrade,sceltaLivello,impostazioni,aiuto,overlay,chiudi,intestazione,bottoniComuni,livelloDaUrl,esc,stelleHtml};
 })();
