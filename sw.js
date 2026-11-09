@@ -13,7 +13,7 @@ const PRECARICA = [
   '/js/account.js', '/js/difficolta.js', '/js/classificate.js', '/js/raccolta.js', '/js/pwa.js', '/js/menu.js', '/js/segnala.js', '/bug/', '/bug/index.html',
   '/sfide/', '/sfide/index.html', '/sfide/allenamento.html', '/sfide/allenamento.js',
   '/sfide/effetti.js', '/sfide/gioco.js', '/sfide/giochi.js', '/sfide/quesiti.js', '/sfide/peerjs.min.js', '/sfide/rete.js',
-  '/misura/', '/misura/index.html',
+  '/misura/', '/misura/index.html', '/privacy/', '/privacy/index.html',
   '/storia/', '/storia/index.html', '/storia/storia.css', '/storia/storia.js', '/storia/minigiochi.js',
   '/js/abilita.js', '/abilita/', '/abilita/index.html',
   '/parole/', '/parole/index.html', '/parole/parole.css', '/parole/parole.js', '/parole/dizionario.js',
