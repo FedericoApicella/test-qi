@@ -5,20 +5,20 @@
  * Un MutationObserver traduce anche quello che i giochi disegnano dopo. I numeri nelle chiavi sono {}, una parola variabile è {*}.
  *
  * Scelta della lingua: ?lang=en → salvata in testqi.lingua; altrimenti la lingua del browser
- * (italiano → it, tutto il resto → en). Lingua.imposta('en') cambia e ricarica. Lingua.t('testo') traduce da JS.
+ * (it/en/es/fr/de/pt se disponibile, altrimenti en). Lingua.imposta('en') cambia e ricarica. Lingua.t('testo') traduce da JS.
  * Il contenuto delle parole crociate e i quesiti verbali del test restano in italiano: vanno rifatti per lingua.
  */
 (function () {
   'use strict';
-  var KEY = 'testqi.lingua', DISPONIBILI = ['it', 'en'];
-  var NOMI = { it: 'Italiano', en: 'English' };
+  var KEY = 'testqi.lingua', DISPONIBILI = ['it', 'en', 'es', 'fr', 'de', 'pt'];
+  var NOMI = { it: 'Italiano', en: 'English', es: 'Español', fr: 'Français', de: 'Deutsch', pt: 'Português' };
   function salvata() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
   function scegli() {
     var q = null; try { q = new URLSearchParams(location.search).get('lang'); } catch (e) {}
     if (q && DISPONIBILI.indexOf(q) >= 0) { try { localStorage.setItem(KEY, q); } catch (e) {} return q; }
     var s = salvata(); if (s && DISPONIBILI.indexOf(s) >= 0) return s;
     var b = (navigator.language || 'it').slice(0, 2).toLowerCase();
-    return b === 'it' ? 'it' : 'en';
+    return DISPONIBILI.indexOf(b) >= 0 ? b : 'en';
   }
   var cur = scegli();
   var dict = null, esatte = {}, modelli = [];
