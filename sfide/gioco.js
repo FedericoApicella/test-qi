@@ -47,11 +47,14 @@ function onLost(){
   if(S.ranked){if(!S.ranked.avviato){rankedRiprova();return}if(!S.ranked.det){S.ranked.abbandono=true;S.ranked.det=CL.chiudi('vinta')}}
   if(S.screen!=='home'){S.err=(S.oppName||'L\'altro giocatore')+' si è scollegato.';if(S.screen==='round'||S.screen==='countdown'||S.screen==='result'){stopTimer();clearTimeout(nextT);clearTimeout(graceT);S.screen='end'}else if(['gplay','gres'].includes(S.screen)){garaEnd();return}render()}
 }
-function netError(msg){log('errore: '+msg);S.err=msg;S.busy='';render()}
+let lentoT=null;
+function lentoStart(){clearTimeout(lentoT);S.lento=false;lentoT=setTimeout(()=>{if(S.busy){S.lento=true;log('la rete è lenta: continuo a provare');render()}},10000)}
+function lentoStop(){clearTimeout(lentoT);S.lento=false}
+function netError(msg){log('errore: '+msg);S.err=msg;S.busy='';lentoStop();render()}
 function callbacks(){
   return{log,
-    onReady(){S.busy='';S.via=net?net.via:'';if(S.ranked){S.busy='Aspetto '+S.ranked.opp.nome+'…';render();return}if(S.role==='host'){S.screen='lobby';render();if(S.invitato)mandaInvito()}else{S.busy='Cerco la stanza '+S.code+'…';render()}},
-    onPeer(){S.connected=true;S.busy='';S.via=net?net.via:'';lastSeen=Date.now();send({t:'hello',name:S.name||(S.role==='host'?'Giocatore 1':'Giocatore 2')});
+    onReady(){S.busy='';lentoStop();S.via=net?net.via:'';if(S.ranked){S.busy='Aspetto '+S.ranked.opp.nome+'…';render();return}if(S.role==='host'){S.screen='lobby';render();if(S.invitato)mandaInvito()}else{S.busy='Cerco la stanza '+S.code+'…';render()}},
+    onPeer(){S.connected=true;S.busy='';lentoStop();S.via=net?net.via:'';lastSeen=Date.now();send({t:'hello',name:S.name||(S.role==='host'?'Giocatore 1':'Giocatore 2')});
       clearInterval(hbT);hbT=setInterval(()=>{send({t:'ping'});if(Date.now()-lastSeen>LOST_MS)onLost()},HB_MS);
       if(S.role==='guest'){S.busy='Collegamento riuscito, attendo…';render()}},
     onData(m){lastSeen=Date.now();onData(m)},
@@ -59,12 +62,12 @@ function callbacks(){
     onError(msg){destroyNet();if(S.ranked&&!S.ranked.avviato){rankedRiprova();return}netError(msg)}};
 }
 function createRoom(){
-  destroyNet();S.role='host';S.solo=false;S.code=makeCode();S.busy='Creo la stanza…';S.err='';render();
+  destroyNet();S.role='host';S.solo=false;S.code=makeCode();S.busy='Creo la stanza…';S.err='';lentoStart();render();
   log('creo la stanza '+S.code+' (strada: '+VIA+')');
   net=window.Rete.connetti('host',S.code,VIA,callbacks());
 }
 function joinRoom(code){
-  destroyNet();S.role='guest';S.solo=false;S.code=code;S.busy='Mi collego…';S.err='';S.joinCode=code;render();
+  destroyNet();S.role='guest';S.solo=false;S.code=code;S.busy='Mi collego…';S.err='';S.joinCode=code;lentoStart();render();
   log('entro nella stanza '+code+' (strada: '+VIA+')');
   net=window.Rete.connetti('guest',code,VIA,callbacks());
 }
@@ -244,7 +247,7 @@ function act(a,btn){
   if(a==='join'){const jc=$('#joinCode');if(jc)S.joinCode=jc.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);const code=(S.joinCode||'').trim();if(code.length!==4){S.err='Il codice ha 4 caratteri.';render();return}const nm=$('#nameInput');if(nm)S.name=nm.value.slice(0,20);if(!S.name.trim())S.name='Giocatore 2';localStorage.setItem('testqi.nome',S.name);joinRoom(code);return}
   if(a==='retry'){S.err='';if(S.role==='guest'&&S.joinCode)joinRoom(S.joinCode);else createRoom();return}
   if(a==='copydiag'){copyText('Diagnostica sfida '+(S.code||'')+' · strada '+(S.via||'-')+'\n'+S.log.join('\n'),btn);return}
-  if(a==='solo'){if(!S.name.trim())S.name='Tu';startSolo();return}
+  if(a==='solo'){lentoStop();if(S.busy){destroyNet();S.busy=''}if(!S.name.trim())S.name='Tu';startSolo();return}
   if(a==='start'){if(S.role==='host'&&(S.connected||S.solo)){if(isGara())hostGara();else hostStart()}return}
   if(a==='again'){if(S.role==='host')hostStart();return}
   if(a==='gagain'){if(S.role==='host'&&(S.connected||S.solo))hostGara();return}
@@ -300,7 +303,8 @@ function rHome(){
         <div class="actions"><button class="btn primary big" data-act="join" ${S.busy?'disabled':''}>${S.busy&&S.role==='guest'?`<span class="spin"></span> ${esc(S.busy)}`:'Entra'}</button></div>
       </div>
     </div>
-    <div class="actions"><button class="btn" data-act="solo" ${S.busy?'disabled':''}>⏱️ Da solo contro il tempo</button><a class="btn" href="allenamento.html">🏋️ Allenati</a></div>
+    ${S.lento&&S.busy?`<p class="note small">⏳ Sto ancora provando a collegarmi: la rete è lenta. Aspetta ancora un po', oppure nel frattempo gioca da solo contro il tempo.</p>`:''}
+    <div class="actions"><button class="btn" data-act="solo" ${S.busy&&!S.lento?'disabled':''}>⏱️ Da solo contro il tempo</button><a class="btn" href="allenamento.html">🏋️ Allenati</a></div>
     ${diagHtml()}`;
 }
 function rLobby(){
