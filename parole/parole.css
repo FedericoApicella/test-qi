@@ -105,7 +105,7 @@ body.playing main.wrap{padding-bottom:190px}
 .hero.compact h1{font-size:clamp(1.5rem,5vw,2rem)}
 .htop{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .kpis.mini{grid-template-columns:repeat(3,auto);gap:6px}
-.kpis.mini .kpi{padding:6px 10px}.kpis.mini .kpi b{font-size:1.1rem}.kpis.mini .kpi span{font-size:.7rem}
+.kpis.mini .kpi{padding:6px 10px}.kpis.mini .kpi b{font-size:1.1rem}.kpis.mini .kpi span{font-size:.75rem}
 .daily{padding:10px 14px;gap:2px}.daily b{font-size:1rem}.daily span{font-size:.85rem}
 .gcard{background:var(--surface);border:2px solid var(--border);border-radius:16px;padding:12px 14px;display:grid;gap:8px;box-shadow:var(--shadow)}
 .gtop{display:flex;align-items:center;gap:10px}
