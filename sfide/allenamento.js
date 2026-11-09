@@ -111,7 +111,7 @@ function answer(choice,el){
   if(S.sprint){const it=S.items[S.i];const ok=choice===it.answer;const ms=Date.now()-S.at;let pts=0;
     if(ok){S.streak++;S.maxStreak=Math.max(S.maxStreak,S.streak);pts=5+Math.min(5,S.streak-1);FX.beep(S.streak%5===0?'streak':'ok');FX.floatText(el,'+'+pts,S.streak>=5?'gold':'')}
     else{S.streak=0;FX.beep('bad');FX.shake($('#qbox'));if(el)FX.floatText(el,'✗','bad')}
-    S.pts+=pts;P.totalDone++;P.totalPts+=pts;P.bestStreak=Math.max(P.bestStreak,S.streak);S.log.push({ok,ms,pts,kind:it.kind,choice});
+    S.pts+=pts;P.totalDone++;P.totalPts+=pts;P.bestStreak=Math.max(P.bestStreak,S.streak);S.log.push({ok,ms,pts,kind:it.kind,nome:it.nome,choice});
     if(S.streak>=5)award('fila5');if(S.streak>=10)award('fila10');if(P.totalDone>=50)award('q50');if(P.totalDone>=200)award('q200');
     S.fb={ok,pts,choice};render();memT=setTimeout(next,ok?450:900);return}
   stopTimer();clearTimeout(memT);
@@ -128,7 +128,7 @@ function answer(choice,el){
   if(S.streak>=5)award('fila5');if(S.streak>=10)award('fila10');if(P.totalDone>=50)award('q50');if(P.totalDone>=200)award('q200');
   const lvAfter=lvNum(area.level);const levelUp=!S.diff&&lvAfter>lvBefore;
   if(levelUp){FX.beep('level');FX.confetti(40);if(lvAfter>=5)award('lv5');if(lvAfter>=10)award('lv10')}
-  S.log.push({ok,ms,pts,kind:it.kind,choice});S.fb={ok,pts,choice,levelUp,lvAfter};
+  S.log.push({ok,ms,pts,kind:it.kind,nome:it.nome,choice});S.fb={ok,pts,choice,levelUp,lvAfter};
   saveP();render();
   setTimeout(()=>{const b=$('#nextBtn');if(b)b.focus()},0);
 }
@@ -266,19 +266,22 @@ function rGameEnd(){
 }
 // dati del quesito da allegare a una segnalazione (testo leggibile, niente oggetti grafici)
 function infoQuesito(it,extra){const L='ABCDEF';const o={tipo:it.kind,risposta:L[it.answer]||String(it.answer),regola:it.rule||''};
-  if(it.kind==='num'){o.serie=it.seq.join(', ');o.opzioni=it.options.join(' | ')}
-  else if(it.kind==='verb'){o.analogia=it.a+' : '+it.b+' = '+it.c+' : ?';o.opzioni=it.options.join(' | ')}
+  if(it.fam)o.famiglia=it.fam;
+  if(it.kind==='num'&&it.seq){o.serie=it.seq.join(', ');o.opzioni=it.options.join(' | ')}
+  else if(it.kind==='verb'&&it.a){o.analogia=it.a+' : '+it.b+' = '+it.c+' : ?';o.opzioni=it.options.join(' | ')}
   else if(it.kind==='mem'){o.sequenza=(it.seq||[]).join(' ');o.risposta=it.answer}
+  else if(it.stim!==undefined){o.domanda=it.q||'';if(!it.fig)o.opzioni=it.options.join(' | ')}
   return Object.assign(o,extra||{})}
 const segnalaBtn=(it,ctx,extra)=>window.Segnala?`<div class="actions" style="justify-content:center">${window.Segnala.bottoneHtml('Errore in questa domanda',ctx,infoQuesito(it,extra))}</div>`:'';
 function rQ(){
   const it=S.items[S.i];const area=P.aree[S.area.id]||{level:0};
-  const head=S.daily?`<div class="eyebrow">📅 Sfida del giorno · ${esc(KIND_NAME[it.kind])} · ${S.i+1} di ${SESSION_N}</div>`:S.sprint?`<div class="eyebrow">⚡ Sprint · ${esc(KIND_NAME[it.kind])} · ${S.log.filter(l=>l.ok).length} giuste</div>`:`<div class="eyebrow">${esc(KIND_NAME[it.kind])} · quesito ${S.i+1} di ${SESSION_N} · ${S.diff?`difficoltà ${S.diff.d} · livello ${S.diff.L}`:`livello ${lvNum(area.level)}`}</div>`;
+  const nomeQ=it.nome||KIND_NAME[it.kind];
+  const head=S.daily?`<div class="eyebrow">📅 Sfida del giorno · ${esc(nomeQ)} · ${S.i+1} di ${SESSION_N}</div>`:S.sprint?`<div class="eyebrow">⚡ Sprint · ${esc(nomeQ)} · ${S.log.filter(l=>l.ok).length} giuste</div>`:`<div class="eyebrow">${esc(nomeQ)} · quesito ${S.i+1} di ${SESSION_N} · ${S.diff?`difficoltà ${S.diff.d} · livello ${S.diff.L}`:`livello ${lvNum(area.level)}`}</div>`;
   let body;
   if(it.kind==='mem'){
-    const instr=it.type==='back'?'Memorizza le cifre: dovrai riscriverle in ordine inverso.':'Memorizza i simboli: dovrai scrivere prima le cifre in ordine crescente, poi le lettere in ordine alfabetico.';
+    const instr=it.istr||(it.type==='back'?'Memorizza le cifre: dovrai riscriverle in ordine inverso.':'Memorizza i simboli: dovrai scrivere prima le cifre in ordine crescente, poi le lettere in ordine alfabetico.');
     if(S.mem.phase==='show')body=`<p class="q">${instr}<span class="small">${it.len} simboli</span></p><div class="memshow" id="memShow"><span class="small">Pronto…</span></div>`;
-    else body=`<p class="q">${instr}</p>${S.fb?`<div class="memshow small">Sequenza: ${it.seq.join(' – ')}</div>`:''}<div class="field"><label for="memInput">${it.type==='back'?'Scrivi le cifre in ordine inverso':'Prima le cifre in ordine crescente, poi le lettere in ordine alfabetico'}</label><input id="memInput" class="mem" type="text" inputmode="${it.type==='back'?'numeric':'text'}" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="${it.len}" placeholder="${'·'.repeat(it.len)}" ${S.fb?'disabled value="'+esc(S.fb.choice||'')+'"':''}></div>${S.fb?'':'<div class="actions"><button class="btn primary" data-act="memOk">Conferma</button></div>'}`;
+    else body=`<p class="q">${instr}</p>${S.fb?`<div class="memshow small">Sequenza: ${it.seq.join(' – ')}</div>`:''}<div class="field"><label for="memInput">${esc(it.label||(it.type==='back'?'Scrivi le cifre in ordine inverso':'Prima le cifre in ordine crescente, poi le lettere in ordine alfabetico'))}</label><input id="memInput" class="mem" type="text" inputmode="${it.inputmode||(it.type==='back'?'numeric':'text')}" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="${it.maxlen||it.len}" placeholder="${'·'.repeat(it.maxlen||it.len)}" ${S.fb?'disabled value="'+esc(S.fb.choice||'')+'"':''}></div>${S.fb?'':'<div class="actions"><button class="btn primary" data-act="memOk">Conferma</button></div>'}`;
   }else{
     const cls=(k)=>!S.fb?'':k===it.answer?'right':S.fb.choice===k?'wrong':'';
     body=itemHtml(it,{cls,dis:!!S.fb,showAnswer:!!S.fb});
@@ -289,7 +292,7 @@ function rQ(){
     const f=S.fb;
     fb=`<div class="fb ${f.ok?'ok':'bad'}"><b>${f.ok?(S.streak>=5?`Giusto! 🔥 ${S.streak} di fila, +${f.pts} punti`:`Giusto! +${f.pts} punti`):(f.choice===null?'Tempo scaduto.':'Sbagliato.')+' La risposta giusta era '+(it.kind==='mem'?it.answer:LETTERS[it.answer])+'.'}</b>
       ${it.rule?`<span>💡 ${esc(window.Quesiti.spiegazione?window.Quesiti.spiegazione(it):'Spiegazione: '+it.rule+'.')}</span>`:''}${f.levelUp?`<span>🎉 Sei salito al livello ${f.lvAfter}!</span>`:''}
-      <div class="actions"><button class="btn primary" id="nextBtn" data-act="next">${S.i+1<SESSION_N?'Avanti':'Vedi il risultato'}</button><span class="hint">Invio per continuare</span></div>${segnalaBtn(it,'Allenamento · '+esc(S.area.name)+' · '+KIND_NAME[it.kind])}</div>`;
+      <div class="actions"><button class="btn primary" id="nextBtn" data-act="next">${S.i+1<SESSION_N?'Avanti':'Vedi il risultato'}</button><span class="hint">Invio per continuare</span></div>${segnalaBtn(it,'Allenamento · '+esc(S.area.name)+' · '+nomeQ)}</div>`;
   }
   return`${head}<div id="qbox" class="stack">${body}</div>${fb}${S.fb?'':'<div class="actions"><button class="btn" data-act="quit">Interrompi</button></div>'}`;
 }
@@ -303,7 +306,7 @@ function rEnd(){
   const title=nOk===SESSION_N?'Perfetto! 💯':nOk>=7?'Ottimo allenamento!':nOk>=4?'Buon lavoro':'Si impara sbagliando';
   const dl=lvEnd-S.lvStart;
   const nb=S.newBadges.map(id=>BADGES.find(b=>b.id===id)).map(b=>`<span class="badge"><span class="e">${b.e}</span>${b.n}</span>`).join('');
-  const rows=S.log.map((l,i)=>`<tr><td class="num">${i+1}</td><td>${esc(KIND_NAME[l.kind])}</td><td class="num">${fmtMs(l.ms)}</td><td class="num ${l.ok?'ok':'bad'}">${l.ok?'+'+l.pts:(l.choice===null?'tempo':'0')}</td></tr>`).join('');
+  const rows=S.log.map((l,i)=>`<tr><td class="num">${i+1}</td><td>${esc(l.nome||KIND_NAME[l.kind])}</td><td class="num">${fmtMs(l.ms)}</td><td class="num ${l.ok?'ok':'bad'}">${l.ok?'+'+l.pts:(l.choice===null?'tempo':'0')}</td></tr>`).join('');
   return`<div class="final"><div class="eyebrow">${esc(S.area.name)} · allenamento finito</div><div class="big">${title}</div><div class="sub">${nOk} ${nOk===1?'giusta':'giuste'} su ${SESSION_N} · ${S.pts} punti · serie migliore ${S.maxStreak}</div>
       <div class="stats" style="padding-top:12px"><div class="stat"><span class="v">${lvEnd}</span><span class="l">livello ${dl>0?'(+'+dl+')':dl<0?'('+dl+')':''}</span></div><div class="stat"><span class="v">${Math.round(nOk/SESSION_N*100)}%</span><span class="l">giuste</span></div><div class="stat"><span class="v">${S.pts}</span><span class="l">punti</span></div></div></div>
     ${nb?`<div class="card"><h3>Nuove medaglie</h3><div class="badges">${nb}</div></div>`:''}

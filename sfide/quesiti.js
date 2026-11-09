@@ -411,18 +411,36 @@ function rotItem(rng,level,tries){
 const MEM_LETTERS='BCDFGHKLMNPRSTVZ';
 function memAnswer(type,seq){
   if(type==='back')return seq.slice().reverse().join('');
+  if(type==='asc')return seq.slice().sort().join('');
+  if(type==='somma')return String(seq.reduce((a,b)=>a+Number(b),0));
   const ds=seq.filter(s=>/\d/.test(s)).sort(),ls=seq.filter(s=>/[A-Z]/.test(s)).sort();return[...ds,...ls].join('');
 }
-// level in [0,1] → lunghezza 3..9; dal livello 0.5 cifre e lettere mescolate da riordinare
+// tipi di prova di memoria con la fascia di difficoltà in cui compaiono (0..1)
+const MEM_TYPES=[['back',0,0.55],['asc',0.12,0.7],['manca',0.22,0.85],['pos',0.3,0.9],['somma',0.4,1],['ln',0.5,1]];
+const ORD=['','1º','2º','3º','4º','5º','6º','7º','8º','9º'];
+// level in [0,1] → tipo scelto tra quelli della fascia e lunghezza crescente (3..9 simboli)
 function memItem(rng,level){
-  const type=level<0.5?'back':'ln';
-  const len=type==='back'?3+Math.min(6,Math.floor(level*2*6)):4+Math.min(5,Math.floor((level-0.5)*2*6));
-  const seq=[];
-  if(type==='back'){let prev=-1;while(seq.length<len){const d=rint(rng,1,9);if(d===prev)continue;seq.push(String(d));prev=d}}
-  else{const nL=Math.floor(len/2),nD=len-nL;const ls=shuffled(MEM_LETTERS.split(''),rng).slice(0,nL);const ds=shuffled('123456789'.split(''),rng).slice(0,nD);
-    let mix;do{mix=shuffled([...ls,...ds],rng)}while(mix.join('')===memAnswer(type,mix));seq.push(...mix)}
-  const answer=memAnswer(type,seq);
-  return{kind:'mem',type,len,seq,answer,rule:type==='back'?`i simboli erano ${seq.join(' ')}: al contrario fanno ${answer}`:`i simboli erano ${seq.join(' ')}: prima le cifre in ordine, poi le lettere in ordine alfabetico: ${answer}`};
+  level=Math.max(0,Math.min(1,level));
+  let pool=MEM_TYPES.filter(t=>level>=t[1]&&level<=t[2]);if(!pool.length)pool=[MEM_TYPES[0]];
+  const type=pick(pool,rng)[0];
+  const frac=(t)=>Math.max(0,Math.min(1,(level-t[1])/Math.max(0.01,t[2]-t[1])));
+  const T=MEM_TYPES.find(t=>t[0]===type),fr=frac(T);
+  const seq=[];let answer,rule,istr,label,inputmode='numeric',maxlen,extra={};
+  const digits=(len)=>{let prev=-1;while(seq.length<len){const d=rint(rng,1,9);if(d===prev)continue;seq.push(String(d));prev=d}};
+  if(type==='back'){const len=3+Math.min(6,Math.floor(fr*6.5));digits(len);answer=memAnswer(type,seq);maxlen=len;
+    istr='Memorizza le cifre: dovrai riscriverle in ordine inverso.';label='Scrivi le cifre in ordine inverso';rule=`i simboli erano ${seq.join(' ')}: al contrario fanno ${answer}`}
+  else if(type==='asc'){const len=4+Math.min(5,Math.floor(fr*5.5));const ds=shuffled('123456789'.split(''),rng).slice(0,len);let ok=false;for(let t=0;t<9&&!ok;t++){const m=shuffled(ds,rng);if(m.join('')!==ds.slice().sort().join('')){seq.push(...m);ok=true}}if(!ok)seq.push(...ds.slice().reverse());
+    answer=memAnswer(type,seq);maxlen=len;istr='Memorizza le cifre: dovrai riscriverle dalla più piccola alla più grande.';label='Cifre in ordine crescente';rule=`le cifre erano ${seq.join(' ')}: in ordine crescente fanno ${answer}`}
+  else if(type==='manca'){const n=5+Math.min(4,Math.floor(fr*4.5));const all=[];for(let i=1;i<=n;i++)all.push(String(i));const miss=pick(all,rng);seq.push(...shuffled(all.filter(x=>x!==miss),rng));
+    answer=miss;maxlen=1;extra.n=n;istr=`Vedrai le cifre da 1 a ${n} in ordine sparso, tranne una: dovrai dire quale manca.`;label='Quale cifra mancava?';rule=`sono passate ${seq.join(' ')}: tra 1 e ${n} mancava il ${miss}`}
+  else if(type==='pos'){const len=4+Math.min(4,Math.floor(fr*4.5));const nL=Math.floor(len/2);const ls=shuffled(MEM_LETTERS.split(''),rng).slice(0,nL),ds=shuffled('123456789'.split(''),rng).slice(0,len-nL);seq.push(...shuffled([...ls,...ds],rng));
+    const k=rint(rng,2,len-1);answer=seq[k-1];maxlen=1;inputmode='text';extra.k=k;istr=`Memorizza i simboli nell'ordine: dovrai dire quale era al ${ORD[k]} posto.`;label=`Il simbolo al ${ORD[k]} posto`;rule=`i simboli erano ${seq.join(' ')}: al ${ORD[k]} posto c'era ${answer}`}
+  else if(type==='somma'){const len=3+Math.min(4,Math.floor(fr*4.5));digits(len);answer=memAnswer(type,seq);maxlen=2;
+    istr='Memorizza le cifre: dovrai scrivere la loro somma.';label='Somma delle cifre';rule=`le cifre erano ${seq.join(' ')}: ${seq.join(' + ')} = ${answer}`}
+  else{const len=4+Math.min(5,Math.floor(fr*5.5));const nL=Math.floor(len/2),nD=len-nL;const ls=shuffled(MEM_LETTERS.split(''),rng).slice(0,nL);const ds=shuffled('123456789'.split(''),rng).slice(0,nD);
+    let mix;do{mix=shuffled([...ls,...ds],rng)}while(mix.join('')===memAnswer(type,mix));seq.push(...mix);answer=memAnswer(type,seq);maxlen=len;inputmode='text';
+    istr='Memorizza i simboli: dovrai scrivere prima le cifre in ordine crescente, poi le lettere in ordine alfabetico.';label='Prima le cifre in ordine crescente, poi le lettere in ordine alfabetico';rule=`i simboli erano ${seq.join(' ')}: prima le cifre in ordine, poi le lettere in ordine alfabetico: ${answer}`}
+  return Object.assign({kind:'mem',type,len:seq.length,seq,answer,rule,istr,label,inputmode,maxlen},extra);
 }
 
 // ========================= HTML di un quesito =========================
@@ -432,6 +450,10 @@ const esc=(s)=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;
 function itemHtml(it,o){
   o=o||{};const cls=o.cls||(()=>''),dis=o.dis?'disabled':'',tag=o.tag||(()=>'');
   const opt=(k,inner,fig)=>`<button class="opt ${fig?'fig':''} ${cls(k)}" data-i="${k}" ${dis} aria-label="Opzione ${LETTERS[k]}">${inner}<span class="k">${LETTERS[k]}</span>${tag(k)}</button>`;
+  if(it.stim!==undefined){
+    const opts=it.options.map((op,k)=>it.fig?opt(k,op,true):`<button class="opt ${cls(k)}" data-i="${k}" ${dis}><span class="k">${LETTERS[k]}</span><span class="v ${it.mono?'mono':''}">${it.raw?op:esc(op)}</span>${tag(k)}</button>`).join('');
+    return`<p class="q">${esc(it.q||'')}${it.sub?`<span class="small">${esc(it.sub)}</span>`:''}</p>${it.stim}<div class="opts ${it.fig?'fig':'text'}">${opts}</div>`;
+  }
   if(it.kind==='mat'){
     const grid=it.grid.map((c,k)=>k===8?(o.showAnswer?`<div class="cell ans">${cellSVG(it.options[it.answer])}</div>`:`<div class="cell ask">?</div>`):`<div class="cell">${cellSVG(c)}</div>`).join('');
     return`<p class="q">Quale figura completa la griglia?</p><div class="grid3">${grid}</div><div class="opts fig">${it.options.map((op,k)=>opt(k,cellSVG(op),true)).join('')}</div>`;
@@ -453,29 +475,42 @@ function itemHtml(it,o){
 
 // ========================= partita =========================
 const KIND_NAME={mat:'Matrice',num:'Serie numerica',verb:'Analogia',rot:'Rotazione'};
+// Famiglie di quesiti per area. Ognuna: {id, nome, d:[min,max] fascia di livello in cui compare, w: peso, gen(rng,level,used)}.
+// Le famiglie base stanno qui; le altre (famiglie.js) si aggiungono con Quesiti.registra(area, famiglia).
+const FAM={mat:[],num:[],verb:[],rot:[],mem:[]};
+function registra(area,f){(FAM[area]||(FAM[area]=[])).push(f)}
+registra('mat',{id:'matrice',nome:'Matrice',d:[0,1],w:2.2,gen:matrixItem});
+registra('num',{id:'serie',nome:'Serie numerica',d:[0,1],w:2.2,gen:numItem});
+registra('verb',{id:'analogia',nome:'Analogia',d:[0,1],w:2.2,gen:(rng,l,used)=>verbItem(rng,l,used||new Set())});
+registra('rot',{id:'rotazione',nome:'Rotazione',d:[0,1],w:2.2,gen:rotItem});
+registra('mem',{id:'memoria',nome:'Memoria',d:[0,1],w:1,gen:memItem});
+// sceglie una famiglia adatta al livello (pesata) e genera il quesito; famId forza una famiglia
+function genItem(kind,rng,level,used,famId){
+  const list=FAM[kind]||FAM.mat;level=Math.max(0,Math.min(1,level||0));
+  let pool=list.filter(f=>level>=f.d[0]&&level<=f.d[1]);if(!pool.length)pool=list;
+  let f=famId?list.find(x=>x.id===famId):null;
+  if(!f){const tot=pool.reduce((s,x)=>s+(x.w||1),0);let r=rng()*tot;f=pool[pool.length-1];for(const x of pool){r-=(x.w||1);if(r<=0){f=x;break}}}
+  let it=null;for(let t=0;t<3&&!it;t++){try{it=f.gen(rng,level,used)}catch(e){it=null}}
+  if(!it){f=list[0];it=f.gen(rng,level,used)}
+  it.kind=kind;it.fam=f.id;it.nome=f.nome;return it;
+}
+const famiglie=(kind)=>(FAM[kind]||[]).map(f=>({id:f.id,nome:f.nome,d:f.d}));
 // Genera n quesiti con il seme dato, alternando i tipi e alzando la difficoltà.
 function buildGame(seed,n,kinds){
   const rng=mulberry32(seed);
   const ks=(kinds&&kinds.length?kinds:['mat','num','verb','rot']);
   const order=[];let pool=[];
   for(let i=0;i<n;i++){if(!pool.length)pool=shuffled(ks,rng);order.push(pool.pop())}
-  const usedVerb=new Set();
+  const used=new Set();
   return order.map((k,i)=>{
     const level=n>1?(0.15+0.75*i/(n-1)):0.5;
-    if(k==='mat')return matrixItem(rng,level);
-    if(k==='num')return numItem(rng,level);
-    if(k==='verb')return verbItem(rng,level,usedVerb);
-    return rotItem(rng,level);
+    return genItem(k,rng,level,used);
   });
 }
 const KIND_NAME_ALL=Object.assign({mem:'Memoria'},KIND_NAME);
-function oneItem(kind,seed,level,usedVerb){
+function oneItem(kind,seed,level,used,famId){
   const rng=mulberry32(seed);
-  if(kind==='mat')return matrixItem(rng,level);
-  if(kind==='num')return numItem(rng,level);
-  if(kind==='verb')return verbItem(rng,level,usedVerb||new Set());
-  if(kind==='mem')return memItem(rng,level);
-  return rotItem(rng,level);
+  return genItem(kind,rng,level,used||new Set(),famId);
 }
 // forme per i giochi (poliomini) e coppie di parole per le analogie
 const polyShapes=()=>ROT_RAW.map(it=>norm(it.t));
@@ -484,6 +519,8 @@ const tfCells=(cells,kind)=>tf({cells,mark:null},kind).cells;
 // spiegazione in frase intera, per tutte le pagine (allenamento, sfide)
 function spiegazione(it){
   if(!it)return'';const L='ABCDEF';const ans=it.options?it.options[it.answer]:it.answer;
+  if(it.spiega)return it.spiega;
+  if(it.stim!==undefined&&it.rule)return`${it.rule.charAt(0).toUpperCase()+it.rule.slice(1)}. La risposta giusta è la ${L[it.answer]}${it.fig?'':` (${ans})`}.`;
   if(it.kind==='num')return`Regola: ${it.rule}. Dopo ${it.seq[it.seq.length-1]} viene quindi ${ans} (risposta ${L[it.answer]}).`;
   if(it.kind==='verb')return`${it.a} e ${it.b}: ${it.rule}. Allo stesso modo ${it.c} va con ${ans} (risposta ${L[it.answer]}).`;
   if(it.kind==='mat')return`Regola della matrice: ${it.rule}. La casella mancante è la ${L[it.answer]}.`;
@@ -491,5 +528,6 @@ function spiegazione(it){
   if(it.kind==='mem')return`${it.rule.charAt(0).toUpperCase()+it.rule.slice(1)}: la risposta era ${it.answer}.`;
   return it.rule?`Regola: ${it.rule}.`:'';
 }
-window.Quesiti={buildGame,oneItem,spiegazione,itemHtml,cellSVG,cellsSVG,KIND_NAME:KIND_NAME_ALL,mulberry32,memAnswer,polyShapes,verbPairs,tfCells,SHAPES:SHAPES5,FILLS:FL};
+window.Quesiti={buildGame,oneItem,genItem,registra,famiglie,spiegazione,itemHtml,cellSVG,cellsSVG,drawShape,KIND_NAME:KIND_NAME_ALL,mulberry32,memAnswer,polyShapes,verbPairs,tfCells,SHAPES:SHAPES5,FILLS:FL,
+  util:{shuffled,pick,rint,withAnswer,esc,cap,norm,tf,rotF,symsF,connected,randomPoly,differentShape,fkey,key},VREL,SEG,POS,SIZE_MULT};
 })();
