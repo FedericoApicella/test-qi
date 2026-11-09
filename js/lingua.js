@@ -28,7 +28,7 @@
     Object.keys(d).forEach(function (k) {
       if (k.indexOf('{}') < 0 && k.indexOf('{*}') < 0) { esatte[k] = d[k]; return; }
       // {} = un numero, {*} = qualsiasi testo (es. una parola che cambia)
-      var re = new RegExp('^' + k.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\{\}/g, '(\\d+(?:[.,:]\\d+)*)').replace(/\\\{\\\*\\\}/g, '(.+?)') + '$');
+      var re = new RegExp('^' + k.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\{\}/g, '(\\d+(?:[.,:]\\d+)*)').replace(/\{\\\*\}/g, '(.+?)') + '$');
       modelli.push({ re: re, out: d[k] });
     });
   }
@@ -40,7 +40,13 @@
       var m = modelli[i].re.exec(t);
       if (m) {
         var k = 0;
-        return modelli[i].out.replace(/\{(\d*)\}/g, function (_, idx) { return idx ? m[+idx] : m[++k]; });
+        return modelli[i].out.replace(/\{(\d*|\*)\}/g, function (_, idx) {
+          var v = (idx && idx !== '*') ? m[+idx] : m[++k];
+          if (v === undefined) return '';
+          // una parola variabile ({*}) può essere a sua volta nel dizionario (es. il nome di un'area)
+          if (/[A-Za-zÀ-ÿ]/.test(v)) { var tv = traduci(v); if (tv !== null) return tv; }
+          return v;
+        });
       }
     }
     return null;
