@@ -5,14 +5,14 @@
  * - Non tocca mai: le POST, Google Apps Script (raccolta dati e account), PeerJS (sfide).
  * Per pubblicare una nuova versione basta cambiare VERSIONE: il vecchio contenuto viene cancellato.
  */
-const VERSIONE = 'ma-2026-11-09-beta';
+const VERSIONE = 'ma-2026-11-09-famiglie';
 const CACHE = 'mente-allenata-' + VERSIONE;
 const FONT_CACHE = 'mente-allenata-font';
 const PRECARICA = [
   '/', '/index.html', '/test.html', '/stile.css', '/manifest.webmanifest',
   '/js/account.js', '/js/difficolta.js', '/js/raccolta.js', '/js/pwa.js', '/js/menu.js', '/js/segnala.js', '/bug/', '/bug/index.html',
   '/sfide/', '/sfide/index.html', '/sfide/allenamento.html', '/sfide/allenamento.js',
-  '/sfide/effetti.js', '/sfide/gioco.js', '/sfide/giochi.js', '/sfide/quesiti.js', '/sfide/peerjs.min.js', '/sfide/rete.js',
+  '/sfide/effetti.js', '/sfide/gioco.js', '/sfide/giochi.js', '/sfide/quesiti.js', '/sfide/famiglie.js', '/sfide/peerjs.min.js', '/sfide/rete.js',
   '/misura/', '/misura/index.html',
   '/storia/', '/storia/index.html', '/storia/storia.css', '/storia/storia.js', '/storia/minigiochi.js',
   '/js/abilita.js', '/abilita/', '/abilita/index.html',

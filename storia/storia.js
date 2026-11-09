@@ -251,9 +251,9 @@ function rQ(){
   const cls=(k)=>f?(k===it.answer?'right':k===f.choice?'wrong':''):'';
   let body='';
   if(it.kind==='mem'){
-    const instr=it.type==='back'?'Memorizza le cifre e scrivile al contrario.':'Memorizza i simboli: scrivi prima le cifre in ordine crescente, poi le lettere in ordine alfabetico.';
+    const instr=it.istr||(it.type==='back'?'Memorizza le cifre e scrivile al contrario.':'Memorizza i simboli: scrivi prima le cifre in ordine crescente, poi le lettere in ordine alfabetico.');
     if(S.phase==='show')body=`<p class="q">${instr}<span class="small">${it.len} simboli</span></p><div class="memshow" id="memShow"><span class="small">Pronto…</span></div>`;
-    else body=`<p class="q">${instr}</p>${f?`<div class="memshow small">Sequenza: ${it.seq.join(' – ')}</div>`:''}<div class="field"><label for="memInput">${it.type==='back'?'Cifre in ordine inverso':'Prima le cifre, poi le lettere'}</label><input id="memInput" class="mem" type="text" inputmode="${it.type==='back'?'numeric':'text'}" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="${it.len}" placeholder="${'·'.repeat(it.len)}" ${f?'disabled value="'+esc(f.choice||'')+'"':''}></div>${f?'':'<div class="actions"><button class="btn primary" data-act="memOk">Conferma</button></div>'}`;
+    else body=`<p class="q">${instr}</p>${f?`<div class="memshow small">Sequenza: ${it.seq.join(' – ')}</div>`:''}<div class="field"><label for="memInput">${esc(it.label||(it.type==='back'?'Cifre in ordine inverso':'Prima le cifre, poi le lettere'))}</label><input id="memInput" class="mem" type="text" inputmode="${it.inputmode||(it.type==='back'?'numeric':'text')}" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="${it.maxlen||it.len}" placeholder="${'·'.repeat(it.maxlen||it.len)}" ${f?'disabled value="'+esc(f.choice||'')+'"':''}></div>${f?'':'<div class="actions"><button class="btn primary" data-act="memOk">Conferma</button></div>'}`;
   }else if(MINI_ALL.includes(it.kind))body=miniHtml(it,{cls,dis:!!f,phase:S.phase});
   else body=itemHtml(it,{cls,dis:!!f,showAnswer:!!f});
   let fb='';
@@ -261,7 +261,7 @@ function rQ(){
     if(f.ok)fb=`<div class="fb ok"><b>Giusto! +${f.pts}${S.streak>=4?` · 🔥 ${S.streak} di fila`:''}</b></div>`;
     else fb=`<div class="fb bad"><b>${f.choice===null?'Tempo scaduto!':'Ahi, sbagliato.'} ${S.hearts>0?'Perdi un cuore.':'Cuori finiti…'}</b><span>Risposta giusta: <b>${it.kind==='mem'?it.answer:LETTERS[it.answer]}</b>${it.rule?' · '+esc(it.rule):''}</span>${S.hearts>0?'<div class="actions"><button class="btn primary" id="nextBtn" data-act="next">Avanti →</button></div>':''}</div>`;
   }
-  return`<section class="card qcard ${S.boss?'bossb':''}" id="qbox"><div class="qhead"><span class="eyebrow">${S.boss?'👑 Boss · ':''}Prova ${S.i+1} di ${S.items.length}</span><span class="badge small"><span class="e">${KIND_ICON[it.kind]}</span>${KIND_NAME[it.kind]}</span></div>${body}</section>${fb}`;
+  return`<section class="card qcard ${S.boss?'bossb':''}" id="qbox"><div class="qhead"><span class="eyebrow">${S.boss?'👑 Boss · ':''}Prova ${S.i+1} di ${S.items.length}</span><span class="badge small"><span class="e">${KIND_ICON[it.kind]}</span>${esc(it.nome||KIND_NAME[it.kind])}</span></div>${body}</section>${fb}`;
 }
 function rEnd(){
   const r=S.result;const nOk=S.log.filter(l=>l.ok).length;
