@@ -176,12 +176,12 @@ function toccaSlot(k){
   S.selSlot=k;S.sel=-1;FX.beep('tick');msg('Tocca la sua gemella libera sul tavolo, oppure toccala di nuovo per rimetterla a posto.');render();
 }
 function annulla(){if(!S.storia.length||S.done)return;const s=S.storia.pop();S.vivo=s.vivo;S.slots=s.slots;S.sel=-1;S.selSlot=-1;msg('');render();salvaCorso()}
-function suggerimento(){if(S.done)return;const m=mosse();const ms=mosseSlot();if(!m.length&&!ms.length){msg(S.slots.some(v=>v==null)?'Nessuna coppia libera: parcheggia una tessera in alto per liberarne altre.':'Non ci sono mosse: mescola le tessere.','bad');return}
+function suggerimento(){if(S.done)return;if(window.Energia&&!Energia.spendi('aiuto'))return;const m=mosse();const ms=mosseSlot();if(!m.length&&!ms.length){msg(S.slots.some(v=>v==null)?'Nessuna coppia libera: parcheggia una tessera in alto per liberarne altre.':'Non ci sono mosse: mescola le tessere.','bad');return}
   S.hints++;S.sel=-1;S.selSlot=-1;render();
   if(m.length){const [a,b]=m[Math.floor(Math.random()*m.length)];[a,b].forEach(i=>{const el=$('#board').children[i];el.classList.remove('hint');void el.offsetWidth;el.classList.add('hint')})}
   else{const [i,k]=ms[0];const el=$('#board').children[i];el.classList.add('hint');$('#slots').children[k].classList.add('hint')}
   FX.beep('tick');msg('Ecco una coppia. Ogni aiuto costa una stella.')}
-function mescola(){if(S.done)return;S.slots.forEach((v,k)=>{if(v!=null){S.vivo[v]=true;S.slots[k]=null}});const quali=S.tiles.filter(t=>S.vivo[t.i]).map(t=>t.i);if(quali.length<4){msg('Troppo poche tessere per mescolare.');return}
+function mescola(){if(S.done)return;if(window.Energia&&!Energia.spendi('mescola'))return;S.slots.forEach((v,k)=>{if(v!=null){S.vivo[v]=true;S.slots[k]=null}});const quali=S.tiles.filter(t=>S.vivo[t.i]).map(t=>t.i);if(quali.length<4){msg('Troppo poche tessere per mescolare.');return}
   const facce=new Set(quali.map(i=>S.tiles[i].f));
   // riassegna le facce alle tessere rimaste, di nuovo in modo risolvibile
   const r=G.rng('mescola:'+S.level+':'+S.shuffles+':'+Date.now());const ok=assegna(S.tiles,quali,r,facce.size);
