@@ -267,7 +267,7 @@ function rEnd(){
   const r=S.result;const nOk=S.log.filter(l=>l.ok).length;
   if(!r.won)return`<section class="final lost">
     <div class="bigemo">💔</div><div class="big">Cuori finiti!</div>
-    <p class="sub">Livello ${S.L}: ${nOk} prove giuste su ${S.log.length}, ${S.pts} punti. Niente stelle stavolta, ma ogni errore spiegato è un passo avanti.</p>
+    <p class="sub">Livello ${S.L}: ${nOk} ${nOk===1?'prova giusta':'prove giuste'} su ${S.log.length}, ${S.pts} punti. Niente stelle stavolta, ma ogni errore spiegato è un passo avanti.</p>
     <div class="actions center"><button class="btn primary big" data-act="retry" autofocus>Riprova il livello</button><button class="btn" data-act="quit">Mappa</button></div></section>`;
   return`<section class="final won">
     <div class="bigemo">${r.bossWon?'🏆':r.stars===3?'🌟':'🎉'}</div>

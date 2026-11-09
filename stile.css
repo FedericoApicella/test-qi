@@ -226,7 +226,7 @@ details .body{padding:0 16px 16px;display:grid;gap:12px}
 /* pulsante account dentro la barra (sfide e allenamento) */
 .bar #cardAccedi{display:inline-flex;margin-left:6px}
 .bar #cardAccedi .acc-btn{position:static!important;padding:5px 10px!important;font-size:.85rem!important;box-shadow:none!important;margin:0!important}
-.bar.ingame #cardAccedi{display:none}
+.bar.ingame #cardAccedi,.bar.ingame #barMenu #cardAccedi{display:none}
 
 /* menu ⚙️ in alto a destra: accesso, suoni, installa l'app */
 [hidden]{display:none!important}
