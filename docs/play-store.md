@@ -100,3 +100,13 @@ Gratis, senza registrazione, funziona anche offline. Il punteggio del test è un
 ## Aggiornare l'app in futuro
 
 Il contenuto si aggiorna da solo (è il sito). Serve un nuovo `.aab` solo se cambiano nome, icona, colori o versione minima di Android: si rigenera su PWABuilder caricando la **stessa** chiave (`signing.keystore`), si alza il numero di versione e si carica in Produzione.
+
+## Energia (vite): come funziona e come accenderla
+
+Esiste solo nell'app del Play Store (`?da=play`): sul sito web `js/energia.js` non fa nulla. Regole: 5 punti al giorno, ricarica completa a mezzanotte e di 1 punto ogni 30 minuti; un punto si spende per un aiuto (Sudoku, Mahjong, Regine, parole), per mescolare al Mahjong e quando si fallisce un livello della storia; mai per iniziare un livello, mai nel test, in Misurati, in Allenati o nelle sfide a due. Senza energia compare la finestra con: attesa, "Guarda un video" (+1, massimo 5 al giorno) e i pacchetti.
+
+Da fare per accendere video e acquisti (in cima a `js/energia.js`, oggetto `CONFIG`):
+
+1. **Video**: account AdSense approvato per https://qi.stafftech.it con "Annunci per giochi H5" attivi → scrivere l'id `ca-pub-…` in `adsenseClient`. Finché è vuoto, il pulsante del video non compare.
+2. **Pacchetti**: nella Play Console, **Monetizza → Prodotti → Prodotti in-app**, creare tre prodotti con questi codici: `energia_5` (0,99 €), `energia_20` (2,99 €), `energia_infinita_24h` (1,99 €). Il pacchetto dell'app deve essere generato su PWABuilder con l'opzione **Play Billing** attiva. Fuori dall'app i pulsanti rispondono "Gli acquisti funzionano solo nell'app del Play Store".
+3. Nella Play Console dichiarare che l'app contiene annunci e acquisti in-app, e aggiornare la classificazione dei contenuti.

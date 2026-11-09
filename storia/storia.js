@@ -79,6 +79,7 @@ function buildLevel(L){
   return{L,w,boss,items};
 }
 function startLevel(L){
+  if(window.Energia&&!Energia.puoi()){Energia.mostra('storia');return}
   const lvl=buildLevel(L);
   S=Object.assign(lvl,{screen:'brief',i:-1,hearts:HEARTS,pts:0,streak:0,maxStreak:0,log:[],fb:null,phase:null});
   render();
@@ -129,7 +130,7 @@ function endLevel(won){
     const rAfter=rankOf(totStars());if(rAfter[0]>rBefore[0])S.result.newRank=rAfter;
     saveP();
     FX.beep(S.boss?'level':'win');FX.confetti(stars===3?160:80);
-  }else{FX.beep('lose')}
+  }else{FX.beep('lose');if(window.Energia)Energia.aggiungi(-1)}
   S.screen='end';render();
 }
 function quit(){stopTimer();clearTimeout(showT);clearTimeout(autoT);S=null;render()}

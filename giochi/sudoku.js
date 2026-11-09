@@ -79,7 +79,7 @@ function metti(v){
   salvaCorso();controlla();
 }
 function suggerimento(){
-  if(S.done)return;let i=S.sel;
+  if(S.done)return;if(window.Energia&&!Energia.spendi('aiuto'))return;let i=S.sel;
   if(i<0||S.given[i]||S.grid[i]===S.sol[i]){const empties=[];for(let k=0;k<S.grid.length;k++)if(S.grid[k]!==S.sol[k])empties.push(k);if(!empties.length)return;i=(i>=0&&!S.given[i]&&S.grid[i]!==S.sol[i])?i:empties[Math.floor(Math.random()*empties.length)]}
   S.hints++;S.grid[i]=S.sol[i];S.notes[i]=[];for(const p of S.peers[i]){const k=S.notes[p].indexOf(S.sol[i]);if(k>=0)S.notes[p].splice(k,1)}S.sel=i;render();
   const el=$('#board .c[data-i="'+i+'"]');if(el)el.classList.add('hint');FX.beep('tick');msg('Ecco un numero in più. Ogni aiuto costa una stella.');salvaCorso();controlla();

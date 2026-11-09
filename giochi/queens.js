@@ -104,7 +104,7 @@ function controlla(){const {qs,bad}=conflitti();if(qs.length!==S.n)return;
   S.done=true;const ms=G.timerStop();delete P[GAME].corso;if(G.SFIDA){G.sfidaFatto(ms,0,S.hints);return}const par=(20+S.n*S.n*2)*1000;
   const stelle=Math.max(1,3-(S.hints>0?1:0)-(ms>par?1:0));
   setTimeout(()=>G.vittoria(P,GAME,S.level,stelle,ms,{next:(L)=>nuovo(L),nota:S.hints?`${S.hints} aiuti`:ms<=par?'veloce e senza aiuti':'senza aiuti'}),350)}
-function suggerimento(){if(S.done)return;const n=S.n;const rows=[];for(let r=0;r<n;r++){const i=r*n+S.cols[r];if(S.cell[i]!==2)rows.push(r)}if(!rows.length)return;
+function suggerimento(){if(S.done)return;if(window.Energia&&!Energia.spendi('aiuto'))return;const n=S.n;const rows=[];for(let r=0;r<n;r++){const i=r*n+S.cols[r];if(S.cell[i]!==2)rows.push(r)}if(!rows.length)return;
   const r=rows[Math.floor(Math.random()*rows.length)];for(let c=0;c<n;c++)if(S.cell[r*n+c]===2)S.cell[r*n+c]=0;const i=r*n+S.cols[r];S.cell[i]=2;S.hints++;render();
   const el=$('#board .c[data-i="'+i+'"]');if(el)el.classList.add('hint');FX.beep('tick');msg(`La regina della riga ${r+1} va qui. Ogni aiuto costa una stella.`);salvaCorso();controlla()}
 function pulisci(){if(S.done)return;S.cell.fill(0);render();salvaCorso();msg('')}
