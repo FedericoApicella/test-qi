@@ -11,7 +11,7 @@ L'italiano è la lingua del codice e delle pagine. Le altre lingue sono **dizion
 
 1. Apri `lang/en.js` e aggiungi una riga `"frase italiana": "frase inglese",`.
 2. La chiave è il testo **esattamente come appare sullo schermo** (un nodo di testo alla volta: se una frase ha una parte in grassetto, sono due chiavi).
-3. I numeri si scrivono `{}` e tornano al loro posto nello stesso ordine (`{1}`, `{2}`… per cambiare ordine). Una parola che cambia si scrive `{*}`.
+3. I numeri si scrivono `{}` e tornano al loro posto nello stesso ordine (`{1}`, `{2}`… per cambiare ordine). Una parola che cambia si scrive `{*}`; se quella parola è a sua volta nel dizionario (per esempio il nome di un'area o di un mese) viene tradotta anche lei.
 
 Per trovare le frasi mancanti: apri la pagina con `?lang=en` e guarda cosa è rimasto in italiano.
 
@@ -25,4 +25,4 @@ Per trovare le frasi mancanti: apri la pagina con `?lang=en` e guarda cosa è ri
 
 - Le parole crociate (`parole/`): il dizionario delle parole è italiano. Per un'altra lingua serve un dizionario di parole e definizioni in quella lingua.
 - I quesiti verbali del test del QI e dei mini-test (analogie): vanno riscritti e ritarati per lingua. Matrici, serie, memoria e rotazioni sono già senza parole.
-- Il resto del sito (test, misura, sfide, allenamento, abilità) usa lo stesso meccanismo: basta aggiungere le frasi al dizionario (seconda parte del lavoro).
+- Tutte le pagine (test, misura, sfide, allenamento, abilità, segnalazioni) sono coperte dal dizionario; se compare una frase nuova in italiano, va aggiunta a `lang/en.js`.
