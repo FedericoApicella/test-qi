@@ -114,8 +114,8 @@ body[data-skin=galassia] .bar{background:rgba(18,8,38,.85)}
 .g-set input[type=range]{width:100%;accent-color:var(--accent)}
 .g-skins{display:flex;flex-wrap:wrap;gap:8px}
 .g-diffpick{display:grid;gap:4px}
-.g-diff{display:flex;gap:4px}
-.g-diff-b{appearance:none;flex:1;min-width:0;height:32px;border-radius:8px;border:2px solid var(--border);background:var(--surface);font:inherit;font-weight:800;font-size:.85rem;cursor:pointer;padding:0;color:var(--muted)}
+.g-diff{display:grid;grid-template-columns:repeat(auto-fit,minmax(26px,1fr));gap:4px}
+.g-diff-b{appearance:none;min-width:0;height:32px;border-radius:8px;border:2px solid var(--border);background:var(--surface);font:inherit;font-weight:800;font-size:.85rem;cursor:pointer;padding:0;color:var(--muted)}
 .g-diff-b:hover{border-color:var(--accent)}
 .g-diff-b.on{color:#fff;border-color:transparent}
 .g-diff-b.d-easy.on{background:#16a34a}.g-diff-b.d-mid.on{background:var(--brand)}.g-diff-b.d-hard.on{background:#ea580c}.g-diff-b.d-max.on{background:#be123c}

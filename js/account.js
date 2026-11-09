@@ -283,6 +283,8 @@
     errore("");
     if (b) b.setAttribute("data-t", b.textContent);
     var p;
+    if ((a === "accedi" || a === "registra") && (!val("nome").trim() || !val("password"))) { errore("Scrivi nome utente e password."); return; }
+    if (a === "registra" && val("password").length < 4) { errore("La password deve avere almeno 4 caratteri."); return; }
     if (a === "accedi") p = chiama({ azione: "accedi", nome: val("nome").trim(), password: val("password") }).then(dopoAccesso).then(function () { vista = "profilo"; disegna(); });
     else if (a === "registra") p = chiama({ azione: "registra", nome: val("nome").trim(), password: val("password"), email: val("email").trim() }).then(dopoAccesso).then(function () { vista = "profilo"; disegna(); });
     else if (a === "sync") p = push().then(function (ok) { disegna(); errore(ok ? "Salvato." : "Non sono riuscito a salvare: controlla la connessione.", ok); });
@@ -294,7 +296,7 @@
     else if (a === "reimposta") p = chiama({ azione: "reimposta", nome: val("rnome").trim(), codice: val("codice"), nuova: val("rnuova") }).then(dopoAccesso).then(function () { vista = "profilo"; disegna(); errore("Password cambiata, sei dentro.", true); });
     else return;
     attesa(b, true);
-    p.catch(function (e) { errore(e.message || String(e)); }).then(function () { if (ui.dlg.open) attesa(b, false); aggiornaUi(); });
+    p.catch(function (e) { var m = e && e.message || String(e); if (/fetch|network|load failed|connessione/i.test(m)) m = "Non riesco a raggiungere il server: controlla la connessione e riprova."; errore(m); }).then(function () { if (ui.dlg.open) attesa(b, false); aggiornaUi(); });
   }
 
   // ---------------------------------------------------------------- avvio

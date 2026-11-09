@@ -128,6 +128,10 @@ details .body{padding:0 16px 16px;display:grid;gap:12px}
   .barrow{grid-template-columns:1fr auto;}
   .barrow .track{grid-column:1/-1}
   .grid3{max-width:100%}
+  /* durante il test la barra deve stare in una riga: niente Accedi, contatore corto, nome sezione con i puntini */
+  .bar .cnt{font-size:.85rem;flex:none}
+  .bar .lungo{display:none}
+  /* (il pulsante Accedi sparisce con la classe ingame della barra, vedi stile.css) */
 }
 @media (prefers-reduced-motion:reduce){ .progress>i{transition:none} }
 </style>
@@ -679,8 +683,9 @@ function stopTimer(){if(tick){clearInterval(tick);tick=null}}
 function updateBar(){
   const sec=SECTIONS[state.s];
   const inTest=state.screen==='item'||state.screen==='section';
-  $('#barSec').textContent=inTest?`${state.s+1}/${SECTIONS.length} · ${sec.name}`:'Test QI Multidominio';
-  if(state.screen==='item'){const left=sec.items.length-state.i;const per=Math.max(0,Math.floor(state.timeLeft/left));$('#barCnt').textContent=`item ${state.i+1}/${sec.items.length} · ~${per} s/item`}else $('#barCnt').textContent='';
+  if(inTest)$('#barSec').innerHTML=`${state.s+1}/${SECTIONS.length}<span class="lungo"> · ${esc(sec.name)}</span>`;else $('#barSec').textContent='Test QI Multidominio';
+  if(state.screen==='item'){const left=sec.items.length-state.i;const per=Math.max(0,Math.floor(state.timeLeft/left));$('#barCnt').innerHTML=`<span class="lungo">item </span>${state.i+1}/${sec.items.length} · ~${per} s<span class="lungo">/item</span>`}else $('#barCnt').textContent='';
+  document.querySelector('.bar').classList.toggle('ingame',inTest);
   const t=$('#barTimer');
   t.classList.toggle('hidden-timer',state.screen!=='item');
   if(state.screen==='item'){t.textContent=fmtTime(Math.max(0,state.timeLeft));t.classList.toggle('low',state.timeLeft<=60)}
@@ -689,6 +694,9 @@ function updateBar(){
 }
 
 // ========================= flusso =========================
+function artPct(n){n=Number(n);if(n===0)return'lo';if(n===8||n===11||(n>=80&&n<=89))return"l'";return'il'}
+// se si ricarica o si chiude la pagina durante il test si perde tutto: meglio chiedere conferma
+window.addEventListener('beforeunload',e=>{if(state&&(state.screen==='item'||state.screen==='section')&&state.s+state.i>0){e.preventDefault();e.returnValue=''}});
 function startTest(form){
   const consent=!!(($('#consent')||{checked:true}).checked);
   applyForm(form);
@@ -859,16 +867,18 @@ function rIntro(){
     <h1>Test QI Multidominio</h1>
     <p class="lede">Un test di ragionamento a tempo che copre cinque aree cognitive e restituisce un punteggio sulla scala del QI (media 100, deviazione standard 15) con intervallo di confidenza.</p>
   </div>
+  <div class="actions" id="startBtns"><button class="btn ${location.hash==='#breve'?'primary':''}" data-act="start" data-form="short">Stima rapida (40 item, ~${formMin('short')} min)</button><button class="btn ${location.hash==='#breve'||location.hash==='#esteso'?'':'primary'}" data-act="start" data-form="full">Test completo (100 item, ~${formMin('full')} min)</button><button class="btn ${location.hash==='#esteso'?'primary':''}" data-act="start" data-form="ext">Test esteso (200 item, ~${formMin('ext')} min)</button></div>
+  <p class="note small"><label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="consent" ${state.consent===false?'':'checked'} style="margin-top:4px"> <span>Acconsento al salvataggio <strong>anonimo</strong> delle mie risposte per la taratura del test (nessun nome o e-mail).</span></label></p>
   <div class="domains">
     ${FULL_SECTIONS.map(s=>`<div class="domain"><b>${esc(s.name)}</b><span>${SHORT_IDX.length} / ${FULL_IDX.length} / ${EXT_IDX.length} item · ${Math.round(FORM_TIME.short[s.id]/60)} / ${Math.round(FORM_TIME.full[s.id]/60)} / ${Math.round(FORM_TIME.ext[s.id]/60)} min</span></div>`).join('')}
   </div>
-  <div class="card stack">
+  <div class="card stack fold" data-fold="test-versioni">
     <h2>Tre versioni</h2>
     <p><strong>Stima rapida</strong>: 40 item (8 per dominio, scelti lungo tutta la scala di difficoltà), fino a ${formMin('short')} minuti. Dà solo un'indicazione di massima: intervallo di confidenza ±${formCi('short')} punti.</p>
     <p><strong>Test completo</strong>: 100 item, fino a ${formMin('full')} minuti (di solito 35–45). Buon equilibrio tra durata e precisione: intervallo di confidenza ±${formCi('full')} punti.</p>
     <p><strong>Test esteso</strong>: 200 item (40 per dominio), fino a ${formMin('ext')} minuti, cioè quasi due ore: prevedi una sessione intera, con le pause tra le sezioni. È la versione più precisa: intervallo di confidenza ±${formCi('ext')} punti.</p>
   </div>
-  <div class="card stack">
+  <div class="card stack fold" data-fold="test-prima">
     <h2>Prima di iniziare</h2>
     <p>Serve un momento senza interruzioni (la maggior parte delle persone finisce prima del tempo massimo). Ogni sezione ha un limite di tempo: allo scadere, gli item non risposti contano come errati. Non si può tornare indietro.</p>
     <p>Il tempo è calcolato per finire senza correre: accanto al contatore vedi quanti secondi hai in media per ciascun item rimasto. Se un item ti blocca, usa "Salta" e vai avanti. Tra una sezione e l'altra il tempo è fermo: puoi fare una pausa.</p>
@@ -877,12 +887,11 @@ function rIntro(){
   </div>
   <div class="note"><strong>Non è un test clinico.</strong> Il punteggio è una stima indicativa a scopo di esercizio e curiosità. Non sostituisce una valutazione psicometrica somministrata da un professionista con strumenti standardizzati (per esempio WAIS-IV), e i parametri di conversione in QI sono provvisori, non derivati da un campione normativo.</div>
   <details><summary>Come si calcola il QI (tabella provvisoria, ${NORM.label.toLowerCase()})</summary><div class="body">${conversionTableHtml(-1)}</div></details>
-  <div class="card stack">
+  <div class="card stack fold" data-fold="test-taratura">
     <h2>Aiuta a tarare il test</h2>
-    <p>Il test è in fase di taratura: alla fine, le tue risposte per item e i tempi vengono salvati <strong>in forma anonima</strong> (nessun nome, e-mail o identificativo) per stimare la difficoltà degli item e costruire norme reali. Puoi disattivarlo.</p>
-    <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="consent" ${state.consent===false?'':'checked'} style="margin-top:4px"> <span>Acconsento al salvataggio anonimo delle mie risposte per la taratura.</span></label>
+    <p>Il test è in fase di taratura: alla fine, le tue risposte per item e i tempi vengono salvati <strong>in forma anonima</strong> (nessun nome, e-mail o identificativo) per stimare la difficoltà degli item e costruire norme reali. Puoi disattivarlo con la casella sotto i pulsanti di avvio.</p>
   </div>
-  <div class="actions" id="startBtns"><button class="btn ${location.hash==='#breve'?'primary':''}" data-act="start" data-form="short">Stima rapida (40 item, ~${formMin('short')} min)</button><button class="btn ${location.hash==='#breve'||location.hash==='#esteso'?'':'primary'}" data-act="start" data-form="full">Test completo (100 item, ~${formMin('full')} min)</button><button class="btn ${location.hash==='#esteso'?'primary':''}" data-act="start" data-form="ext">Test esteso (200 item, ~${formMin('ext')} min)</button></div>`;
+`;
 }
 
 function rAreaIntro(){
@@ -1038,7 +1047,7 @@ function rResults(){
   <div class="score">
     <span class="eyebrow">${NORM.area?'Punteggio di area (scala con media 100, DS 15)':'QI stimato (media 100, DS 15)'}</span>
     <span class="big">${R.iq}</span>
-    <span class="ci">Intervallo di confidenza al 95%: <b class="mono">${R.lo}–${R.hi}</b> · circa il <b>${R.pct}°</b> percentile</span>
+    <span class="ci">Intervallo di confidenza al 95%: <b class="mono">${R.lo}–${R.hi}</b> · circa ${artPct(R.pct)} <b>${R.pct}°</b> percentile</span>
     <span class="label">${iqLabel(R.iq)}</span>
   </div>
   <div class="card stack">

@@ -356,7 +356,7 @@ function rResult(){
 function rEnd(){
   const n=names(),m=me(),o=opp();const sm=S.score[m],so=S.score[o];
   let title,sub;
-  if(S.solo){title=`${sm} punti`;sub=`${S.results.filter(r=>r&&r.pts[0]>0).length} risposte giuste su ${S.items.length}.`}
+  if(S.solo){title=`${sm} punti`;const nG=S.results.filter(r=>r&&r.pts[0]>0).length;sub=`${nG} ${nG===1?'risposta giusta':'risposte giuste'} su ${S.items.length}.`}
   else if(sm>so){title='Hai vinto!';sub=`${sm} a ${so} contro ${n[o]||'l\'avversario'}.`}
   else if(sm<so){title='Ha vinto '+(n[o]||'l\'avversario');sub=`${so} a ${sm}. Chiedi la rivincita!`}
   else{title='Pareggio!';sub=`${sm} punti a testa.`}
