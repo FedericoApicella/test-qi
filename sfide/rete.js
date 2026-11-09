@@ -186,5 +186,42 @@ function invita(nomeAmico,da,stanza,log){
   const to=normNome(nomeAmico);if(!to)return Promise.resolve(false);
   return agganciaPonteWill(null,log||(()=>{})).then(({c})=>{c.publish(INVITI+to,JSON.stringify({da:String(da||'').slice(0,20),stanza,at:Date.now()}),true);setTimeout(()=>c.close(),600);return true}).catch(()=>false);
 }
-window.Rete={connetti,PONTI,ascoltaInviti,invita,normNome};
+
+// ---------------- partite classificate: ricerca di un avversario di livello simile ----------------
+// Tutti quelli in coda pubblicano ogni 2 s {id,nome,punti,da}. La finestra di punti accettata si allarga con l'attesa
+// (±100, poi +20 ogni secondo, nessun limite dopo 40 s). Tra due compatibili propone chi ha l'id più basso:
+// manda {prop,stanza} nella cassetta dell'altro, che risponde {ok}; poi uno crea la stanza e l'altro entra.
+// cb: {onMatch({ruolo,stanza,opp:{nome,punti}}), onInfo({online,attesa,finestra})}; ritorna {close}
+const CODA='menteallenata/ranked/v1/';
+const finestra=(ms)=>ms>40000?1e9:100+20*Math.floor(ms/1000);
+function cerca(coda,io,cb,log){
+  log=log||(()=>{});const id=Date.now().toString(36)+rid();const t0=Date.now();let c=null,closed=false,beat=null,info=null,attesaOk=null,prop=null,preso=false;
+  const visti=new Map();const T=CODA+coda+'/';
+  const pub=(topic,o)=>{if(c&&c.open)c.publish(topic,JSON.stringify(o),false)};
+  const fine=(m)=>{if(preso)return;preso=true;stop();cb.onMatch&&cb.onMatch(m)};
+  function stop(){closed=true;clearInterval(beat);clearInterval(info);clearTimeout(attesaOk);if(c){const cc=c;pub(T+'via',{id});setTimeout(()=>cc.close(),300)}}
+  function prova(){
+    if(preso||attesaOk)return;const now=Date.now();const mia=finestra(now-t0);
+    const cand=[...visti.values()].filter(v=>now-v.visto<5000&&v.id>id&&Math.abs(v.punti-io.punti)<=Math.max(mia,v.fin)).sort((a,b)=>Math.abs(a.punti-io.punti)-Math.abs(b.punti-io.punti))[0];
+    if(!cand)return;
+    let st='';for(let i=0;i<4;i++)st+='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)];
+    log('propongo la partita a '+cand.nome+' ('+cand.punti+')');pub(T+'p/'+cand.id,{t:'prop',da:id,nome:io.nome,punti:io.punti,stanza:st});
+    prop={cand,st};attesaOk=setTimeout(()=>{attesaOk=null;prop=null;visti.delete(cand.id)},3500);
+  }
+  agganciaPonteWill({topic:T+'via',payload:JSON.stringify({id})},log).then(({c:cl})=>{if(closed){cl.close();return}c=cl;
+    c.onClose=(w)=>{if(!closed){log('coda: '+w);cb.onError&&cb.onError(w)}};
+    c.onMessage=(topic,payload)=>{let m=null;try{m=JSON.parse(payload)}catch(e){}if(!m||preso)return;
+      if(topic===T+'cerca'){if(m.id===id)return;visti.set(m.id,{id:m.id,nome:String(m.nome||'?').slice(0,20),punti:+m.punti||1000,fin:+m.fin||100,visto:Date.now()});prova()}
+      else if(topic===T+'via'){visti.delete(m.id)}
+      else if(topic===T+'p/'+id){
+        if(m.t==='prop'&&!attesaOk){log('proposta da '+m.nome);pub(T+'p/'+m.da,{t:'ok',da:id});fine({ruolo:'guest',stanza:m.stanza,opp:{nome:String(m.nome||'?').slice(0,20),punti:+m.punti||1000}})}
+        else if(m.t==='ok'&&prop&&prop.cand.id===m.da){const a=prop;fine({ruolo:'host',stanza:a.st,opp:{nome:a.cand.nome,punti:a.cand.punti}})}
+      }};
+    c.subscribe(T+'cerca');c.subscribe(T+'via');c.subscribe(T+'p/'+id);
+    const batti=()=>{pub(T+'cerca',{id,nome:io.nome,punti:Math.round(io.punti),fin:finestra(Date.now()-t0)});prova()};batti();beat=setInterval(batti,2000);
+  }).catch(e=>{if(!closed)cb.onError&&cb.onError(String(e))});
+  info=setInterval(()=>{const now=Date.now();for(const [k,v] of visti)if(now-v.visto>6000)visti.delete(k);cb.onInfo&&cb.onInfo({online:visti.size,attesa:now-t0,finestra:finestra(now-t0)})},1000);
+  return{close(){if(!preso){preso=true;stop()}}};
+}
+window.Rete={connetti,PONTI,ascoltaInviti,invita,normNome,cerca};
 })();

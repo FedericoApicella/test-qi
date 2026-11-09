@@ -44,18 +44,19 @@ function onLost(){
   clearInterval(hbT);hbT=null;if(!S.connected)return;
   log('collegamento con l\'altro giocatore perso');
   S.connected=false;
+  if(S.ranked){if(!S.ranked.avviato){rankedRiprova();return}if(!S.ranked.det){S.ranked.abbandono=true;S.ranked.det=CL.chiudi('vinta')}}
   if(S.screen!=='home'){S.err=(S.oppName||'L\'altro giocatore')+' si è scollegato.';if(S.screen==='round'||S.screen==='countdown'||S.screen==='result'){stopTimer();clearTimeout(nextT);clearTimeout(graceT);S.screen='end'}else if(['gplay','gres'].includes(S.screen)){garaEnd();return}render()}
 }
 function netError(msg){log('errore: '+msg);S.err=msg;S.busy='';render()}
 function callbacks(){
   return{log,
-    onReady(){S.busy='';S.via=net?net.via:'';if(S.role==='host'){S.screen='lobby';render();if(S.invitato)mandaInvito()}else{S.busy='Cerco la stanza '+S.code+'…';render()}},
+    onReady(){S.busy='';S.via=net?net.via:'';if(S.ranked){S.busy='Aspetto '+S.ranked.opp.nome+'…';render();return}if(S.role==='host'){S.screen='lobby';render();if(S.invitato)mandaInvito()}else{S.busy='Cerco la stanza '+S.code+'…';render()}},
     onPeer(){S.connected=true;S.busy='';S.via=net?net.via:'';lastSeen=Date.now();send({t:'hello',name:S.name||(S.role==='host'?'Giocatore 1':'Giocatore 2')});
       clearInterval(hbT);hbT=setInterval(()=>{send({t:'ping'});if(Date.now()-lastSeen>LOST_MS)onLost()},HB_MS);
       if(S.role==='guest'){S.busy='Collegamento riuscito, attendo…';render()}},
     onData(m){lastSeen=Date.now();onData(m)},
     onLost,
-    onError(msg){destroyNet();netError(msg)}};
+    onError(msg){destroyNet();if(S.ranked&&!S.ranked.avviato){rankedRiprova();return}netError(msg)}};
 }
 function createRoom(){
   destroyNet();S.role='host';S.solo=false;S.code=makeCode();S.busy='Creo la stanza…';S.err='';render();
@@ -71,7 +72,7 @@ function onData(m){
   if(!m||typeof m!=='object')return;
   if(onGaraData(m))return;
   switch(m.t){
-    case'hello':S.oppName=String(m.name||'').slice(0,20)||(S.role==='host'?'Giocatore 2':'Giocatore 1');S.busy='';log('ciao da '+S.oppName);if(!['round','result','countdown','gplay','gres','gend'].includes(S.screen))S.screen='lobby';if(S.role==='host')send({t:'cfg',cfg:S.cfg});if(S.screen==='gplay')render0();else render();break;
+    case'hello':S.oppName=String(m.name||'').slice(0,20)||(S.role==='host'?'Giocatore 2':'Giocatore 1');S.busy='';log('ciao da '+S.oppName);if(!['round','result','countdown','gplay','gres','gend'].includes(S.screen))S.screen='lobby';if(S.role==='host')send({t:'cfg',cfg:S.cfg});if(S.ranked&&S.screen==='lobby')S.screen='rsearch';if(S.screen==='gplay')render0();else render();if(S.ranked&&S.role==='host'&&S.screen==='rsearch'&&!S.ranked.avviato){S.busy='Si parte!';render();clearTimeout(autoT);autoT=setTimeout(()=>{if(!S.connected)return;if(isGara())hostGara();else hostStart()},1800)}break;
     case'start':if(S.role==='guest')startGame(m.seed,m.cfg);break;
     case'round':if(S.role==='guest')startRound(m.i);break;
     case'ans':if(S.i===m.i&&S.screen==='round'){S.theirs={choice:m.choice,ms:m.ms};if(S.role==='host')S.ans[S.i][1]=S.theirs;render();if(S.role==='host')checkRound()}break;
@@ -91,7 +92,7 @@ function diagHtml(){
 // ========================= partita =========================
 function startGame(seed,cfg){
   stopTimer();clearTimeout(nextT);clearTimeout(graceT);
-  S.seed=seed;S.cfg=cfg;S.items=buildGame(seed,cfg.rounds,cfg.kinds);
+  S.seed=seed;S.cfg=cfg;S.items=buildGame(seed,cfg.rounds,cfg.kinds);rankedAvvia();
   S.i=-1;S.ans=S.items.map(()=>[null,null]);S.results=[];S.score=[0,0];S.streak=[0,0];S.err='';FX.beep('start');
   S.screen='countdown';S.timeLeft=3;render();
   let n=3;tick=setInterval(()=>{n--;S.timeLeft=n;if(n<=0){stopTimer();if(S.role==='host')hostNext();else render()}else render()},1000);
@@ -154,7 +155,7 @@ function showResult(i,a){
   const m=me();FX.beep(pts[m]>0?(S.streak[m]>=3?'streak':'ok'):'bad');
   const mySc=document.querySelector('.bar .sc.me');if(pts[m]>0){FX.floatText(mySc,'+'+pts[m],S.streak[m]>=3?'gold':'');if(mySc){mySc.classList.remove('pop');void mySc.offsetWidth;mySc.classList.add('pop')}}else FX.shake(document.querySelector('.verdict'));
 }
-function endGame(){stopTimer();clearTimeout(nextT);clearTimeout(graceT);S.screen='end';
+function endGame(){stopTimer();clearTimeout(nextT);clearTimeout(graceT);S.screen='end';rankedChiudi(S.score[me()],S.score[opp()]);
   if(!S.solo){const m=me(),o=opp();const key=(S.oppName||'?').trim().toLowerCase();const rec=FX.load(KEY_REC,{});const r=rec[key]||{nome:S.oppName,v:0,p:0,x:0};
     if(S.score[m]>S.score[o])r.v++;else if(S.score[m]<S.score[o])r.p++;else r.x++;r.nome=S.oppName;r.ultimo=Date.now();rec[key]=r;FX.save(KEY_REC,rec);S.rec=r;
     if(S.score[m]>S.score[o]){FX.beep('win');FX.confetti(120)}else if(S.score[m]<S.score[o])FX.beep('lose');else FX.beep('ok')}
@@ -162,7 +163,7 @@ function endGame(){stopTimer();clearTimeout(nextT);clearTimeout(graceT);S.screen
   render()}
 function recordHtml(){if(S.solo||!S.oppName)return'';const r=FX.load(KEY_REC,{})[(S.oppName||'').trim().toLowerCase()];if(!r)return'';return`<p class="vs-rec">Contro ${esc(r.nome)}: <b>${r.v}</b> vinte · <b>${r.p}</b> perse${r.x?` · ${r.x} pari`:''}</p>`}
 function startSolo(){S.role='host';S.solo=true;S.oppName='';S.connected=false;if(isGara())hostGara();else hostStart()}
-function goHome(){if(S.connected)send({t:'bye'});destroyNet();stopTimer();clearInterval(G.poll);garaRipristina();document.body.classList.remove('gara-on');clearTimeout(nextT);clearTimeout(graceT);const name=S.name,lg=S.log;S=fresh();S.name=name;S.log=lg;history.replaceState(null,'',location.pathname);render()}
+function goHome(){stopRicerca();if(S.connected)send({t:'bye'});destroyNet();stopTimer();clearInterval(G.poll);garaRipristina();document.body.classList.remove('gara-on');clearTimeout(nextT);clearTimeout(graceT);const name=S.name,lg=S.log;S=fresh();S.name=name;S.log=lg;history.replaceState(null,'',location.pathname);render()}
 
 // ========================= amici e inviti =========================
 const amici=()=>FX.load(KEY_AMICI,[]);
@@ -205,7 +206,7 @@ function render(){
   // durante una partita a un gioco l'iframe non va ridisegnato: si aggiorna solo la striscia
   if(S.screen==='gplay'&&$('#gframe')&&!G.nuovoFrame){render0();return}
   G.nuovoFrame=false;document.body.classList.toggle('gara-on',S.screen==='gplay');
-  const r={home:rHome,lobby:rLobby,countdown:rCountdown,round:rRound,result:rResult,end:rEnd,gplay:rGPlay,gres:rGRes,gend:rGEnd}[S.screen];
+  const r={home:rHome,lobby:rLobby,countdown:rCountdown,round:rRound,result:rResult,end:rEnd,gplay:rGPlay,gres:rGRes,gend:rGEnd,rsearch:rRSearch}[S.screen];
   app.innerHTML=r();
   updateBar();bind();ascolta();
 }
@@ -248,6 +249,7 @@ function act(a,btn){
   if(a==='again'){if(S.role==='host')hostStart();return}
   if(a==='gagain'){if(S.role==='host'&&(S.connected||S.solo))hostGara();return}
   if(a==='gready'){garaReady();return}
+  if(a==='rcerca'){const nm=$('#nameInput');if(nm)S.name=nm.value.slice(0,20);rankedCerca(btn.dataset.coda||(S.ranked&&S.ranked.coda)||'quiz');return}
   if(a==='home'){goHome();return}
   if(a==='copy'){copyText(roomLink(),btn);return}
   if(a==='ready'){readyNow();return}
@@ -279,6 +281,7 @@ function rHome(){
   return`<div class="stack"><div class="eyebrow">Due giocatori · stessi quesiti · stesso tempo</div><h1><span class="grad">Sfide di logica</span></h1>
     <p class="lede">Stesso quesito per entrambi: giusto vale 10 punti più un bonus velocità, e chi risponde giusto per primo prende sempre almeno un punto in più. Vince chi ha più punti. Oppure scegli un gioco (Sudoku, Mahjong, Regine, parole): stessa partita per entrambi, vince chi finisce prima.</p></div>
     ${invitoHtml()}
+    ${rankedCard()}
     ${S.err?`<div class="err">${esc(S.err)}${S.role?'<div class="actions" style="margin-top:8px"><button class="btn primary" data-act="retry">Riprova</button></div>':''}</div>`:''}
     <div class="card"><div class="field"><label for="nameInput">Il tuo nome</label><input id="nameInput" type="text" maxlength="20" value="${esc(S.name)}" placeholder="Come ti chiami?" autocomplete="nickname" style="max-width:300px"></div>${accountName()?`<p class="hint">Hai fatto l'accesso come <b>${esc(accountName())}</b>: gli amici ti trovano con questo nome.</p>`:'<p class="hint">Con l\'accesso (in alto) il nome e la lista amici restano uguali su tutti i tuoi dispositivi.</p>'}</div>
     ${amiciHtml(false)}
@@ -363,12 +366,72 @@ function rEnd(){
   const rows=S.items.map((it,i)=>{const r=S.results[i];const a=S.ans[i]||[];const cell=(who)=>{const x=a[who];const ok=x&&x.choice===it.answer;return`<td class="num ${ok?'ok':(x&&x.choice!==null?'bad':'')}">${r?(ok?'+'+r.pts[who]:'0'):'–'}</td>`};
     return`<tr><td class="num">${i+1}</td><td>${esc(KIND_NAME[it.kind])}</td>${cell(m)}${S.solo?'':cell(o)}</tr>`}).join('');
   const again=S.solo?`<button class="btn primary big" data-act="again">Ancora</button>`:S.role==='host'?`<button class="btn primary big" data-act="again" ${S.connected?'':'disabled'}>Rivincita</button>`:(S.connected?`<div class="wait"><span class="spin"></span> ${esc(n[o]||'L\'avversario')} può avviare la rivincita.</div>`:'');
-  return`<div class="final"><div class="eyebrow">${S.solo?'Allenamento finito':'Sfida finita'}</div><div class="big">${esc(title)}</div><div class="sub">${esc(sub)}</div>
+  const again2=S.ranked?`<button class="btn primary big" data-act="rcerca">🏆 Un'altra classificata</button>`:again;
+  return`<div class="final"><div class="eyebrow">${S.solo?'Allenamento finito':S.ranked?'Classificata finita':'Sfida finita'}</div><div class="big">${esc(title)}</div><div class="sub">${esc(sub)}</div>
       <div class="scoreline"><div class="p me"><span class="n">${esc(n[m]||'Tu')}</span><span class="v">${sm}</span></div>${S.solo?'':`<div class="vs">contro</div><div class="p opp"><span class="n">${esc(n[o]||'Avversario')}</span><span class="v">${so}</span></div>`}</div></div>
-    ${recordHtml()}${S.err?`<div class="err">${esc(S.err)}</div>`:''}
+    ${rankedEsitoHtml()}${recordHtml()}${S.err?`<div class="err">${esc(S.err)}</div>`:''}
     ${!S.solo&&S.oppName&&!amici().some(a=>amicoKey(a.nome)===amicoKey(S.oppName))?`<div class="actions"><button class="btn" data-act="addAmico" data-nome="${esc(S.oppName)}">👥 Aggiungi ${esc(S.oppName)} agli amici</button></div>`:''}
-    <div class="actions">${again}<button class="btn" data-act="home">Torna all'inizio</button><a class="btn" href="allenamento.html">🏋️ Allenati</a></div>
+    <div class="actions">${again2}<button class="btn" data-act="home">Torna all'inizio</button><a class="btn" href="allenamento.html">🏋️ Allenati</a></div>
     <details open><summary>Quesito per quesito</summary><div class="body"><table><thead><tr><th>#</th><th>Tipo</th><th style="text-align:right">${esc(n[m]||'Tu')}</th>${S.solo?'':`<th style="text-align:right">${esc(n[o]||'Avversario')}</th>`}</tr></thead><tbody>${rows}</tbody></table></div></details>`;
+}
+
+// ========================= partite classificate =========================
+// Ricerca automatica di un avversario di livello simile (Rete.cerca), regole fisse, punti e lega (js/classificate.js).
+const CL=window.Classificate;
+const CODE_RANKED={quiz:{n:'Quiz',ic:'🧠'},giochi:{n:'Giochi',ic:'🎲'}};
+let ricerca=null,autoT=null;
+function rankedCfg(coda,puntiMedi){
+  if(coda==='quiz')return{rounds:8,time:40,kinds:['mat','num','verb','rot'],mode:'quiz',gn:1,gd:4,gcresc:false,gpreset:'',mix:null};
+  const i=CL.LEGHE.indexOf(CL.LEGHE.slice().reverse().find(l=>puntiMedi>=l.min));
+  return{rounds:10,time:45,kinds:['mat','num','verb','rot'],mode:'mix',gn:3,gd:Math.min(9,3+i),gcresc:false,gpreset:'',mix:null};
+}
+function legaHtml(p,mini){const L=CL.lega(p);return`<span class="lega ${L.id}${mini?' mini':''}">${L.ic} ${esc(L.txt)}</span>`}
+function rankedCard(){
+  if(!CL)return'';const o=CL.leggi(),L=CL.lega(o.punti),st=CL.stagione();
+  return`<div class="card ranked"><div class="rk-top"><h2>🏆 Classificate</h2>${legaHtml(o.punti)}</div>
+    <div class="rk-bar"><i style="width:${L.pct}%"></i></div>
+    <p class="hint">${Math.round(o.punti)} punti${L.prossima?` · ${L.mancano} per ${esc(L.prossima)}`:''} · ${o.vinte} vinte, ${o.perse} perse · stagione ${esc(st.nome)}, finisce tra ${st.giorniAllaFine} giorn${st.giorniAllaFine===1?'o':'i'}${o.storia&&o.storia.length?` · stagione scorsa: ${esc(o.storia[o.storia.length-1].lega)}`:''}</p>
+    <div class="rk-btns"><button class="btn primary" data-act="rcerca" data-coda="quiz">🧠 Quiz</button><button class="btn primary" data-act="rcerca" data-coda="giochi">🎲 Giochi</button></div></div>`;
+}
+function rankedCerca(coda){
+  if(!S.name.trim()){S.err='Scrivi il tuo nome prima di cercare una partita.';S.screen='home';render();const n=$('#nameInput');if(n)n.focus();return}
+  stopRicerca();if(S.connected)send({t:'bye'});destroyNet();const name=S.name,lg=S.log;S=fresh();S.name=name;S.log=lg;
+  const o=CL.leggi();S.ranked={coda,stato:'cerca',online:0,attesa:0,finestra:100,punti:o.punti};S.screen='rsearch';render();
+  log('classificata '+coda+': cerco un avversario ('+Math.round(o.punti)+' punti)');
+  ricerca=window.Rete.cerca(coda,{nome:S.name,punti:o.punti},{
+    onInfo(i){if(!S.ranked||S.ranked.stato!=='cerca')return;Object.assign(S.ranked,i);const el=$('#rkInfo');if(el)el.innerHTML=rkInfoHtml()},
+    onError(w){if(S.screen==='rsearch'){S.err='Non riesco a collegarmi: '+w;render()}},
+    onMatch(m){ricerca=null;if(!S.ranked)return;S.ranked.stato='trovato';S.ranked.opp=m.opp;log('avversario trovato: '+m.opp.nome+' ('+m.opp.punti+'), stanza '+m.stanza);FX.beep('ok');
+      if(m.ruolo==='host'){S.cfg=rankedCfg(coda,(o.punti+m.opp.punti)/2);S.role='host';S.code=m.stanza;S.busy='Preparo la partita…';render();net=window.Rete.connetti('host',S.code,VIA,callbacks())}
+      else{S.role='guest';S.code=m.stanza;S.joinCode=m.stanza;S.busy='Mi collego…';render();net=window.Rete.connetti('guest',S.code,VIA,callbacks())}
+      clearTimeout(autoT);autoT=setTimeout(()=>{if(S.ranked&&!S.ranked.avviato&&!S.connected){log('l\'avversario non si è collegato');rankedRiprova()}},25000)}
+  },log);
+}
+function stopRicerca(){clearTimeout(autoT);if(ricerca){ricerca.close();ricerca=null}}
+// l'avversario trovato non arriva o se ne va prima del via: si torna a cercare senza perdere punti
+function rankedRiprova(){if(!S.ranked)return;const c=S.ranked.coda;if(S.ranked.avviato&&!S.ranked.det){S.ranked.det=CL.chiudi('vinta')}else if(!S.ranked.avviato){rankedCerca(c);S.err='L\'avversario non è arrivato: cerco qualcun altro.';render()}}
+function rankedAvvia(){if(!S.ranked||S.ranked.avviato)return;S.ranked.avviato=true;clearTimeout(autoT);CL.avvia({nome:S.oppName||S.ranked.opp.nome,punti:S.ranked.opp.punti,coda:S.ranked.coda})}
+function rankedChiudi(mio,suo){if(!S.ranked||!S.ranked.avviato||S.ranked.det)return;S.ranked.det=CL.chiudi(mio>suo?'vinta':mio<suo?'persa':'pari');const d=S.ranked.det;if(d&&d.promosso){FX.confetti(160);FX.beep('win')}}
+function rkInfoHtml(){const r=S.ranked;const s=Math.floor((r.attesa||0)/1000);
+  return`<span class="mono">${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}</span> · ${r.finestra>1e8?'qualsiasi livello':'livello simile (±'+r.finestra+' punti)'} · ${r.online?`${r.online} in coda adesso`:'nessun altro in coda per ora'}`}
+function rRSearch(){
+  const r=S.ranked;const cd=CODE_RANKED[r.coda];
+  if(r.stato==='trovato')return`<div class="stack"><div class="eyebrow">Classificata · ${cd.ic} ${cd.n}</div><h1>Avversario trovato!</h1></div>
+    <div class="card rk-vs"><div>${esc(S.name)}<br>${legaHtml(r.punti,1)}</div><b>contro</b><div>${esc(r.opp.nome)}<br>${legaHtml(r.opp.punti,1)}</div></div>
+    <div class="wait"><span class="spin"></span> ${esc(S.busy||'Si parte tra un attimo…')}</div>${S.err?`<div class="err">${esc(S.err)}</div>`:''}
+    <div class="actions"><button class="btn" data-act="home">Annulla</button></div>${diagHtml()}`;
+  return`<div class="stack"><div class="eyebrow">Classificata · ${cd.ic} ${cd.n}</div><h1>Cerco un avversario…</h1>
+    <p class="lede">${r.coda==='quiz'?'8 quesiti da 40 secondi, chi fa più punti vince.':'Al meglio di 3 partite a giochi misti, difficoltà in base alla vostra lega: vince chi finisce prima.'}</p></div>
+    <div class="card rk-search"><div class="rk-radar"><span></span>${legaHtml(r.punti)}</div><p class="hint" id="rkInfo">${rkInfoHtml()}</p></div>
+    ${S.err?`<div class="err">${esc(S.err)}</div>`:''}
+    <p class="hint">Vinci contro uno più forte e prendi più punti; se perdi contro uno più debole ne perdi di più. Chiudere a metà conta come sconfitta.</p>
+    <div class="actions"><button class="btn" data-act="home">Annulla</button></div>${diagHtml()}`;
+}
+function rankedEsitoHtml(){
+  const d=S.ranked&&S.ranked.det;if(!d)return'';const L=d.lega;
+  return`<div class="card rk-esito ${d.delta>=0?'su':'giu'}"><div class="rk-top"><b>${d.delta>=0?'+':''}${d.delta} punti</b>${legaHtml(d.punti)}</div>
+    <div class="rk-bar"><i style="width:${L.pct}%"></i></div>
+    <p class="hint">${d.promosso?`🎉 Sei salito in <b>${esc(L.txt)}</b>!`:d.retrocesso?`Sei sceso in ${esc(L.txt)}: rifatti subito.`:L.prossima?`Ti mancano ${L.mancano} punti per ${esc(L.prossima)}.`:'Sei nella lega più alta.'}${S.ranked.abbandono?' L\'avversario ha lasciato la partita.':''}</p></div>`;
 }
 
 // ========================= sfide sui giochi =========================
@@ -427,7 +490,7 @@ function hostGara(){const seed=Math.floor(Math.random()*2147483647);const plan=g
 function garaStart(plan){
   stopTimer();clearTimeout(nextT);
   G={opzAperte:G.opzAperte,k:-1,plan,won:[0,0],ms:[[],[]],deciso:false,startAt:0,frame:null,poll:null,prog:[0,0],ready:[false,false],stato:''};
-  S.score=[0,0];S.err='';FX.beep('start');
+  S.score=[0,0];S.err='';FX.beep('start');rankedAvvia();
   if(S.role==='host'||S.solo)garaNext();
 }
 function garaNext(){const k=G.k+1;if(k>=G.plan.length){send({t:'gend'});garaEnd();return}send({t:'gturno',k});garaTurno(k)}
@@ -485,7 +548,7 @@ function garaRisultato(r){
 }
 function garaReady(){if(S.screen!=='gres'||G.ready[me()])return;G.ready[me()]=true;send({t:'gready',k:G.k});render();garaCheckReady()}
 function garaCheckReady(){if((S.role==='host'||S.solo)&&S.screen==='gres'&&(S.solo||(G.ready[0]&&G.ready[1]))){clearTimeout(nextT);garaNext()}}
-function garaEnd(){garaRipristina();clearInterval(G.poll);stopTimer();clearTimeout(nextT);S.screen='gend';
+function garaEnd(){garaRipristina();rankedChiudi(G.won[me()],G.won[opp()]);clearInterval(G.poll);stopTimer();clearTimeout(nextT);S.screen='gend';
   if(!S.solo){const m=me(),o=opp();const key=(S.oppName||'?').trim().toLowerCase();const rec=FX.load(KEY_REC,{});const r=rec[key]||{nome:S.oppName,v:0,p:0,x:0};
     if(G.won[m]>G.won[o])r.v++;else if(G.won[m]<G.won[o])r.p++;else r.x++;r.nome=S.oppName;r.ultimo=Date.now();rec[key]=r;FX.save(KEY_REC,rec);
     if(G.won[m]>G.won[o]){FX.beep('win');FX.confetti(120)}else if(G.won[m]<G.won[o])FX.beep('lose');else FX.beep('ok')}
@@ -528,10 +591,10 @@ function rGEnd(){
   const tm=(x)=>G.ms[x].reduce((s,v)=>s+v,0);
   let title=S.solo?`${a} partit${a===1?'a':'e'} finit${a===1?'a':'e'}`:a>b?'Hai vinto la sfida!':a<b?`Ha vinto ${esc(n[o]||'l\'avversario')}`:'Pareggio!';
   const again=S.solo?`<button class="btn primary big" data-act="gagain">Ancora</button>`:S.role==='host'?`<button class="btn primary big" data-act="gagain" ${S.connected?'':'disabled'}>Rivincita</button>`:(S.connected?`<div class="wait"><span class="spin"></span> ${esc(n[o]||'L\'avversario')} può avviare la rivincita.</div>`:'');
-  return`<div class="final"><div class="eyebrow">Sfida finita</div><div class="big">${title}</div>${!S.solo&&a===b&&a>0?`<div class="sub">Tempo totale delle vittorie: tu ${fmtSec(tm(m))}, ${esc(n[o]||'avversario')} ${fmtSec(tm(o))}</div>`:''}
+  return`<div class="final"><div class="eyebrow">${S.ranked?'Classificata finita':'Sfida finita'}</div><div class="big">${title}</div>${!S.solo&&a===b&&a>0?`<div class="sub">Tempo totale delle vittorie: tu ${fmtSec(tm(m))}, ${esc(n[o]||'avversario')} ${fmtSec(tm(o))}</div>`:''}
     <div class="scoreline"><div class="p me"><span class="n">${esc(n[m]||'Tu')}</span><span class="v">${a}</span></div>${S.solo?'':`<div class="vs">contro</div><div class="p opp"><span class="n">${esc(n[o]||'Avversario')}</span><span class="v">${b}</span></div>`}</div></div>
-    ${recordHtml()}${S.err?`<div class="err">${esc(S.err)}</div>`:''}
-    <div class="actions">${again}<button class="btn" data-act="home">Torna all'inizio</button></div>`;
+    ${rankedEsitoHtml()}${recordHtml()}${S.err?`<div class="err">${esc(S.err)}</div>`:''}
+    <div class="actions">${S.ranked?`<button class="btn primary big" data-act="rcerca">🏆 Un'altra classificata</button>`:again}<button class="btn" data-act="home">Torna all'inizio</button></div>`;
 }
 
 // ========================= avvio =========================
