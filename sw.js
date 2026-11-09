@@ -17,6 +17,8 @@ const PRECARICA = [
   '/storia/', '/storia/index.html', '/storia/storia.css', '/storia/storia.js', '/storia/minigiochi.js',
   '/js/abilita.js', '/abilita/', '/abilita/index.html',
   '/parole/', '/parole/index.html', '/parole/parole.css', '/parole/parole.js', '/parole/dizionario.js',
+  '/giochi/', '/giochi/index.html', '/giochi/sudoku.html', '/giochi/mahjong.html', '/giochi/queens.html', '/giochi/giochi.css',
+  '/giochi/comune.js', '/giochi/sudoku.js', '/giochi/mahjong.js', '/giochi/queens.js', '/giochi/tessere.js',
   '/app/icona.svg', '/app/icona-192.png', '/app/icona-512.png', '/app/maskable-192.png', '/app/maskable-512.png',
   '/app/apple-touch-icon.png', '/app/favicon.svg', '/app/favicon-32.png', '/app/offline.html'
 ];
