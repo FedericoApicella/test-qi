@@ -34,7 +34,7 @@
     '<div class="menu-pop" id="menuPop" hidden style="display:none">' +
     (FX ? '<div class="menu-row"><span class="menu-lab">🎵 Suoni</span>' + FX.soundButtonHtml() + '</div>' : '') +
     '<button type="button" class="menu-row menu-act" id="menuInstalla" hidden style="display:none"><span class="menu-lab">📲 Installa l\'app</span><span class="hint">sul telefono</span></button>' +
-    (window.Lingua ? '<div class="menu-row"><span class="menu-lab">🌍 Lingua</span><span id="menuLingua" style="display:inline-flex;gap:6px">' + window.Lingua.disponibili.map(function (c) { return '<button type="button" class="btn' + (c === window.Lingua.corrente() ? ' primary' : '') + '" data-lingua="' + c + '" style="padding:5px 10px;font-size:.85rem" data-no-lingua>' + window.Lingua.nomi[c] + '</button>'; }).join('') + '</span></div>' : '') +
+    (window.Lingua ? '<div class="menu-row" style="flex-wrap:wrap"><span class="menu-lab">🌍 Lingua</span><span id="menuLingua" style="display:flex;flex-wrap:wrap;gap:6px;flex:1 1 100%">' + window.Lingua.disponibili.map(function (c) { return '<button type="button" class="btn' + (c === window.Lingua.corrente() ? ' primary' : '') + '" data-lingua="' + c + '" style="padding:5px 10px;font-size:.85rem" data-no-lingua>' + window.Lingua.nomi[c] + '</button>'; }).join('') + '</span></div>' : '') +
     '</div>';
   // i vecchi segnaposto delle pagine
   var oldSound = document.getElementById('barSound'); if (oldSound) oldSound.remove();
