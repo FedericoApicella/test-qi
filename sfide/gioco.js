@@ -196,9 +196,11 @@ function invitoHtml(){if(!S.invito)return'';return`<div class="card invito"><h3>
 
 // dati del quesito da allegare a una segnalazione (testo leggibile, niente oggetti grafici)
 function infoQuesito(it,extra){const L='ABCDEF';const o={tipo:it.kind,risposta:L[it.answer]||String(it.answer),regola:it.rule||''};
-  if(it.kind==='num'){o.serie=it.seq.join(', ');o.opzioni=it.options.join(' | ')}
-  else if(it.kind==='verb'){o.analogia=it.a+' : '+it.b+' = '+it.c+' : ?';o.opzioni=it.options.join(' | ')}
+  if(it.fam)o.famiglia=it.fam;
+  if(it.kind==='num'&&it.seq){o.serie=it.seq.join(', ');o.opzioni=it.options.join(' | ')}
+  else if(it.kind==='verb'&&it.a){o.analogia=it.a+' : '+it.b+' = '+it.c+' : ?';o.opzioni=it.options.join(' | ')}
   else if(it.kind==='mem'){o.sequenza=(it.seq||[]).join(' ');o.risposta=it.answer}
+  else if(it.stim!==undefined){o.domanda=it.q||'';if(!it.fig)o.opzioni=it.options.join(' | ')}
   return Object.assign(o,extra||{})}
 const segnalaBtn=(it,ctx,extra)=>window.Segnala?`<div class="actions" style="justify-content:center">${window.Segnala.bottoneHtml('Errore in questa domanda',ctx,infoQuesito(it,extra))}</div>`:'';
 // ========================= interfaccia =========================
@@ -331,7 +333,7 @@ function rLobby(){
 function rCountdown(){return`<div class="stack"><div class="eyebrow">${S.solo?'Allenamento':'Sfida'} · ${S.items.length} quesiti</div><h1>Pronti?</h1></div><div class="countdown">${S.timeLeft>0?S.timeLeft:'Via!'}</div>`}
 function rRound(){
   const it=S.items[S.i];
-  const head=`<div class="eyebrow">${esc(KIND_NAME[it.kind])} · quesito ${S.i+1} di ${S.items.length}</div>`;
+  const head=`<div class="eyebrow">${esc(it.nome||KIND_NAME[it.kind])} · quesito ${S.i+1} di ${S.items.length}</div>`;
   const dis=S.mine?'disabled':'';
   const cls=(k)=>S.mine&&S.mine.choice===k?'sel':'';
   const status=S.mine?`<div class="wait">${S.solo?'':(S.theirs?`${esc(S.oppName||'L\'avversario')} ha risposto. `:`<span class="spin"></span> In attesa di ${esc(S.oppName||'avversario')}… `)}Hai scelto ${S.mine.choice===null?'niente (tempo scaduto)':LETTERS[S.mine.choice]} in ${fmtMs(S.mine.ms)}.</div>`
@@ -356,9 +358,9 @@ function rResult(){
   const iReady=S.ready&&S.ready[m],oReady=S.ready&&S.ready[o];
   const nextTxt=S.i+1<S.items.length?'Prossimo quesito':'Risultato finale';
   const readyBox=`<div class="actions"><button class="btn primary big wide" data-act="ready" ${iReady?'disabled':''}>${iReady?(S.solo?'…':`<span class="spin"></span> Aspetto ${esc(n[o]||'l\'avversario')}…`):'Avanti ▶'}</button></div><p class="hint" style="text-align:center">${nextTxt} tra <span class="mono" id="resLeft">${left}</span> s${!S.solo&&oReady&&!iReady?` · ${esc(n[o]||'L\'avversario')} è pronto`:''}</p>`;
-  return`<div class="eyebrow">${esc(KIND_NAME[it.kind])} · quesito ${S.i+1} di ${S.items.length} · esito</div>
+  return`<div class="eyebrow">${esc(it.nome||KIND_NAME[it.kind])} · quesito ${S.i+1} di ${S.items.length} · esito</div>
     <div class="verdict">${row(m,'me')}${S.solo?'':row(o,'opp')}</div>
-    <p class="q">La risposta giusta era ${LETTERS[it.answer]}.</p>${rule}${readyBox}${body}${segnalaBtn(it,'Sfide · '+KIND_NAME[it.kind]+' · quesito '+(S.i+1),{seme:S.seed,indice:S.i})}`;
+    <p class="q">La risposta giusta era ${LETTERS[it.answer]}.</p>${rule}${readyBox}${body}${segnalaBtn(it,'Sfide · '+(it.nome||KIND_NAME[it.kind])+' · quesito '+(S.i+1),{seme:S.seed,indice:S.i})}`;
 }
 function rEnd(){
   const n=names(),m=me(),o=opp();const sm=S.score[m],so=S.score[o];
@@ -368,7 +370,7 @@ function rEnd(){
   else if(sm<so){title='Ha vinto '+(n[o]||'l\'avversario');sub=`${so} a ${sm}. Chiedi la rivincita!`}
   else{title='Pareggio!';sub=`${sm} punti a testa.`}
   const rows=S.items.map((it,i)=>{const r=S.results[i];const a=S.ans[i]||[];const cell=(who)=>{const x=a[who];const ok=x&&x.choice===it.answer;return`<td class="num ${ok?'ok':(x&&x.choice!==null?'bad':'')}">${r?(ok?'+'+r.pts[who]:'0'):'–'}</td>`};
-    return`<tr><td class="num">${i+1}</td><td>${esc(KIND_NAME[it.kind])}</td>${cell(m)}${S.solo?'':cell(o)}</tr>`}).join('');
+    return`<tr><td class="num">${i+1}</td><td>${esc(it.nome||KIND_NAME[it.kind])}</td>${cell(m)}${S.solo?'':cell(o)}</tr>`}).join('');
   const again=S.solo?`<button class="btn primary big" data-act="again">Ancora</button>`:S.role==='host'?`<button class="btn primary big" data-act="again" ${S.connected?'':'disabled'}>Rivincita</button>`:(S.connected?`<div class="wait"><span class="spin"></span> ${esc(n[o]||'L\'avversario')} può avviare la rivincita.</div>`:'');
   const again2=S.ranked?`<button class="btn primary big" data-act="rcerca">🏆 Un'altra classificata</button>`:again;
   return`<div class="final"><div class="eyebrow">${S.solo?'Allenamento finito':S.ranked?'Classificata finita':'Sfida finita'}</div><div class="big">${esc(title)}</div><div class="sub">${esc(sub)}</div>
