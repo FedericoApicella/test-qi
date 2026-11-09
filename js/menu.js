@@ -7,7 +7,7 @@
 (function () {
   'use strict';
   // Canale: l'app del Play Store apre il sito con ?da=play; ce lo ricordiamo (testqi.canale) perché
-  // pubblicità, cuori e acquisti esistono solo lì, mai sul sito web (regola di Federico, 9 nov 2026).
+  // pubblicità, energia e acquisti esistono solo lì, mai sul sito web (regola di Federico, 9 nov 2026).
   try {
     var daQ = new URLSearchParams(location.search).get('da');
     if (daQ === 'play') localStorage.setItem('testqi.canale', 'play');

@@ -187,7 +187,7 @@ function crittoBack(){if(S.done)return;const s=curSlot();if(!s)return;const n=cr
 function crittoHypConfirm(){const ns=Object.keys(S.hyp).map(Number).filter(n=>S.hyp[n].length===1);if(!ns.length){FX.beep('bad');return}ns.forEach(n=>{const ch=S.hyp[n];delete S.hyp[n];if(!S.okNums.has(n)){for(const k in S.map){if(S.map[k]===ch&&+k!==n&&!S.okNums.has(+k))delete S.map[k]}S.map[n]=ch}});S.hypMode=false;crittoCheckAll();render()}
 function crittoHypClear(){S.hyp={};render()}
 function crittoHint(){
-  if(S.done)return;let n=crittoNumAt(S.cy,S.cx);
+  if(S.done)return;if(window.Energia&&!Energia.spendi('aiuto'))return;let n=crittoNumAt(S.cy,S.cx);
   if(S.okNums.has(n)){const s=curSlot();const dy=s.dir?1:0,dx=s.dir?0:1;let f=null;for(let i=0;i<s.w.length;i++){const m=crittoNumAt(s.y+dy*i,s.x+dx*i);if(!S.okNums.has(m)){f=m;S.cy=s.y+dy*i;S.cx=s.x+dx*i;break}}if(f==null){const rest=S.letters.filter(ch=>!S.okNums.has(S.num[ch]));if(!rest.length)return;f=S.num[rest[0]]}n=f}
   if(S.hints>=FREE_HINTS){if(S.pts<HINT_COST&&P.punti<HINT_COST){FX.beep('bad');return}S.pts-=HINT_COST}
   S.hints++;const ch=S.letters[n-1];for(const k in S.map){if(S.map[k]===ch&&+k!==n)delete S.map[k]}S.map[n]=ch;S.okNums.add(n);S.given.add(n);FX.beep('tick');crittoCheckAll();render();
@@ -280,7 +280,7 @@ function codyCheckHidden(){
   else{S.wrong++;FX.beep('bad');FX.shake($('#hidden'));S.hg='';}
 }
 function codyHint(){
-  if(S.done)return;
+  if(S.done)return;if(window.Energia&&!Energia.spendi('aiuto'))return;
   let ri=S.cur;if(S.rows[ri].ok){ri=S.rows.findIndex(r=>!r.ok);if(ri<0)return;S.cur=ri}
   const row=S.rows[ri],z=S.z.rows[ri];
   let i=S.pos;if(i<0||i>=row.letters.length||row.fixed[i])i=codyFirstEmpty(row);if(i<0){i=row.letters.findIndex((l,k)=>!row.fixed[k]&&l!==z.w[k])}
@@ -318,7 +318,7 @@ function cruciCheck(s){
   else{S.wrong++;FX.beep('bad');for(let i=0;i<s.w.length;i++){const y=s.y+dy*i,x=s.x+dx*i;if(!S.fixed[y][x]&&S.inp[y][x]!==s.w[i])S.bad[y][x]=true}}
 }
 function cruciHint(){
-  if(S.done)return;const s=curSlot();if(!s)return;
+  if(S.done)return;if(window.Energia&&!Energia.spendi('aiuto'))return;const s=curSlot();if(!s)return;
   const dy=s.dir?1:0,dx=s.dir?0:1;
   let y=S.cy,x=S.cx;if(S.fixed[y][x]||S.inp[y][x]===s.w[s.dir?y-s.y:x-s.x]){let found=false;for(let i=0;i<s.w.length;i++){const yy=s.y+dy*i,xx=s.x+dx*i;if(!S.fixed[yy][xx]&&S.inp[yy][xx]!==s.w[i]){y=yy;x=xx;found=true;break}}if(!found)return}
   if(S.hints>=FREE_HINTS){if(S.pts<HINT_COST&&P.punti<HINT_COST){FX.beep('bad');return}S.pts-=HINT_COST}
