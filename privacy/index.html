@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#6d28d9">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/app/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/app/apple-touch-icon.png">
+<title>Privacy · Mente Allenata</title>
+<meta name="description" content="Informativa sulla privacy di Mente Allenata: quali dati raccogliamo, perché e come cancellarli.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&display=swap">
+<link rel="stylesheet" href="../stile.css">
+<style>
+.priv{display:grid;gap:14px}
+.priv h1{font-size:clamp(1.5rem,5vw,2.2rem)}
+.priv h2{font-size:1.1rem;margin:0}
+.priv .card{gap:8px}
+.priv p,.priv li{font-size:.95rem;line-height:1.6}
+.priv ul{margin:0;padding-left:20px;display:grid;gap:4px}
+.priv .fold:not(.open)>:not(.sec-head){display:none}
+</style>
+</head>
+<body>
+<div class="bar"><div class="bar-in"><div class="title">🧠 Mente Allenata</div><div class="scores"></div></div></div>
+<main class="wrap priv" id="app">
+<section class="hero" style="padding:20px 18px;gap:8px">
+  <div class="eyebrow">Informativa sulla privacy · aggiornata il 9 novembre 2026</div>
+  <h1>La tua privacy, in parole semplici</h1>
+  <p style="margin:0">Mente Allenata funziona senza registrazione e non vende né cede i tuoi dati. Qui sotto trovi cosa salviamo, perché e come cancellarlo.</p>
+</section>
+
+<section class="card stack fold" data-fold="priv-chi" data-open>
+  <div class="sec-head"><h2>Chi siamo</h2></div>
+  <p>Il sito e l'app Mente Allenata (<a href="https://qi.stafftech.it">qi.stafftech.it</a>) sono gestiti da Federico Apicella, Italia. Per qualsiasi domanda sui tuoi dati scrivi a <a href="mailto:info@staffapicella.com">info@staffapicella.com</a>.</p>
+</section>
+
+<section class="card stack fold" data-fold="priv-dati" data-open>
+  <div class="sec-head"><h2>Quali dati salviamo</h2></div>
+  <ul>
+    <li><b>Sul tuo dispositivo</b> (memoria locale del browser): progressi dei giochi, livelli, stelle, impostazioni, risultati dei test e il nome che scegli per le sfide. Restano sul telefono o sul computer e li cancelli tu quando vuoi.</li>
+    <li><b>Risultati dei test, in forma anonima</b>: quando finisci un test del QI o un mini-test, inviamo le risposte, i tempi e il punteggio a un foglio Google nostro, insieme a un codice casuale del dispositivo e a età e titolo di studio se li indichi. Non c'è nome, email o indirizzo IP memorizzato. Servono a tarare il test e a renderlo più attendibile.</li>
+    <li><b>Account facoltativo</b>: se scegli di creare un accesso, salviamo nome utente, password protetta (non in chiaro) e, solo se vuoi, un'email per recuperare la password. L'account serve a ritrovare i progressi su un altro dispositivo.</li>
+    <li><b>Segnalazioni di errori</b>: se usi «Segnala un errore», salviamo il testo che scrivi, la pagina e il tipo di dispositivo.</li>
+  </ul>
+</section>
+
+<section class="card stack fold" data-fold="priv-no">
+  <div class="sec-head"><h2>Cosa non facciamo</h2></div>
+  <ul>
+    <li>Niente cookie di tracciamento, niente profilazione, niente vendita di dati.</li>
+    <li>Non chiediamo accesso a contatti, fotocamera, posizione o microfono.</li>
+    <li>Il test del QI non è uno strumento clinico e i risultati non vengono condivisi con nessuno.</li>
+  </ul>
+</section>
+
+<section class="card stack fold" data-fold="priv-terzi">
+  <div class="sec-head"><h2>Servizi di terzi che usiamo</h2></div>
+  <ul>
+    <li><b>GitHub Pages</b> ospita il sito. <b>Google Fonts</b> fornisce i caratteri. Entrambi possono vedere l'indirizzo IP necessario a servire le pagine.</li>
+    <li><b>Google Apps Script e Fogli Google</b> conservano i risultati anonimi e gli account.</li>
+    <li><b>Sfide a due</b>: per collegare due giocatori usiamo PeerJS e server di collegamento (STUN/TURN). I dati della partita viaggiano tra i due dispositivi e non vengono salvati da noi.</li>
+    <li><b>Versione dal Google Play Store</b>: può mostrare annunci pubblicitari di Google AdSense e offrire acquisti tramite Google Play. In quel caso Google tratta i dati secondo la <a href="https://policies.google.com/privacy">sua informativa</a>; puoi disattivare la personalizzazione degli annunci nelle impostazioni del tuo account Google. Il sito web non mostra pubblicità.</li>
+  </ul>
+</section>
+
+<section class="card stack fold" data-fold="priv-diritti">
+  <div class="sec-head"><h2>I tuoi diritti e come cancellare tutto</h2></div>
+  <ul>
+    <li><b>Dati sul dispositivo</b>: cancella i dati del sito dalle impostazioni del browser, oppure disinstalla l'app.</li>
+    <li><b>Account</b>: scrivici a <a href="mailto:info@staffapicella.com">info@staffapicella.com</a> dal tuo nome utente e lo eliminiamo entro 30 giorni, con tutti i progressi associati.</li>
+    <li><b>Risultati anonimi</b>: non sono collegabili a te, quindi non possono essere individuati; se ci mandi il codice del dispositivo (lo trovi nel menu ⚙️ del test) li rimuoviamo.</li>
+    <li>Hai diritto di accesso, rettifica, cancellazione e opposizione secondo il Regolamento europeo 2016/679 (GDPR). Base giuridica: il tuo consenso per l'invio dei risultati, il contratto per l'account.</li>
+  </ul>
+</section>
+
+<section class="card stack fold" data-fold="priv-minori">
+  <div class="sec-head"><h2>Minori</h2></div>
+  <p>L'app è pensata per chi ha almeno 13 anni. Non raccogliamo consapevolmente dati di bambini più piccoli: se credi che sia successo, scrivici e li cancelliamo.</p>
+</section>
+
+<p class="foot">Mente Allenata · <a href="../" style="color:var(--muted)">torna alla home</a></p>
+</main>
+<script src="../js/account.js"></script>
+<script src="../sfide/effetti.js"></script>
+<script src="../js/menu.js"></script>
+<script src="../js/pwa.js"></script>
+</body>
+</html>
