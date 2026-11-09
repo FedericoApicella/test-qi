@@ -34,6 +34,7 @@
     '<div class="menu-pop" id="menuPop" hidden style="display:none">' +
     (FX ? '<div class="menu-row"><span class="menu-lab">🎵 Suoni</span>' + FX.soundButtonHtml() + '</div>' : '') +
     '<button type="button" class="menu-row menu-act" id="menuInstalla" hidden style="display:none"><span class="menu-lab">📲 Installa l\'app</span><span class="hint">sul telefono</span></button>' +
+    (window.Lingua ? '<div class="menu-row"><span class="menu-lab">🌍 Lingua</span><span id="menuLingua" style="display:inline-flex;gap:6px">' + window.Lingua.disponibili.map(function (c) { return '<button type="button" class="btn' + (c === window.Lingua.corrente() ? ' primary' : '') + '" data-lingua="' + c + '" style="padding:5px 10px;font-size:.85rem" data-no-lingua>' + window.Lingua.nomi[c] + '</button>'; }).join('') + '</span></div>' : '') +
     '</div>';
   // i vecchi segnaposto delle pagine
   var oldSound = document.getElementById('barSound'); if (oldSound) oldSound.remove();
@@ -48,6 +49,8 @@
   document.addEventListener('click', function (e) { if (!pop.hidden && !wrap.contains(e.target)) apri(false); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') apri(false); });
 
+  var ml = document.getElementById('menuLingua');
+  if (ml) ml.addEventListener('click', function (e) { var b = e.target.closest('[data-lingua]'); if (b) window.Lingua.imposta(b.getAttribute('data-lingua')); });
   // installa l'app (vedi js/pwa.js)
   var inst = document.getElementById('menuInstalla');
   function aggInst() { var ok = !!(window.PWA && window.PWA.possibile()); inst.hidden = !ok; inst.style.display = ok ? '' : 'none'; }
