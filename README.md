@@ -6,7 +6,7 @@ Un test del QI in una sola pagina HTML, pensato per essere il più affidabile po
 
 ## Come si usa
 
-Il test è pubblicato con GitHub Pages: apri la pagina del repository e fai il test dal browser, senza installare nulla. Le sfide a due sono alla pagina `sfide/` dello stesso sito, la modalità storia a livelli alla pagina `storia/`.
+Il sito è pubblicato su **https://qi.stafftech.it** (Cloudflare Pages, vedi `docs/dominio.md`): si usa dal browser, senza installare nulla. Le sfide a due sono alla pagina `sfide/` dello stesso sito, la modalità storia a livelli alla pagina `storia/`.
 
 In locale basta aprire `index.html` con un browser.
 
@@ -26,6 +26,10 @@ In locale basta aprire `index.html` con un browser.
 - `docs/calibrazione.md`: soglie di affidabilità, fonti aperte verificate e piano di taratura.
 - `docs/app.md`: app installabile (PWA): come si installa su telefono, icone, service worker e cache offline.
 - `docs/bug.md`: segnalazioni di bug («🐞 Segnala un errore» nel menu ⚙️): dove si leggono e come aggiornare l'Apps Script.
+
+## Licenza
+
+© 2026 Federico Apicella, tutti i diritti riservati. Il codice e i contenuti sono proprietari: non è concessa alcuna licenza d'uso, copia o modifica (vedi `LICENSE`). Restano con le loro licenze i componenti di terze parti indicati sopra.
 
 ## Come proporre modifiche
 
