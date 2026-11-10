@@ -5,7 +5,7 @@
  * - Non tocca mai: le POST, Google Apps Script (raccolta dati e account), PeerJS (sfide).
  * Per pubblicare una nuova versione basta cambiare VERSIONE: il vecchio contenuto viene cancellato.
  */
-const VERSIONE = 'ma-2026-11-09-lingue6';
+const VERSIONE = 'ma-2026-11-10-copyright';
 const CACHE = 'mente-allenata-' + VERSIONE;
 const FONT_CACHE = 'mente-allenata-font';
 const PRECARICA = [
@@ -71,8 +71,12 @@ async function reteCache(req) {
     return r;
   } catch (err) {
     const url = new URL(req.url);
-    return (await c.match(req, { ignoreSearch: true })) || (await c.match(url.pathname.replace(/index\.html$/, ''))) ||
-      (await c.match('/app/offline.html')) || Response.error();
+    const hit = (await c.match(req, { ignoreSearch: true })) || (await c.match(url.pathname.replace(/index\.html$/, ''))) ||
+      (await c.match(url.pathname.replace(/\.html$/, ''))) || (await c.match('/app/offline.html'));
+    if (!hit) return Response.error();
+    // Una risposta arrivata da un redirect (es. /test.html → /test su Cloudflare Pages) non può essere usata
+    // per una navigazione: la ricopiamo "pulita".
+    return hit.redirected ? new Response(hit.body, { status: 200, headers: hit.headers }) : hit;
   }
 }
 

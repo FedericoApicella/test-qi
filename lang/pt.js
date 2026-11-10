@@ -30,7 +30,7 @@ window.LINGUE.pt = {
   "Mente Allenata": "Mente Allenata",
   "Mente Allenata ·": "Mente Allenata ·",
   "privacy": "privacidade",
-  "codice aperto": "código aberto",
+  "© {} Federico Apicella · Tutti i diritti riservati": "© {} Federico Apicella · Todos os direitos reservados",
   "Mente Allenata · test, sfide e allenamento di logica ·": "Mente Allenata · teste de QI, desafios e treino de lógica ·",
   "Mente Allenata · test del QI, sfide e allenamento di logica": "Mente Allenata · teste de QI, desafios e treino de lógica",
   "Misura il tuo QI con un test multidominio, sfida un amico online in tempo reale e allena matrici, serie numeriche, analogie, memoria e rotazioni. Gratis, senza registrazione.": "Mede o teu QI com um teste multidomínio, desafia um amigo online em tempo real e treina matrizes, séries numéricas, analogias, memória e rotações. Grátis, sem registo.",

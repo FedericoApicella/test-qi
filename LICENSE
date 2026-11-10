@@ -1,0 +1,38 @@
+Copyright (c) 2026 Federico Apicella. Tutti i diritti riservati.
+Copyright (c) 2026 Federico Apicella. All rights reserved.
+
+== Italiano ==
+
+Questo software, il sito "Mente Allenata" (https://qi.stafftech.it), i quesiti,
+i testi, la grafica, i dati e ogni altro contenuto di questo repository sono
+opere protette dal diritto d'autore e di proprietà esclusiva di Federico Apicella.
+
+Non è concessa alcuna licenza. Senza autorizzazione scritta del titolare è
+vietato copiare, modificare, distribuire, pubblicare, vendere, concedere in
+sublicenza, decompilare o riutilizzare, in tutto o in parte, il codice e i
+contenuti, e creare opere derivate. L'uso del sito è consentito solo tramite
+l'indirizzo ufficiale, per fini personali e non commerciali.
+
+Fanno eccezione i componenti di terze parti inclusi nel repository, che restano
+soggetti alle rispettive licenze (ad esempio PeerJS, licenza MIT, e i parametri
+MaRs-IB in data/mars-ib/, licenza MIT).
+
+IL SOFTWARE È FORNITO "COSÌ COM'È", SENZA GARANZIE DI ALCUN TIPO.
+
+== English ==
+
+This software, the "Mente Allenata" website (https://qi.stafftech.it), its
+questions, texts, graphics, data and every other content of this repository are
+copyrighted works owned exclusively by Federico Apicella.
+
+No license is granted. Without the owner's written permission you may not copy,
+modify, distribute, publish, sell, sublicense, decompile or reuse the code or
+the content, in whole or in part, nor create derivative works. Use of the site
+is allowed only through its official address, for personal, non-commercial
+purposes.
+
+Third-party components included in the repository remain subject to their own
+licenses (for example PeerJS, MIT license, and the MaRs-IB parameters in
+data/mars-ib/, MIT license).
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
