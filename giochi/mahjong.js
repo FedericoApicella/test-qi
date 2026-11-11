@@ -6,7 +6,7 @@
 const G=window.Giochi,FX=window.Effetti,$=(s)=>document.querySelector(s);
 const GAME='mahjong';
 let P=G.load();
-const T3=window.Tessere;const FACCE=T3.FACCE;
+const TM=window.Temi; // set di facce, stile delle tessere e del tavolo scelti per livello (window.Temi)
 const UX=23,UY=30,TD=12; // mezza tessera in px (una tessera occupa 2×2 unità), spessore di una tessera (altezza di un piano)
 
 // ---- disposizione (posizioni x,y in mezze tessere, z piano) ----
@@ -18,6 +18,10 @@ function maschera(tipo,w,h){ // insiemi di tessere al piano 0, in coordinate tes
     else if(tipo==='rombo')ok=Math.abs(i-cx)/(w/2+.5)+Math.abs(j-cy)/(h/2+.5)<=1;
     else if(tipo==='farfalla')ok=!(Math.abs(i-cx)<=w*0.12&&Math.abs(j-cy)>h*0.2)&&!(Math.abs(i-cx)>w*0.3&&Math.abs(j-cy)<=h*0.12&&w>5);
     else if(tipo==='anello')ok=!(Math.abs(i-cx)<=Math.max(0.6,w/5)&&Math.abs(j-cy)<=Math.max(0.6,h/5)&&w>=5&&h>=4);
+    else if(tipo==='cuore'){const u=(i-cx)/(w/2+.5),v=(j-cy)/(h/2+.5);ok=(v<-0.1)?(Math.hypot(Math.abs(u)-0.5,v+0.35)<=0.62):(Math.abs(u)<=1.05*(1-(v+0.1)/1.1))}
+    else if(tipo==='esagono')ok=Math.abs(j-cy)/(h/2+.5)+Math.abs(i-cx)/(w+1)<=1&&Math.abs(i-cx)<=w/2;
+    else if(tipo==='ics'){const u=(i-cx)/(w/2+.5),v=(j-cy)/(h/2+.5);ok=Math.abs(Math.abs(u)-Math.abs(v))<=0.45||Math.hypot(u,v)<0.35}
+    else if(tipo==='scala')ok=(i-cx)+(j-cy)*(w/h)<=w*0.35||j<=1;
     if(ok)out.push([i*2,j*2]);
   }
   return out;
@@ -26,10 +30,10 @@ function layout(level){
   const d=G.d01(G.diffOf(level,P[GAME].diff));
   const target=Math.round((24+120*d)/2)*2;
   const r=G.rng('mahjong:'+level);
-  const tipi=['rett','piramide','croce','rombo','farfalla','anello'];
+  const tipi=['rett','piramide','croce','rombo','farfalla','anello','cuore','esagono','ics','scala'];
   const tipo=level<=2?'rett':r.pick(tipi);
   const maxZ=target<40?2:target<70?3:target<110?4:5;
-  let base=Math.max(8,Math.round(target*(target<=30?1:tipo==='anello'?0.7:target<48?0.72:0.55)));
+  let base=Math.max(8,Math.round(target*(target<=30?1:tipo==='anello'?0.7:(tipo==='cuore'||tipo==='ics'||tipo==='esagono')?0.8:target<48?0.72:0.55)));
   let h=Math.max(2,Math.round(Math.sqrt(base/1.5)));let w=Math.max(3,Math.round(base/h));
   if(tipo==='croce'||tipo==='anello'){w+=1;h+=1}
   let tiles=[];const m=(tipo==='rett'||tipo==='piramide')?maschera('rett',w,h):maschera(tipo,w,h);
@@ -82,7 +86,7 @@ const libera=(t,vivo)=>!t.sopra.some(i=>vivo[i])&&(!t.sx.some(i=>vivo[i])||!t.dx
 // assegna le facce simulando una partita vinta: dalla disposizione piena si tolgono a caso
 // due tessere libere alla volta e si dà loro la stessa faccia, finché il tavolo è vuoto.
 // Così la sequenza di mosse appena simulata è una soluzione garantita.
-function assegna(tiles,quali,r,nFacce){
+function assegna(tiles,quali,r,nFacce,FACCE){
   const facce=r.shuffle(FACCE.slice()).slice(0,nFacce);
   const nPairs=quali.length/2;const seq=[];for(let k=0;k<nPairs;k++)seq.push(facce[k%facce.length]);r.shuffle(seq);
   for(let tent=0;tent<50;tent++){
@@ -103,9 +107,11 @@ let S=null;
 function nuovo(level,ripresa){
   const {tiles,r,tipo}=layout(level);relazioni(tiles);
   const d=G.d01(G.diffOf(level,P[GAME].diff));
+  const tema=TM.setMahjong(level);const FACCE=tema.codes; // ogni livello ha il suo set di disegni (animali, frutta, spazio…) e il suo tavolo
   const nFacce=Math.max(4,Math.min(FACCE.length,Math.round(tiles.length/4*(0.6+0.5*d))));
-  const costruito=assegna(tiles,tiles.map(t=>t.i),G.rng("mahjong-facce:"+level),nFacce);
-  S={level,diffBase:P[GAME].diff,tiles,vivo:tiles.map(()=>true),slots:[null,null,null],sel:-1,selSlot:-1,hints:0,shuffles:0,storia:[],done:false,elapsed:0,r,costruito};
+  const costruito=assegna(tiles,tiles.map(t=>t.i),G.rng("mahjong-facce:"+level),nFacce,FACCE);
+  S={level,diffBase:P[GAME].diff,tiles,vivo:tiles.map(()=>true),slots:[null,null,null],sel:-1,selSlot:-1,hints:0,shuffles:0,storia:[],done:false,elapsed:0,r,costruito,tema,FACCE};
+  TM.applicaMahjong(tema,$('#boardWrap'),$('#board'));
   const c=P[GAME].corso;
   if(ripresa&&c&&c.level===level&&c.vivo&&c.vivo.length===tiles.length&&c.facce&&c.facce.length===tiles.length&&c.facce.every(f=>FACCE.includes(f))){S.vivo=c.vivo;c.facce.forEach((f,i)=>tiles[i].f=f);if(c.slots&&c.slots.length===3)S.slots=c.slots.map(v=>v==null?null:v);S.hints=c.hints||0;S.shuffles=c.shuffles||0;S.elapsed=c.elapsed||0}
   location.hash='liv='+level;
@@ -119,12 +125,12 @@ function render(full){
   const box=$('#board');const W=Math.max(...S.tiles.map(t=>t.x))+2,H=Math.max(...S.tiles.map(t=>t.y))+2;
   const lw=W*UX,lh=H*UY;
   if(full){
-    box.innerHTML=S.tiles.map(t=>`<div class="t" data-i="${t.i}" style="transform:translate3d(${t.x*UX}px,${t.y*UY}px,${t.z*TD}px)"><div class="t3"><div class="side sb"></div><div class="side sr"></div><div class="side sl"></div><div class="face"><span class="f" title="${T3.nome(t.f)}">${T3.svg(t.f)}</span></div></div></div>`).join('');
+    box.innerHTML=S.tiles.map(t=>`<div class="t" data-i="${t.i}" style="transform:translate3d(${t.x*UX}px,${t.y*UY}px,${t.z*TD}px)"><div class="t3"><div class="side sb"></div><div class="side sr"></div><div class="side sl"></div><div class="face"><span class="f" title="${S.tema.titolo(t.f)}">${S.tema.svg(t.f)}</span></div></div></div>`).join('');
     box.style.width=lw+'px';box.style.height=lh+'px';
   }
   const wrap=$('#boardWrap');
   if(full){box.style.setProperty('--scale',Math.min(1.5,((wrap.clientWidth||320)-16)/(lw+TD*2)));box.style.setProperty('--dx','0px');box.style.setProperty('--dy','0px')}
-  S.tiles.forEach(t=>{const el=box.children[t.i];if(!el)return;const v=S.vivo[t.i];el.classList.toggle('gone',!v);el.classList.toggle('blocked',v&&!libera(t,S.vivo));el.classList.toggle('sel',t.i===S.sel);if(full)el.querySelector('.f').innerHTML=T3.svg(t.f)});
+  S.tiles.forEach(t=>{const el=box.children[t.i];if(!el)return;const v=S.vivo[t.i];el.classList.toggle('gone',!v);el.classList.toggle('blocked',v&&!libera(t,S.vivo));el.classList.toggle('sel',t.i===S.sel);if(full)el.querySelector('.f').innerHTML=S.tema.svg(t.f)});
   // tavolo inclinato in 3D: si misura il rettangolo proiettato delle tessere e si adattano scala e posizione (due passate)
   if(full){const fit=(pass)=>{const r0=wrap.getBoundingClientRect();const availW=r0.width-12;const anchor=$('#slots').getBoundingClientRect().bottom+8;let top=1e9,bot=-1e9,left=1e9,right=-1e9;
       for(const el of box.children){const r=el.getBoundingClientRect();top=Math.min(top,r.top);bot=Math.max(bot,r.bottom);left=Math.min(left,r.left);right=Math.max(right,r.right)}
@@ -138,7 +144,7 @@ function render(full){
   const rest=S.vivo.filter(Boolean).length+S.slots.filter(v=>v!=null).length;$('#restN').textContent=rest;G.sfidaProgresso((1-rest/S.tiles.length)*100);$('#hintN').textContent=S.hints;$('#shufN').textContent=S.shuffles;$('#bUndo').disabled=!S.storia.length;
 }
 function renderSlots(){
-  const box=$('#slots');box.innerHTML=S.slots.map((v,k)=>`<button class="mj-slot ${v==null?'empty':''} ${S.selSlot===k?'sel':''}" data-k="${k}" aria-label="${v==null?'posto libero':T3.nome(S.tiles[v].f)}">${v==null?'<span class="plus">+</span>':`<span class="f">${T3.svg(S.tiles[v].f)}</span>`}</button>`).join('');
+  const box=$('#slots');box.innerHTML=S.slots.map((v,k)=>`<button class="mj-slot ${v==null?'empty':''} ${S.selSlot===k?'sel':''}" data-k="${k}" aria-label="${v==null?'posto libero':S.tema.titolo(S.tiles[v].f)}">${v==null?'<span class="plus">+</span>':`<span class="f">${S.tema.svg(S.tiles[v].f)}</span>`}</button>`).join('');
 }
 function mosse(){const out=[];const free=S.tiles.filter(t=>S.vivo[t.i]&&libera(t,S.vivo));for(let i=0;i<free.length;i++)for(let j=i+1;j<free.length;j++)if(free[i].f===free[j].f)out.push([free[i].i,free[j].i]);return out}
 function mosseSlot(){const out=[];const free=S.tiles.filter(t=>S.vivo[t.i]&&libera(t,S.vivo));S.slots.forEach((v,k)=>{if(v==null)return;for(const t of free)if(t.f===S.tiles[v].f)out.push([t.i,k])});return out}
@@ -184,7 +190,7 @@ function suggerimento(){if(S.done)return;if(window.Energia&&!Energia.spendi('aiu
 function mescola(){if(S.done)return;if(window.Energia&&!Energia.spendi('mescola'))return;S.slots.forEach((v,k)=>{if(v!=null){S.vivo[v]=true;S.slots[k]=null}});const quali=S.tiles.filter(t=>S.vivo[t.i]).map(t=>t.i);if(quali.length<4){msg('Troppo poche tessere per mescolare.');return}
   const facce=new Set(quali.map(i=>S.tiles[i].f));
   // riassegna le facce alle tessere rimaste, di nuovo in modo risolvibile
-  const r=G.rng('mescola:'+S.level+':'+S.shuffles+':'+Date.now());const ok=assegna(S.tiles,quali,r,facce.size);
+  const r=G.rng('mescola:'+S.level+':'+S.shuffles+':'+Date.now());const ok=assegna(S.tiles,quali,r,facce.size,S.FACCE);
   if(ok){ // assegna() pesca facce dall'elenco intero: rimappa sulle facce che c'erano
     const nuove=[...new Set(quali.map(i=>S.tiles[i].f))];const vecchie=[...facce];const mappa={};nuove.forEach((f,k)=>mappa[f]=vecchie[k%vecchie.length]);quali.forEach(i=>S.tiles[i].f=mappa[S.tiles[i].f])}
   S.shuffles++;S.sel=-1;S.selSlot=-1;S.storia=[];render(true);FX.beep('level');msg('Tessere mescolate: adesso una soluzione c’è di sicuro.');salvaCorso()}
@@ -198,7 +204,8 @@ function aiuto(){G.aiuto('Come si gioca a Mahjong',`<ul>
   <li><b>I tre posti in alto</b> sono un parcheggio: scegli una tessera libera e toccane uno per metterla lì, così liberi quelle sotto. Quando una tessera uguale arriva nel parcheggio (o la tocchi sul tavolo dopo aver scelto quella parcheggiata) la coppia sparisce. Tocca due volte una tessera parcheggiata per rimetterla sul tavolo.</li>
   <li><b>💡 Aiuto</b> mostra una coppia possibile, <b>🔀 Mescola</b> rimescola le tessere rimaste (sempre in modo risolvibile), <b>↩️ Annulla</b> rimette l’ultima coppia.</li>
   <li>Tre stelle: senza aiuti e senza mescolare. Ogni disposizione è costruita in modo che una soluzione esista.</li>
-  <li>Salendo di livello le disposizioni crescono: più tessere, più piani e più simboli diversi.</li></ul>`)}
+  <li>Salendo di livello le disposizioni crescono: più tessere, più piani e più simboli diversi.</li>
+  <li>Ogni livello ha i suoi disegni e il suo tavolo: tessere classiche, animali, frutta, spazio, mare, gemme, dolci, mostri e tanto altro.</li></ul>`)}
 
 $('#board').addEventListener('click',e=>{const t=e.target.closest('.t');if(t)tocca(+t.dataset.i)});
 $('#slots').addEventListener('click',e=>{const s=e.target.closest('.mj-slot');if(s)toccaSlot(+s.dataset.k)});

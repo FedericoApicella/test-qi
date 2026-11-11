@@ -6,6 +6,7 @@
 const G=window.Giochi,FX=window.Effetti,$=(s)=>document.querySelector(s),esc=G.esc;
 const GAME='sudoku';
 let P=G.load();
+const TM=window.Temi; // ogni livello ha il suo aspetto: numeri classici, numeri colorati, caratteri diversi o figure (animali, frutta…)
 
 // ---- generatore ----
 function dims(n){return n===4?[2,2]:n===6?[2,3]:[3,3]} // [righe per box, colonne per box]
@@ -35,11 +36,11 @@ function genera(level){
 let S=null; // {level,n,sol,given,grid,notes,sel,noteMode,hints,errors,start}
 function nuovo(level,ripresa){
   const pz=genera(level);
-  S={level,diffBase:P[GAME].diff,n:pz.n,sol:pz.sol,given:pz.given,peers:pz.peers,grid:pz.given.slice(),notes:pz.given.map(()=>[]),sel:-1,noteMode:false,hints:0,errors:0,done:false,elapsed:0};
+  S={level,diffBase:P[GAME].diff,n:pz.n,sol:pz.sol,given:pz.given,peers:pz.peers,grid:pz.given.slice(),notes:pz.given.map(()=>[]),sel:-1,noteMode:false,hints:0,errors:0,done:false,elapsed:0,tema:TM.temaSudoku(level,pz.n)};
   const c=P[GAME].corso;
   if(ripresa&&c&&c.level===level&&c.n===pz.n&&c.grid&&c.grid.length===pz.n*pz.n){S.grid=c.grid;S.notes=c.notes||S.notes;S.hints=c.hints||0;S.errors=c.errors||0;S.elapsed=c.elapsed||0}
   location.hash='liv='+level;
-  G.applySkin(P);G.intestazione(P,GAME,level,`${pz.n}×${pz.n} · ${pz.clues} numeri dati`);
+  G.applySkin(P);G.intestazione(P,GAME,level,S.tema.modo==='figure'?`${pz.n}×${pz.n} · ${pz.clues} figure date`:`${pz.n}×${pz.n} · ${pz.clues} numeri dati`);
   G.timerStart($('#barTimer'),S.elapsed);
   render();FX.beep('start');G.sfidaPronto();
 }
@@ -54,14 +55,14 @@ function render(){
     const alt=((Math.floor(r/bh)+Math.floor(c/bw))%2)===1;
     const bad=P.imp.errori&&v&&v!==S.sol[i];
     const cls=['c',alt?'alt':'',given?'given':'',(c%bw===bw-1&&c<n-1)?'bR':'',(r%bh===bh-1&&r<n-1)?'bB':'',i===S.sel?'sel':'',(selV&&v===selV&&i!==S.sel)?'same':'',(peerSet&&peerSet.has(i)&&i!==S.sel)?'peer':'',bad?'bad':''].filter(Boolean).join(' ');
-    let inner='';if(v)inner=v;else if(S.notes[i].length){inner='<span class="notes">';for(let k=1;k<=n;k++)inner+=`<i>${S.notes[i].includes(k)?k:''}</i>`;inner+='</span>'}
+    let inner='';if(v)inner=TM.glifoSudoku(S.tema,v);else if(S.notes[i].length){inner='<span class="notes">';for(let k=1;k<=n;k++)inner+=`<i>${S.notes[i].includes(k)?TM.glifoSudoku(S.tema,k):''}</i>`;inner+='</span>'}
     html+=`<div class="${cls}" data-i="${i}" role="button" tabindex="-1" aria-label="riga ${r+1} colonna ${c+1}${v?' valore '+v:''}">${inner}</div>`}
-  b.className='sd n'+n;b.style.gridTemplateColumns=`repeat(${n},1fr)`;b.innerHTML=html;
+  b.className='sd n'+n+' modo-'+S.tema.modo+(S.tema.font?' font-'+S.tema.font:'')+(TM.skinScura()?' scuro':'');b.style.gridTemplateColumns=`repeat(${n},1fr)`;b.innerHTML=html;
   // tastierino
   const counts=new Array(n+1).fill(0);for(const v of S.grid)if(v)counts[v]++;
   if(G.SFIDA){let tot=0,ok=0;for(let i=0;i<n*n;i++){if(S.given[i])continue;tot++;if(S.grid[i]===S.sol[i])ok++}G.sfidaProgresso(tot?ok/tot*100:100)}
-  let pad='';for(let k=1;k<=n;k++)pad+=`<button data-v="${k}" class="${counts[k]>=n?'done':''}">${k}<span class="left">${Math.max(0,n-counts[k])}</span></button>`;
-  const padEl=$('#pad');padEl.className='sd-pad n'+n;padEl.innerHTML=pad;
+  let pad='';for(let k=1;k<=n;k++)pad+=`<button data-v="${k}" class="${counts[k]>=n?'done':''}" aria-label="${k}">${TM.glifoSudoku(S.tema,k)}<span class="left">${Math.max(0,n-counts[k])}</span></button>`;
+  const padEl=$('#pad');padEl.className='sd-pad n'+n+' modo-'+S.tema.modo+(S.tema.font?' font-'+S.tema.font:'');padEl.innerHTML=pad;
   $('#bNote').classList.toggle('on',S.noteMode);
   $('#hintN').textContent=S.hints;$('#errN').textContent=S.errors;$('#errBox').style.display=P.imp.errori?'':'none';
 }
@@ -98,6 +99,7 @@ function aiuto(){G.aiuto('Come si gioca a Sudoku',`<ul>
   <li><b>✏️ Note</b>: segna i numeri possibili in una casella (a matita). Si cancellano da sole quando piazzi il numero vicino.</li>
   <li><b>💡 Aiuto</b> rivela un numero (nella casella scelta o in una a caso). Ogni aiuto costa una stella.</li>
   <li>Le <b>tre stelle</b> si prendono senza aiuti e con al massimo due errori. I livelli sono infiniti: si parte da griglie 4×4, poi 6×6, poi 9×9 con sempre meno numeri dati.</li>
+  <li>Ogni livello ha un aspetto diverso: numeri classici, numeri colorati o <b>figure</b> (animali, frutta, forme…). Con le figure la regola è la stessa: ogni figura una sola volta per riga, colonna e riquadro. Da tastiera i tasti 1-9 corrispondono alle figure nell’ordine della tastiera in basso.</li>
   <li>Da tastiera: frecce per muoverti, numeri per scrivere, Canc per cancellare, N per le note.</li></ul>`)}
 
 // ---- eventi ----

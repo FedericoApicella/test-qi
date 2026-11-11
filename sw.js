@@ -5,7 +5,7 @@
  * - Non tocca mai: le POST, Google Apps Script (raccolta dati e account), PeerJS (sfide).
  * Per pubblicare una nuova versione basta cambiare VERSIONE: il vecchio contenuto viene cancellato.
  */
-const VERSIONE = 'ma-2026-11-10-copyright';
+const VERSIONE = 'ma-2026-11-11-temi-giochi';
 const CACHE = 'mente-allenata-' + VERSIONE;
 const FONT_CACHE = 'mente-allenata-font';
 const PRECARICA = [
@@ -18,7 +18,7 @@ const PRECARICA = [
   '/js/abilita.js', '/abilita/', '/abilita/index.html',
   '/parole/', '/parole/index.html', '/parole/parole.css', '/parole/parole.js', '/parole/dizionario.js',
   '/giochi/', '/giochi/index.html', '/giochi/sudoku.html', '/giochi/mahjong.html', '/giochi/queens.html', '/giochi/giochi.css',
-  '/giochi/comune.js', '/giochi/sudoku.js', '/giochi/mahjong.js', '/giochi/queens.js', '/giochi/tessere.js',
+  '/giochi/comune.js', '/giochi/sudoku.js', '/giochi/mahjong.js', '/giochi/queens.js', '/giochi/tessere.js', '/giochi/temi.js',
   '/app/icona.svg', '/app/icona-192.png', '/app/icona-512.png', '/app/maskable-192.png', '/app/maskable-512.png',
   '/app/apple-touch-icon.png', '/app/favicon.svg', '/app/favicon-32.png', '/app/offline.html'
 ];

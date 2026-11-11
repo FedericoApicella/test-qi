@@ -6,10 +6,7 @@
 const G=window.Giochi,FX=window.Effetti,$=(s)=>document.querySelector(s);
 const GAME='queens';
 let P=G.load();
-const CHIARI=['#fecaca','#fed7aa','#fef08a','#bbf7d0','#a5f3fc','#c7d2fe','#f5d0fe','#fbcfe8','#d9f99d','#e7e5e4','#bae6fd'];
-const SCURI=['#7f1d1d','#7c2d12','#713f12','#14532d','#164e63','#312e81','#701a75','#831843','#365314','#44403c','#0c4a6e'];
-const SKIN_SCURE={notte:1,neon:1,oro:1,lava:1,galassia:1};
-const NOMI=['rossa','arancio','gialla','verde','azzurra','indaco','viola','rosa','lime','grigia','blu'];
+const TM=window.Temi; // palette delle regioni, simbolo della "regina" e trama cambiano di livello in livello
 
 // ---- generatore ----
 function soluzione(n,r){ // permutazione senza regine adiacenti
@@ -72,7 +69,7 @@ function genera(level){
 let S=null;
 function nuovo(level,ripresa){
   const pz=genera(level);
-  S={level,diffBase:P[GAME].diff,n:pz.n,cols:pz.cols,reg:pz.reg,cell:new Array(pz.n*pz.n).fill(0),hints:0,done:false,elapsed:0};
+  S={level,diffBase:P[GAME].diff,n:pz.n,cols:pz.cols,reg:pz.reg,cell:new Array(pz.n*pz.n).fill(0),hints:0,done:false,elapsed:0,tema:TM.temaQueens(level)};
   const c=P[GAME].corso;
   if(ripresa&&c&&c.level===level&&c.n===pz.n&&c.cell&&c.cell.length===pz.n*pz.n){S.cell=c.cell;S.hints=c.hints||0;S.elapsed=c.elapsed||0}
   location.hash='liv='+level;
@@ -87,14 +84,15 @@ function conflitti(){ // indici delle regine in conflitto
     if(ri===rj||ci===cj||S.reg[i]===S.reg[j]||(Math.abs(ri-rj)<=1&&Math.abs(ci-cj)<=1)){bad.add(i);bad.add(j)}}
   return{qs,bad}}
 function render(){
-  const n=S.n;const scuro=SKIN_SCURE[document.body.dataset.skin];const pal=scuro?SCURI:CHIARI;
+  const n=S.n;const scuro=TM.skinScura();const tema=S.tema;const pal=scuro?tema.pal.s:tema.pal.c;const off=tema.offset;
+  const board=$('#board');board.dataset.trama=tema.trama;board.classList.toggle('scuro',!!scuro);
   const {qs,bad}=conflitti();const mostra=P.imp.errori;
   const regOk=new Set();if(qs.length===n&&!bad.size)qs.forEach(i=>regOk.add(S.reg[i]));
   let html='';
   for(let i=0;i<n*n;i++){const row=Math.floor(i/n),c=i%n;const g=S.reg[i];
     const bT=row>0&&S.reg[i-n]!==g,bL=c>0&&S.reg[i-1]!==g;
     const v=S.cell[i];
-    html+=`<div class="c ${bT?'bT':''} ${bL?'bL':''} ${mostra&&bad.has(i)?'bad':''} ${regOk.has(g)?'done':''}" data-i="${i}" style="background:${pal[g%pal.length]}" role="button" aria-label="riga ${row+1} colonna ${c+1} regione ${NOMI[g%NOMI.length]}${v===2?' regina':v===1?' esclusa':''}">${v===2?'<span class="q">👑</span>':v===1?'<span class="x">✕</span>':''}</div>`}
+    html+=`<div class="c ${bT?'bT':''} ${bL?'bL':''} ${mostra&&bad.has(i)?'bad':''} ${regOk.has(g)?'done':''}" data-i="${i}" style="background:${pal[(g+off)%pal.length]}" role="button" aria-label="riga ${row+1} colonna ${c+1} regione ${g+1}${v===2?' regina':v===1?' esclusa':''}">${v===2?`<span class="q">${tema.regina}</span>`:v===1?'<span class="x">✕</span>':''}</div>`}
   const b=$('#board');b.style.gridTemplateColumns=`repeat(${n},1fr)`;b.innerHTML=html;
   $('#qN').textContent=`${qs.length}/${n}`;if(G.SFIDA){let ok=0;for(let r=0;r<n;r++)if(S.cell[r*n+S.cols[r]]===2)ok++;G.sfidaProgresso(ok/n*100)}$('#hintN').textContent=S.hints;
 }
@@ -115,7 +113,8 @@ function aiuto(){G.aiuto('Come si gioca a Queens',`<ul>
   <li>Tocca una casella una volta per segnarla con ✕ (lì non ci va), due volte per mettere la regina, tre per svuotarla.</li>
   <li>Trucco: una regione di una sola casella contiene per forza la regina; se una regione sta tutta in una riga, le altre caselle della riga si possono escludere.</li>
   <li><b>💡 Aiuto</b> piazza la regina giusta in una riga. Tre stelle: senza aiuti e in tempo (il tempo di riferimento cresce con la griglia).</li>
-  <li>Ogni livello ha una sola soluzione. Salendo si passa da 5×5 a 11×11 con regioni sempre più strane.</li></ul>`)}
+  <li>Ogni livello ha una sola soluzione. Salendo si passa da 5×5 a 11×11 con regioni sempre più strane.</li>
+  <li>Ogni livello ha i suoi colori e il suo simbolo al posto della corona: stelle, gemme, fiori, animali e altro ancora.</li></ul>`)}
 
 $('#board').addEventListener('click',e=>{const c=e.target.closest('.c');if(c)tocca(+c.dataset.i)});
 $('#bHint').addEventListener('click',suggerimento);$('#bClear').addEventListener('click',pulisci);
