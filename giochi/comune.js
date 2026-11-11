@@ -18,7 +18,17 @@ const SKINS=[
   {id:'foresta',nome:'Foresta',ic:'🍃',desc:'Verdi profondi e muschio.'},
   {id:'cristallo',nome:'Cristallo',ic:'💎',desc:'Vetro, riflessi e rosa ghiaccio.'},
   {id:'lava',nome:'Lava',ic:'🌋',desc:'Roccia scura e magma incandescente.'},
-  {id:'galassia',nome:'Galassia',ic:'🌌',desc:'Viola cosmico e stelle lontane: l’ultima frontiera.'}
+  {id:'galassia',nome:'Galassia',ic:'🌌',desc:'Viola cosmico e stelle lontane: l’ultima frontiera.'},
+  {id:'tramonto',nome:'Tramonto',ic:'🌅',desc:'Dal viola della sera all’arancio del sole che cala.'},
+  {id:'caramella',nome:'Caramella',ic:'🍬',desc:'Rosa zucchero, righe e azzurro menta.'},
+  {id:'retro',nome:'Schermo retrò',ic:'🕹️',desc:'Verde fosforo su nero, come i computer di una volta.'},
+  {id:'sakura',nome:'Sakura',ic:'🌸',desc:'Petali rosa che cadono piano.'},
+  {id:'ghiaccio',nome:'Ghiaccio',ic:'🧊',desc:'Azzurro gelido e riflessi di cristallo.'},
+  {id:'deserto',nome:'Deserto',ic:'🏜️',desc:'Sabbia calda, terracotta e un’oasi turchese.'},
+  {id:'mezzanotte',nome:'Mezzanotte',ic:'🌃',desc:'Blu profondo e argento.'},
+  {id:'prato',nome:'Prato',ic:'🌼',desc:'Verde fresco e fiorellini gialli.'},
+  {id:'prugna',nome:'Prugna e oro rosa',ic:'🍇',desc:'Viola scuro, rosa cipria e oro.'},
+  {id:'abisso',nome:'Abisso',ic:'🐙',desc:'Nero profondo e verde acqua che brilla.'}
 ];
 const GIOCHI={sudoku:{nome:'Sudoku',ic:'🔢',file:'sudoku.html'},mahjong:{nome:'Mahjong',ic:'🀄',file:'mahjong.html'},queens:{nome:'Queens',ic:'👑',file:'queens.html'}};
 const ROMANI=['','II','III','IV','V','VI','VII','VIII','IX','X'];

@@ -23,6 +23,7 @@
     <div class="eyebrow">Tre classici · livelli infiniti · difficoltà a scelta per gioco</div>
     <h1>Sudoku, Mahjong e Queens</h1>
     <div class="kpis" id="kpis"></div>
+    <div class="g-anteprima" id="anteprima" aria-hidden="true"></div>
   </section>
   <section class="stack">
     <div class="sec-head"><h2>Scegli il gioco</h2><button class="btn" id="bSet">⚙️ Grafica e opzioni</button></div>
@@ -36,6 +37,7 @@
 <script src="../js/energia.js"></script>
 <script src="../js/segnala.js"></script>
 <script src="comune.js"></script>
+<script src="temi.js"></script>
 <script>
 (function(){
 'use strict';
@@ -44,6 +46,7 @@ let P=G.load();
 const DESC={sudoku:'Griglie 4×4, poi 6×6, poi 9×9 con sempre meno numeri dati. Soluzione sempre unica, note a matita e aiuti.',mahjong:'Togli le tessere a coppie uguali. Disposizioni a più piani, sempre risolvibili, che crescono livello dopo livello.',queens:'Una regina per riga, colonna e colore, senza che si tocchino. Da 5×5 a 11×11, una sola soluzione.'};
 function disegna(){
   P=G.load();G.applySkin(P);const tot=G.totale(P),st=G.stelleTot(P);
+  const TM=window.Temi;const ids=TM.SET_IDS.slice().sort(()=>Math.random()-.5).slice(0,6);$('#anteprima').innerHTML=ids.map(id=>TM.icona(id,Math.floor(Math.random()*12),Math.floor(Math.random()*10))).join('');
   $('#kpis').innerHTML=`<div class="kpi"><b>${tot}</b><span>livelli completati</span></div><div class="kpi"><b>${st}</b><span>stelle</span></div>`;
   $('#cards').innerHTML=Object.keys(G.GIOCHI).map(k=>{const g=G.GIOCHI[k],p=P[k];const n=Object.keys(p.stelle).length;const d=G.diffOf(p.next,p.diff);const stars=Object.values(p.stelle).reduce((a,b)=>a+b,0);
     return`<div class="g-card"><div class="head"><span class="ic">${g.ic}</span><b>${g.nome}</b><span class="lv"><span>${n} livell${n===1?'o':'i'} · ★ ${stars}</span></span></div><span class="hint">${DESC[k]}</span>
